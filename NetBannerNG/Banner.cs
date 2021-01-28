@@ -59,6 +59,9 @@ namespace NetBannerNG
             CenterClassification();
             AppBarHelper.AppBarMessage = "NetBannerNG";
             AppBarHelper.SetAppBar(this, AppBarEdge.Top);
+
+            this.FormClosing += new FormClosingEventHandler(Banner_FormClosing);
+            this.SizeChanged += new EventHandler(Banner_SizeChanged);
         }
 
         private void Banner_SizeChanged(object sender, EventArgs e)
