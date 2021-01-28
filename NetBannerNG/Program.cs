@@ -15,6 +15,10 @@ namespace NetBannerNG
         [STAThread]
         static void Main()
         {
+            var mutex = new System.Threading.Mutex(true, "UniqueAppId", out bool result);
+
+            if (!result) return;
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
@@ -26,11 +30,11 @@ namespace NetBannerNG
             }
             else
             {
-                banner = new Banner(new ClassificationMark() 
-                { 
-                    ClassificationName = "Classification not configured", 
-                    BackgroundColor = Color.White, 
-                    ForeColor = Color.Black 
+                banner = new Banner(new ClassificationMark()
+                {
+                    ClassificationName = "Classification not configured",
+                    BackgroundColor = Color.White,
+                    ForeColor = Color.Black
                 });
             }
 
@@ -38,6 +42,8 @@ namespace NetBannerNG
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
             Application.Run(banner);
+
+            GC.KeepAlive(mutex);                // mutex shouldn't be released - important line
         }
 
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
