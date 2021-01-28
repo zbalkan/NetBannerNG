@@ -1,12 +1,11 @@
-﻿using EnvDTE;
-using EnvDTE80;
-using System;
+﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
 
 namespace NetBannerNG
 {
-    public class Program
+
+    public static class Program
     {
         private static Banner banner;
 
@@ -27,16 +26,28 @@ namespace NetBannerNG
             }
             else
             {
-                banner = new Banner(new ClassificationMark() { ClassificationName = "Classification not configured", BackgroundColor = Color.White, ForeColor = Color.Black });
+                banner = new Banner(new ClassificationMark() 
+                { 
+                    ClassificationName = "Classification not configured", 
+                    BackgroundColor = Color.White, 
+                    ForeColor = Color.Black 
+                });
             }
+
+            Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
+            AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
 
             Application.Run(banner);
         }
 
-        private void Application_ThreadExit(Object sender, EventArgs e)
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
+            AppBarHelper.SetAppBar(banner, AppBarEdge.None);
+        }
 
-            MessageBox.Show("You are in the Application.ThreadExit event.");
+        private static void Application_ApplicationExit(object sender, EventArgs e)
+        {
+            AppBarHelper.SetAppBar(banner, AppBarEdge.None);
         }
     }
 }
