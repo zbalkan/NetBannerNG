@@ -32,7 +32,7 @@ namespace NetBannerNG
 
         private static RECT BackupRc;
         private static bool ConfirmedInLocation = false;
-        private static Dictionary<Form, RegisterInfo> RegisterFormInfo = new Dictionary<Form, RegisterInfo>();
+        private static readonly Dictionary<Form, RegisterInfo> RegisterFormInfo = new Dictionary<Form, RegisterInfo>();
 
         [StructLayout(LayoutKind.Sequential)]
         private struct RECT
@@ -347,8 +347,7 @@ namespace NetBannerNG
                 {
                     info.CallbackId = RegisterWindowMessage(AppBarMessage);
                     abd.uCallbackMessage = info.CallbackId;
-
-                    uint ret = SHAppBarMessage((int)AppBarMsg.ABM_NEW, ref abd);
+                    _ = SHAppBarMessage((int)AppBarMsg.ABM_NEW, ref abd);
                     Application.AddMessageFilter(info);
 
                     info.IsRegistered = true;
