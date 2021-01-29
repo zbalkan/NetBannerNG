@@ -10,6 +10,7 @@ namespace NetBannerNG
 
         protected Banner()
         {
+            AppBarHelper.PreventShowDesktop(this.Handle);
             InitializeComponent();
         }
 
@@ -17,6 +18,7 @@ namespace NetBannerNG
         {
             PaintBanner(classification.BackgroundColor);
             WriteClassification(classification.ClassificationName.ToUpperInvariant(), classification.ForeColor);
+            AppBarHelper.PreventShowDesktop(this.Handle);
             InitializeComponent();
         }
 
@@ -24,6 +26,7 @@ namespace NetBannerNG
         {
             PaintBanner(classification.BackgroundColor);
             WriteClassification($"{classification.ClassificationName.ToUpperInvariant()} RELEASABLE TO {caveat.ToUpperInvariant()}", classification.ForeColor);
+            AppBarHelper.PreventShowDesktop(this.Handle);
             InitializeComponent();
         }
 
