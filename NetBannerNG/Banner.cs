@@ -7,6 +7,7 @@ namespace NetBannerNG
     public partial class Banner : Form
     {
         private Label ClassificationLabel;
+        private Label ConLabel;
 
         protected Banner()
         {
@@ -18,6 +19,7 @@ namespace NetBannerNG
         {
             PaintBanner(classification.BackgroundColor);
             WriteClassification(classification.ClassificationName.ToUpperInvariant(), classification.ForeColor);
+            WriteCon("");
             AppBarHelper.PreventShowDesktop(this.Handle);
             InitializeComponent();
         }
@@ -49,6 +51,22 @@ namespace NetBannerNG
                 Size = new Size(20, 20),
                 Anchor = AnchorStyles.None,
                 Text = classification,
+                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
+                ForeColor = foreColor
+            };
+
+            Controls.Add(ClassificationLabel);
+        }
+
+        private void WriteCon(string con, Color foreColor)
+        {
+            ClassificationLabel = new Label
+            {
+                AutoSize = true,
+                Name = "ConLabel",
+                Size = new Size(20, 20),
+                Anchor = AnchorStyles.Right,
+                Text = con,
                 Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
                 ForeColor = foreColor
             };
