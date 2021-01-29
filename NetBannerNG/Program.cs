@@ -30,12 +30,7 @@ namespace NetBannerNG
             }
             else
             {
-                banner = new Banner(new ClassificationMark()
-                {
-                    ClassificationName = "Classification not configured",
-                    BackgroundColor = Color.White,
-                    ForeColor = Color.Black
-                });
+                banner = Banner.Error();
             }
 
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);

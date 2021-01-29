@@ -30,6 +30,16 @@ namespace NetBannerNG
             InitializeComponent();
         }
 
+        public static Banner Error()
+        {
+            return new Banner(new ClassificationMark()
+            {
+                ClassificationName = "Classification not configured",
+                BackgroundColor = Color.White,
+                ForeColor = Color.Black
+            });
+        }
+
         private void WriteClassification(string classification, Color foreColor)
         {
             ClassificationLabel = new Label
