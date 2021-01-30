@@ -4,8 +4,8 @@ namespace NetBannerNG
 {
     public class CustomSettings
     {
-        private CustomBackgroundColors customBackgroundColor;
-        private CustomForeColors customForeColor;
+        private readonly CustomBackgroundColors customBackgroundColor;
+        private readonly CustomForeColors customForeColor;
 
         public Color CustomBackgroundColor => ConvertBackgroundColor();
         public Color CustomForeColor => ConvertForeColor();
@@ -59,13 +59,13 @@ namespace NetBannerNG
             switch (customForeColor)
             {
                 default:
-                case CustomForeColor.Black:
+                case CustomForeColors.Black:
                     color = Color.Black;
                     break;
-                case CustomForeColor.White:
+                case CustomForeColors.White:
                     color = Color.White;
                     break;
-                case CustomForeColor.Red:
+                case CustomForeColors.Red:
                     color = Color.Red;
                     break;
             }
