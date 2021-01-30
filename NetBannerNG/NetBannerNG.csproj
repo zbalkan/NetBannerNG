@@ -47,8 +47,12 @@
     <Compile Include="Banner.Designer.cs">
       <DependentUpon>Banner.cs</DependentUpon>
     </Compile>
+    <Compile Include="Setting.cs" />
+    <Compile Include="RegistrySetting.cs" />
     <Compile Include="ClassificationMark.cs" />
+    <Compile Include="ConMark.cs" />
     <Compile Include="CustomSettings.cs" />
+    <Compile Include="Dispatcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RegistryHelper.cs" />

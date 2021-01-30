@@ -8,7 +8,7 @@ namespace NetBannerNG
     public static class Program
     {
         private static Banner banner;
-
+        private static Dispatcher dispatcher;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -22,16 +22,8 @@ namespace NetBannerNG
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            if (RegistryHelper.ConnectRegistry())
-            {
-                var classification = RegistryHelper.GetClassification();
-                banner = RegistryHelper.IsCaveatsEnabled() ? new Banner(classification, RegistryHelper.GetCaveat()) : new Banner(classification);
-                RegistryHelper.DisconnectRegistry();
-            }
-            else
-            {
-                banner = Banner.Error();
-            }
+            dispatcher = new Dispatcher();
+            banner = dispatcher.DrawBanner();
 
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);

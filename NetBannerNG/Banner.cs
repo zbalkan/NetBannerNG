@@ -6,103 +6,63 @@ namespace NetBannerNG
 {
     public partial class Banner : Form
     {
-        private Label ClassificationLabel;
-        private Label ConLabel;
+        public Label ClassificationLabel { get; set; }
+        public Label ConLabel { get; set; }
 
-        protected Banner()
+        public Banner()
         {
-            AppBarHelper.PreventShowDesktop(this.Handle);
-            InitializeComponent();
-        }
-
-        public Banner(ClassificationMark classification)
-        {
-            PaintBanner(classification.BackgroundColor);
-            WriteClassification(classification.ClassificationName.ToUpperInvariant(), classification.ForeColor);
-            WriteCon("");
-            AppBarHelper.PreventShowDesktop(this.Handle);
-            InitializeComponent();
-        }
-
-        public Banner(ClassificationMark classification, string caveat) : this()
-        {
-            PaintBanner(classification.BackgroundColor);
-            WriteClassification($"{classification.ClassificationName.ToUpperInvariant()} RELEASABLE TO {caveat.ToUpperInvariant()}", classification.ForeColor);
             AppBarHelper.PreventShowDesktop(this.Handle);
             InitializeComponent();
         }
 
         public static Banner Error()
         {
-            return new Banner(new ClassificationMark()
+            return new Banner()
             {
-                ClassificationName = "Classification not configured",
-                BackgroundColor = Color.White,
+                ClassificationLabel = new Label() { Text = "Classification not configured" } ,
+                BackColor = Color.White,
                 ForeColor = Color.Black
-            });
-        }
-
-        private void WriteClassification(string classification, Color foreColor)
-        {
-            ClassificationLabel = new Label
-            {
-                AutoSize = true,
-                Name = "ClassificationLabel",
-                Size = new Size(20, 20),
-                Anchor = AnchorStyles.None,
-                Text = classification,
-                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                ForeColor = foreColor
             };
-
-            Controls.Add(ClassificationLabel);
         }
 
-        private void WriteCon(string con, Color foreColor)
-        {
-            ClassificationLabel = new Label
-            {
-                AutoSize = true,
-                Name = "ConLabel",
-                Size = new Size(20, 20),
-                Anchor = AnchorStyles.Right,
-                Text = con,
-                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                ForeColor = foreColor
-            };
-
-            Controls.Add(ClassificationLabel);
-        }
-
-        private void PaintBanner(Color backgroundColor)
-        {
-            BackColor = backgroundColor;
-        }
-
+        #region ALIGNING
         private void CenterClassification()
         {
             ClassificationLabel.Left = (this.Width - ClassificationLabel.Width) / 2;
             ClassificationLabel.Top = (this.Height - ClassificationLabel.Height) / 2;
         }
 
+        private void AlignCon()
+        {
+            if (ConLabel == null) return;
+            ConLabel.Left = (this.Width - ConLabel.Width) - 30;
+            ConLabel.Top = (this.Height - ConLabel.Height) / 2;
+        } 
+        #endregion
+
+        #region EVENTS
         private void Banner_Load(object sender, EventArgs e)
         {
-            CenterClassification();
+            Controls.Add(ClassificationLabel);
+            if(ConLabel != null) Controls.Add(ConLabel);
+
             AppBarHelper.AppBarMessage = "NetBannerNG";
             AppBarHelper.SetAppBar(this, AppBarEdge.Top);
 
-            this.FormClosing += new FormClosingEventHandler(Banner_FormClosing);
-            this.SizeChanged += new EventHandler(Banner_SizeChanged);
+            CenterClassification();
+            AlignCon();
         }
 
         private void Banner_SizeChanged(object sender, EventArgs e)
         {
             CenterClassification();
+            AlignCon();
         }
 
         private void Banner_FormClosing(object sender, FormClosingEventArgs e)
         {
             AppBarHelper.SetAppBar(this, AppBarEdge.None);
-        }
+        } 
+        #endregion
     }
 }
