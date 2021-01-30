@@ -4,14 +4,14 @@ namespace NetBannerNG
 {
     public class CustomSettings
     {
-        private readonly CustomBackgroundColors customBackgroundColor;
-        private readonly CustomForeColors customForeColor;
+        private readonly CustomBackgroundColorEnum customBackgroundColor;
+        private readonly CustomForeColorEnum customForeColor;
 
         public Color CustomBackgroundColor => ConvertBackgroundColor();
         public Color CustomForeColor => ConvertForeColor();
         public string CustomDisplayText { get; }
 
-        public CustomSettings(CustomBackgroundColors customBackgroundColor, CustomForeColors customForeColor, string customDisplayText)
+        public CustomSettings(CustomBackgroundColorEnum customBackgroundColor, CustomForeColorEnum customForeColor, string customDisplayText)
         {
             this.customBackgroundColor = customBackgroundColor;
             this.customForeColor = customForeColor;
@@ -24,28 +24,28 @@ namespace NetBannerNG
             switch (customBackgroundColor)
             {
                 default:
-                case CustomBackgroundColors.Green:
+                case CustomBackgroundColorEnum.Green:
                     color = Color.Green;
                     break;
-                case CustomBackgroundColors.Blue:
+                case CustomBackgroundColorEnum.Blue:
                     color = Color.Blue;
                     break;
-                case CustomBackgroundColors.Red:
+                case CustomBackgroundColorEnum.Red:
                     color = Color.Red;
                     break;
-                case CustomBackgroundColors.Yellow:
+                case CustomBackgroundColorEnum.Yellow:
                     color = Color.Yellow;
                     break;
-                case CustomBackgroundColors.White:
+                case CustomBackgroundColorEnum.White:
                     color = Color.White;
                     break;
-                case CustomBackgroundColors.SaddleBrown:
+                case CustomBackgroundColorEnum.SaddleBrown:
                     color = Color.SaddleBrown;
                     break;
-                case CustomBackgroundColors.Purple:
+                case CustomBackgroundColorEnum.Purple:
                     color = Color.Purple;
                     break;
-                case CustomBackgroundColors.Orange:
+                case CustomBackgroundColorEnum.Orange:
                     color = Color.Orange;
                     break;
             }
@@ -59,13 +59,13 @@ namespace NetBannerNG
             switch (customForeColor)
             {
                 default:
-                case CustomForeColors.Black:
+                case CustomForeColorEnum.Black:
                     color = Color.Black;
                     break;
-                case CustomForeColors.White:
+                case CustomForeColorEnum.White:
                     color = Color.White;
                     break;
-                case CustomForeColors.Red:
+                case CustomForeColorEnum.Red:
                     color = Color.Red;
                     break;
             }
@@ -74,7 +74,7 @@ namespace NetBannerNG
         }
     }
 
-    public enum CustomBackgroundColors
+    public enum CustomBackgroundColorEnum
     {
         Green = 1,
         Blue = 2,
@@ -86,7 +86,7 @@ namespace NetBannerNG
         Orange = 8
     }
 
-    public enum CustomForeColors
+    public enum CustomForeColorEnum
     {
         Black = 1,
         White = 2,
