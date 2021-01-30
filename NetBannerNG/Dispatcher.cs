@@ -27,9 +27,9 @@ namespace NetBannerNG
             };
 
 
-            if (settings.ForceProtectionCon != null || settings.InfoCon != null)
+            if (settings.ForceProtectionCondition != null || settings.InformationOperationCondition != null)
             {
-                banner.ConLabel = WriteCon(settings);
+                banner.ConditionLabel = WriteCon(settings);
             }
 
             return banner;
@@ -73,8 +73,8 @@ namespace NetBannerNG
             {
                 Classification = GetClassification(registry.Classification),
                 Caveats = registry.CaveatsEnabled == 1 ? registry.Caveats : null,
-                ForceProtectionCon = GetFpCon(registry.FpCon),
-                InfoCon = GetInfoCon(registry.InfoCon),
+                ForceProtectionCondition = GetFpCon(registry.FpCon),
+                InformationOperationCondition = GetInfoCon(registry.InfoCon),
                 CustomSettings = GetCustomSettings(registry.CustomBackgroundColor, registry.CustomForeColor, registry.CustomDisplayText)
             };
             return settings;
@@ -84,21 +84,21 @@ namespace NetBannerNG
         {
             var classifications = new List<ClassificationMark>
             {
-                new ClassificationMark(){ ClassificationName ="UNCLASSIFIED", BackgroundColor = Color.Green, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="SECRET", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="TOP SECRET", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="SCI", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO UNCLASSIFIED", BackgroundColor = Color.Green, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO RESTRICTED", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO CONFIDENTIAL", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO SECRET", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO TOP SECRET", BackgroundColor = Color.Red, ForeColor = Color.White }
+                new ClassificationMark(){ ClassificationName ="UNCLASSIFIED", BackgroundColor = Color.Green, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="SECRET", BackgroundColor = Color.Blue, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="TOP SECRET", BackgroundColor = Color.Red, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="SCI", BackgroundColor = Color.Red, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="NATO UNCLASSIFIED", BackgroundColor = Color.Green, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="NATO RESTRICTED", BackgroundColor = Color.Blue, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="NATO CONFIDENTIAL", BackgroundColor = Color.Blue, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="NATO SECRET", BackgroundColor = Color.Red, TextColor = Color.White },
+                new ClassificationMark(){ ClassificationName ="NATO TOP SECRET", BackgroundColor = Color.Red, TextColor = Color.White }
             };
 
             return classifications[value - 1];
         }
 
-        private ConMark GetFpCon(int? value)
+        private ConditionMark GetFpCon(int? value)
         {
             if (value.HasValue)
             {
@@ -119,16 +119,16 @@ namespace NetBannerNG
                         fpCon = "DELTA";
                         break;
                 }
-                return new ConMark() { ConValue = fpCon };
+                return new ConditionMark() { ConditionLevel = fpCon };
             }
             return null;
         }
 
-        private ConMark GetInfoCon(int? value)
+        private ConditionMark GetInfoCon(int? value)
         {
             if (value.HasValue)
             {
-                return new ConMark() { ConValue = value.ToString() };
+                return new ConditionMark() { ConditionLevel = value.ToString() };
             }
             return null;
         }
@@ -170,7 +170,7 @@ namespace NetBannerNG
                 Dock = DockStyle.None,
                 Text = setting.Classification.ClassificationName,
                 Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                ForeColor = setting.Classification.ForeColor
+                ForeColor = setting.Classification.TextColor
             };
 
             // With Caveats
@@ -184,7 +184,7 @@ namespace NetBannerNG
 
         private Label WriteCon(Setting setting)
         {
-            var text = string.Join(" | ", setting.ForceProtectionCon.ConValue ?? string.Empty, setting.InfoCon.ConValue ?? string.Empty);
+            var text = string.Join(" | ", setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
 
             return new Label
             {
@@ -193,7 +193,7 @@ namespace NetBannerNG
                 Size = new Size(20, 14),
                 Text = text,
                 Font = new Font("Segoe UI", 12, FontStyle.Regular),
-                ForeColor = setting.Classification.ForeColor
+                ForeColor = setting.Classification.TextColor
             };
         }
     }

@@ -6,6 +6,6 @@ namespace NetBannerNG
     {
         public string ClassificationName { get; set; }
         public Color BackgroundColor { get; set; }
-        public Color ForeColor { get; set; }
+        public Color TextColor { get; set; }
     }
 }
