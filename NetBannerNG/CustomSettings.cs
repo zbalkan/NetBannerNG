@@ -8,10 +8,11 @@ namespace NetBannerNG
         public CustomForeColor CustomForeColor { get; set; }
         public string CustomDisplayText { get; set; }
 
-        public Color ConvertBackgroundColor(CustomBackgroundColor customBackgroundColor)
+        // TODO: Find a better approach
+        public Color ConvertBackgroundColor()
         {
             Color color;
-            switch (customBackgroundColor)
+            switch (CustomBackgroundColor)
             {
                 default:
                 case CustomBackgroundColor.Green:
@@ -43,10 +44,10 @@ namespace NetBannerNG
             return color;
         }
 
-        public Color ConvertForeColor(CustomForeColor customForeColor)
+        public Color ConvertForeColor( )
         {
             Color color;
-            switch (customForeColor)
+            switch (CustomForeColor)
             {
                 default:
                 case CustomForeColor.Black:

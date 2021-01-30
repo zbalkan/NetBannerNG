@@ -1,6 +1,4 @@
 ﻿using Microsoft.Win32;
-using System.Collections.Generic;
-using System.Drawing;
 
 namespace NetBannerNG
 {
@@ -19,28 +17,14 @@ namespace NetBannerNG
             NetBannerKey.Close();
         }
 
-        public static bool IsCaveatsEnabled()
+        public static int GetCaveatsEnabled()
         {
-            return NetBannerKey.GetValue("CaveatsEnabled") != null;
+            return NetBannerKey.GetValue("CaveatsEnabled") != null ? (int)NetBannerKey.GetValue("CaveatsEnabled") : 0;
         }
 
-        public static ClassificationMark GetClassification()
+        public static int GetClassification()
         {
-            var classifications = new List<ClassificationMark>
-            {
-                new ClassificationMark(){ ClassificationName ="UNCLASSIFIED", BackgroundColor = Color.Green, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="SECRET", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="TOP SECRET", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="SCI", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO UNCLASSIFIED", BackgroundColor = Color.Green, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO RESTRICTED", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO CONFIDENTIAL", BackgroundColor = Color.Blue, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO SECRET", BackgroundColor = Color.Red, ForeColor = Color.White },
-                new ClassificationMark(){ ClassificationName ="NATO TOP SECRET", BackgroundColor = Color.Red, ForeColor = Color.White }
-            };
-
-            var index = int.Parse(NetBannerKey.GetValue("Classification").ToString()) - 1;
-            return classifications[index];
+            return (int)NetBannerKey.GetValue("Classification");
         }
 
         public static string GetCaveat()
@@ -48,47 +32,34 @@ namespace NetBannerNG
             return NetBannerKey.GetValue("Caveats").ToString();
         }
 
-        public static string GetFpCon()
+        public static int? GetFpCon()
         {
-            var result = int.Parse(NetBannerKey.GetValue("FpCon").ToString());
-            string fpCon;
-            switch (result)
-            {
-                default:
-                case 1:
-                    fpCon = "ALPHA";
-                    break;
-                case 2:
-                    fpCon = "BETA";
-                    break;
-                case 3:
-                    fpCon = "CHARLIE";
-                    break;
-                case 4:
-                    fpCon = "DELTA";
-                    break;
-            }
-            return fpCon;
+            return NetBannerKey.GetValue("FpCon") == null ? null : (int?)(int)NetBannerKey.GetValue("FpCon");
         }
 
-        public static int GetInfoCon()
+        public static int? GetInfoCon()
         {
-            return int.Parse(NetBannerKey.GetValue("InfoCon").ToString());
+            return NetBannerKey.GetValue("InfoCon") == null ? null : (int?)(int)NetBannerKey.GetValue("InfoCon");
         }
 
-        public static bool IsCustomSettingEnabled()
+        public static int GetCustomSettingsKey()
         {
-            return int.Parse(NetBannerKey.GetValue("CustomSettings").ToString()) == 1;
+            return NetBannerKey.GetValue("CustomSettings") == null ? 0 : (int)NetBannerKey.GetValue("CustomSettings");
         }
 
-        public static CustomSettings GetCustomSettings()
+        public static int GetCustomForeColor()
         {
-            return new CustomSettings
-            {
-                CustomBackgroundColor = (CustomBackgroundColor)int.Parse(NetBannerKey.GetValue("CustomBackgroundColor").ToString()),
-                CustomForeColor = (CustomForeColor)int.Parse(NetBannerKey.GetValue("CustomForeColor").ToString()),
-                CustomDisplayText = NetBannerKey.GetValue("CustomDisplayText").ToString()
-            };
+            return (int)NetBannerKey.GetValue("CustomForeColor");
+        }
+
+        public static int GetCustomBackgroundColor()
+        {
+            return (int)NetBannerKey.GetValue("CustomBackgroundColor");
+        }
+
+        public static string GetCustomDisplayText()
+        {
+            return (string)NetBannerKey.GetValue("CustomDisplayText");
         }
     }
 }
