@@ -50,7 +50,7 @@
     <Compile Include="Setting.cs" />
     <Compile Include="RegistrySetting.cs" />
     <Compile Include="ClassificationMark.cs" />
-    <Compile Include="ConMark.cs" />
+    <Compile Include="ConditionMark.cs" />
     <Compile Include="CustomSettings.cs" />
     <Compile Include="Dispatcher.cs" />
     <Compile Include="Program.cs" />

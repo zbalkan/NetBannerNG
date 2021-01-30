@@ -7,7 +7,7 @@ namespace NetBannerNG
     public partial class Banner : Form
     {
         public Label ClassificationLabel { get; set; }
-        public Label ConLabel { get; set; }
+        public Label ConditionLabel { get; set; }
 
         public Banner()
         {
@@ -34,9 +34,9 @@ namespace NetBannerNG
 
         private void AlignCon()
         {
-            if (ConLabel == null) return;
-            ConLabel.Left = (this.Width - ConLabel.Width) - 30;
-            ConLabel.Top = (this.Height - ConLabel.Height) / 2;
+            if (ConditionLabel == null) return;
+            ConditionLabel.Left = (this.Width - ConditionLabel.Width) - 30;
+            ConditionLabel.Top = (this.Height - ConditionLabel.Height) / 2;
         } 
         #endregion
 
@@ -44,7 +44,7 @@ namespace NetBannerNG
         private void Banner_Load(object sender, EventArgs e)
         {
             Controls.Add(ClassificationLabel);
-            if(ConLabel != null) Controls.Add(ConLabel);
+            if(ConditionLabel != null) Controls.Add(ConditionLabel);
 
             AppBarHelper.AppBarMessage = "NetBannerNG";
             AppBarHelper.SetAppBar(this, AppBarEdge.Top);
