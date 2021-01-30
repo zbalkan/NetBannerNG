@@ -11,4 +11,5 @@ Netbanner GPOs are required to manage the classifications.
 
 ## TODO
 [X] Display FPCON and INFOCON
+
 [X] Added custom GPO files
