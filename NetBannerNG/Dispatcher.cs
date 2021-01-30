@@ -135,12 +135,7 @@ namespace NetBannerNG
 
         private CustomSettings GetCustomSettings(int bgcolor, int foreColor, string displayText)
         {
-            return new CustomSettings
-            {
-                CustomBackgroundColor = (CustomBackgroundColor)(bgcolor),
-                CustomForeColor = (CustomForeColor)(foreColor),
-                CustomDisplayText = displayText
-            };
+            return new CustomSettings((CustomBackgroundColors)(bgcolor), (CustomForeColors)(foreColor), displayText);
         }
 
         private Label WriteClassification(Setting setting)
