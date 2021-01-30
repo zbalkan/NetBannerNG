@@ -4,39 +4,48 @@ namespace NetBannerNG
 {
     public class CustomSettings
     {
-        public CustomBackgroundColor CustomBackgroundColor { get; set; }
-        public CustomForeColor CustomForeColor { get; set; }
-        public string CustomDisplayText { get; set; }
+        private CustomBackgroundColors customBackgroundColor;
+        private CustomForeColors customForeColor;
 
-        // TODO: Find a better approach
+        public Color CustomBackgroundColor => ConvertBackgroundColor();
+        public Color CustomForeColor => ConvertForeColor();
+        public string CustomDisplayText { get; }
+
+        public CustomSettings(CustomBackgroundColors customBackgroundColor, CustomForeColors customForeColor, string customDisplayText)
+        {
+            this.customBackgroundColor = customBackgroundColor;
+            this.customForeColor = customForeColor;
+            CustomDisplayText = customDisplayText;
+        }
+
         public Color ConvertBackgroundColor()
         {
             Color color;
-            switch (CustomBackgroundColor)
+            switch (customBackgroundColor)
             {
                 default:
-                case CustomBackgroundColor.Green:
+                case CustomBackgroundColors.Green:
                     color = Color.Green;
                     break;
-                case CustomBackgroundColor.Blue:
+                case CustomBackgroundColors.Blue:
                     color = Color.Blue;
                     break;
-                case CustomBackgroundColor.Red:
+                case CustomBackgroundColors.Red:
                     color = Color.Red;
                     break;
-                case CustomBackgroundColor.Yellow:
+                case CustomBackgroundColors.Yellow:
                     color = Color.Yellow;
                     break;
-                case CustomBackgroundColor.White:
+                case CustomBackgroundColors.White:
                     color = Color.White;
                     break;
-                case CustomBackgroundColor.SaddleBrown:
+                case CustomBackgroundColors.SaddleBrown:
                     color = Color.SaddleBrown;
                     break;
-                case CustomBackgroundColor.Purple:
+                case CustomBackgroundColors.Purple:
                     color = Color.Purple;
                     break;
-                case CustomBackgroundColor.Orange:
+                case CustomBackgroundColors.Orange:
                     color = Color.Orange;
                     break;
             }
@@ -44,10 +53,10 @@ namespace NetBannerNG
             return color;
         }
 
-        public Color ConvertForeColor( )
+        public Color ConvertForeColor()
         {
             Color color;
-            switch (CustomForeColor)
+            switch (customForeColor)
             {
                 default:
                 case CustomForeColor.Black:
@@ -65,7 +74,7 @@ namespace NetBannerNG
         }
     }
 
-    public enum CustomBackgroundColor
+    public enum CustomBackgroundColors
     {
         Green = 1,
         Blue = 2,
@@ -77,7 +86,7 @@ namespace NetBannerNG
         Orange = 8
     }
 
-    public enum CustomForeColor
+    public enum CustomForeColors
     {
         Black = 1,
         White = 2,
