@@ -13,7 +13,7 @@ namespace NetBannerNG
 
         public Dispatcher()
         {
-            settings = MapToPOCO(ReadRegistry());
+            settings = ReadRegistry();
         }
 
         public Banner DrawBanner()
@@ -35,13 +35,66 @@ namespace NetBannerNG
             return banner;
         }
 
-
-        private RegistrySetting ReadRegistry()
+        private Label WriteClassification(Setting setting)
         {
-            RegistrySetting bannerSettings = null;
+            if (!string.IsNullOrEmpty(setting.CustomSettings.CustomDisplayText))
+            {
+                // Custom settings override other settings
+                var customLabel = new Label
+                {
+                    AutoSize = true,
+                    Name = "ClassificationLabel",
+                    Size = new Size(20, 20),
+                    Dock = DockStyle.None,
+                    Text = setting.CustomSettings.CustomDisplayText,
+                    Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
+                    ForeColor = setting.CustomSettings.ConvertForeColor()
+                };
+                return customLabel;
+            }
+
+            // Plain clasification
+            var label = new Label
+            {
+                AutoSize = true,
+                Name = "ClassificationLabel",
+                Size = new Size(20, 20),
+                Dock = DockStyle.None,
+                Text = setting.Classification.ClassificationName,
+                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
+                ForeColor = setting.Classification.TextColor
+            };
+
+            // With Caveats
+            if (setting.Caveats != null)
+            {
+                label.Text = $"{setting.Classification.ClassificationName} RELEASABLE TO {setting.Caveats}";
+            }
+
+            return label;
+        }
+
+        private Label WriteCon(Setting setting)
+        {
+            var text = string.Join(" | ", setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
+
+            return new Label
+            {
+                AutoSize = true,
+                Name = "ConLabel",
+                Size = new Size(20, 14),
+                Text = text,
+                Font = new Font("Segoe UI", 12, FontStyle.Regular),
+                ForeColor = setting.Classification.TextColor
+            };
+        }
+
+        private Setting ReadRegistry()
+        {
+            RegistrySetting registry = null;
             if (RegistryHelper.ConnectRegistry())
             {
-                bannerSettings = new RegistrySetting()
+                registry = new RegistrySetting()
                 {
                     Classification = RegistryHelper.GetClassification(),
                     CaveatsEnabled = RegistryHelper.GetCaveatsEnabled(),
@@ -52,23 +105,18 @@ namespace NetBannerNG
                 };
                 if (RegistryHelper.GetCaveatsEnabled() == 1)
                 {
-                    bannerSettings.Caveats = RegistryHelper.GetCaveat();
+                    registry.Caveats = RegistryHelper.GetCaveat();
                 }
                 if (RegistryHelper.GetCustomSettingsKey() == 1)
                 {
-                    bannerSettings.CustomSettings = RegistryHelper.GetCustomSettingsKey();
-                    bannerSettings.CustomDisplayText = RegistryHelper.GetCustomDisplayText();
-                    bannerSettings.CustomBackgroundColor = RegistryHelper.GetCustomBackgroundColor();
-                    bannerSettings.CustomForeColor = RegistryHelper.GetCustomForeColor();
+                    registry.CustomSettings = RegistryHelper.GetCustomSettingsKey();
+                    registry.CustomDisplayText = RegistryHelper.GetCustomDisplayText();
+                    registry.CustomBackgroundColor = RegistryHelper.GetCustomBackgroundColor();
+                    registry.CustomForeColor = RegistryHelper.GetCustomForeColor();
                 }
                 RegistryHelper.DisconnectRegistry();
             }
 
-            return bannerSettings;
-        }
-
-        private Setting MapToPOCO(RegistrySetting registry)
-        {
             var settings = new Setting
             {
                 Classification = GetClassification(registry.Classification),
@@ -136,60 +184,6 @@ namespace NetBannerNG
         private CustomSettings GetCustomSettings(int bgcolor, int foreColor, string displayText)
         {
             return new CustomSettings((CustomBackgroundColorEnum)(bgcolor), (CustomForeColorEnum)(foreColor), displayText);
-        }
-
-        private Label WriteClassification(Setting setting)
-        {
-            if (!string.IsNullOrEmpty(setting.CustomSettings.CustomDisplayText))
-            {
-                // Custom settings override other settings
-                var customLabel = new Label
-                {
-                    AutoSize = true,
-                    Name = "ClassificationLabel",
-                    Size = new Size(20, 20),
-                    Dock = DockStyle.None,
-                    Text = setting.CustomSettings.CustomDisplayText,
-                    Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                    ForeColor = setting.CustomSettings.ConvertForeColor()
-                };
-                return customLabel;
-            }
-
-            // Plain clasification
-            var label = new Label
-            {
-                AutoSize = true,
-                Name = "ClassificationLabel",
-                Size = new Size(20, 20),
-                Dock = DockStyle.None,
-                Text = setting.Classification.ClassificationName,
-                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                ForeColor = setting.Classification.TextColor
-            };
-
-            // With Caveats
-            if (setting.Caveats != null)
-            {
-                label.Text = $"{setting.Classification.ClassificationName} RELEASABLE TO {setting.Caveats}";
-            }
-
-            return label;
-        }
-
-        private Label WriteCon(Setting setting)
-        {
-            var text = string.Join(" | ", setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
-
-            return new Label
-            {
-                AutoSize = true,
-                Name = "ConLabel",
-                Size = new Size(20, 14),
-                Text = text,
-                Font = new Font("Segoe UI", 12, FontStyle.Regular),
-                ForeColor = setting.Classification.TextColor
-            };
         }
     }
 }
