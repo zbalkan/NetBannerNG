@@ -105,9 +105,11 @@ namespace NetBannerNG
 
         private ClassificationMark GetClassification(int value)
         {
-            var classifications = new List<ClassificationMark>
-            {
-                new ClassificationMark(){ ClassificationName ="UNCLASSIFIED", BackgroundColor = Color.Green, TextColor = Color.White },
+            // In order to minimize instance creation for Backgroundcolor and foreColor classes, the colors are defined manually.
+            // Since the valuees are hardcoded and not read from registry, therefore it's not needed in this use case.
+            // It is possible to add these into Resources but it's overhead is unnecessary.
+            ClassificationMark[] classifications = {
+                new ClassificationMark(){ClassificationName ="UNCLASSIFIED", BackgroundColor = Color.Green, TextColor = Color.White },
                 new ClassificationMark(){ ClassificationName ="SECRET", BackgroundColor = Color.Blue, TextColor = Color.White },
                 new ClassificationMark(){ ClassificationName ="TOP SECRET", BackgroundColor = Color.Red, TextColor = Color.White },
                 new ClassificationMark(){ ClassificationName ="SCI", BackgroundColor = Color.Red, TextColor = Color.White },
