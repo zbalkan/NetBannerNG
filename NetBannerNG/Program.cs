@@ -15,7 +15,7 @@ namespace NetBannerNG
         [STAThread]
         static void Main()
         {
-            var mutex = new System.Threading.Mutex(true, "UniqueAppId", out bool result);
+            var mutex = new System.Threading.Mutex(true, "NetBannerNG", out bool result);
 
             if (!result) return;
 
