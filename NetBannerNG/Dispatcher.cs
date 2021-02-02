@@ -16,10 +16,11 @@ namespace NetBannerNG
 
         public Banner DrawBanner()
         {
+             // CUSROM SETTINGS Handling must be rewritten
             var banner = new Banner
             {
                 BackColor = settings.CustomSettings != null ?
-                            settings.CustomSettings.ConvertBackgroundColor() :
+                            settings.CustomSettings.CustomBackgroundColor.Color :
                             settings.Classification.BackgroundColor,
                 ClassificationLabel = WriteClassification(settings)
             };
@@ -46,7 +47,7 @@ namespace NetBannerNG
                     Dock = DockStyle.None,
                     Text = setting.CustomSettings.CustomDisplayText,
                     Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
-                    ForeColor = setting.CustomSettings.ConvertForeColor()
+                    ForeColor = setting.CustomSettings.CustomForeColor.Color
                 };
                 return customLabel;
             }

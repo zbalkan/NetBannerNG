@@ -41,12 +41,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppBarHelper.cs" />
+    <Compile Include="BackgroundColor.cs" />
     <Compile Include="Banner.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Banner.Designer.cs">
       <DependentUpon>Banner.cs</DependentUpon>
     </Compile>
+    <Compile Include="ForeColor.cs" />
     <Compile Include="Setting.cs" />
     <Compile Include="RegistrySetting.cs" />
     <Compile Include="ClassificationMark.cs" />
