@@ -1,12 +1,10 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows.Forms;
 
 namespace NetBannerNG
 {
     public class Dispatcher
     {
-
         private readonly Setting settings;
 
         public Dispatcher()
