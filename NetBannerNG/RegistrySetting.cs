@@ -8,8 +8,8 @@ namespace NetBannerNG
         public int Classification => (int)netBannerKey.GetValue("Classification");
         public int CaveatsEnabled => netBannerKey.GetValue("CaveatsEnabled") != null ? (int)netBannerKey.GetValue("CaveatsEnabled") : 0;
         public string Caveats => CaveatsEnabled != 1 ? string.Empty : netBannerKey.GetValue("Caveats").ToString();
-        public int? FpCon => netBannerKey.GetValue("FpCon") == null ? null : (int?)netBannerKey.GetValue("FpCon");
-        public int? InfoCon => netBannerKey.GetValue("InfoCon") == null ? null : (int?)netBannerKey.GetValue("InfoCon");
+        public int FpCon => netBannerKey.GetValue("FpCon") == null ? 0 : (int)netBannerKey.GetValue("FpCon");
+        public int InfoCon => netBannerKey.GetValue("InfoCon") == null ? 0 : (int)netBannerKey.GetValue("InfoCon");
         public int CustomSettings => netBannerKey.GetValue("CustomSettings") == null ? 0 : (int)netBannerKey.GetValue("CustomSettings");
         public int CustomBackgroundColor => CustomSettings != 1 ? 0 : (int)netBannerKey.GetValue("CustomBackgroundColor");
         public int CustomForeColor => CustomSettings != 1 ? 0 : (int)netBannerKey.GetValue("CustomForeColor");

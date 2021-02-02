@@ -90,7 +90,7 @@ namespace NetBannerNG
         private Setting ReadRegistry()
         {
             var registry = new RegistrySetting();
-            
+
             var settings = new Setting
             {
                 Classification = GetClassification(registry.Classification),
@@ -120,44 +120,41 @@ namespace NetBannerNG
             return classifications[value - 1];
         }
 
-        private ConditionMark GetFpCon(int? value)
+        private ConditionMark GetFpCon(int value)
         {
-            if (value.HasValue)
+
+            string fpCon;
+            switch (value)
             {
-                string fpCon;
-                switch (value)
-                {
-                    default:
-                    case 1:
-                        fpCon = "ALPHA";
-                        break;
-                    case 2:
-                        fpCon = "BETA";
-                        break;
-                    case 3:
-                        fpCon = "CHARLIE";
-                        break;
-                    case 4:
-                        fpCon = "DELTA";
-                        break;
-                }
-                return new ConditionMark() { ConditionLevel = fpCon };
+                case 1:
+                    fpCon = "ALPHA";
+                    break;
+                case 2:
+                    fpCon = "BETA";
+                    break;
+                case 3:
+                    fpCon = "CHARLIE";
+                    break;
+                case 4:
+                    fpCon = "DELTA";
+                    break;
+                default:
+                    fpCon = null;
+                    break;
             }
-            return null;
+            return new ConditionMark() { ConditionLevel = fpCon };
         }
 
-        private ConditionMark GetInfoCon(int? value)
+        private ConditionMark GetInfoCon(int value)
         {
-            if (value.HasValue)
-            {
-                return new ConditionMark() { ConditionLevel = value.ToString() };
-            }
-            return null;
+            return value < 1 || value > 5
+                ? new ConditionMark() { ConditionLevel = null }
+                : new ConditionMark() { ConditionLevel = value.ToString() };
         }
 
-        private CustomSettings GetCustomSettings(int bgcolor, int foreColor, string displayText)
+        private CustomSettings GetCustomSettings(int bgColor, int foreColor, string displayText)
         {
-            return new CustomSettings((CustomBackgroundColorEnum)(bgcolor), (CustomForeColorEnum)(foreColor), displayText);
+            return new CustomSettings((CustomBackgroundColorEnum)(bgColor), (CustomForeColorEnum)(foreColor), displayText);
         }
     }
 }
