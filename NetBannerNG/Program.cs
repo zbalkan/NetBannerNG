@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Drawing;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace NetBannerNG
@@ -15,7 +15,7 @@ namespace NetBannerNG
         [STAThread]
         static void Main()
         {
-            var mutex = new System.Threading.Mutex(true, "NetBannerNG", out bool result);
+            var mutex = new Mutex(true, "NetBannerNG", out bool result);
 
             if (!result) return;
 
