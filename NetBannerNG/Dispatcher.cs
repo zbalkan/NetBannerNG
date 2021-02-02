@@ -89,32 +89,8 @@ namespace NetBannerNG
 
         private Setting ReadRegistry()
         {
-            RegistrySetting registry = null;
-            if (RegistryHelper.ConnectRegistry())
-            {
-                registry = new RegistrySetting()
-                {
-                    Classification = RegistryHelper.GetClassification(),
-                    CaveatsEnabled = RegistryHelper.GetCaveatsEnabled(),
-
-                    FpCon = RegistryHelper.GetFpCon(),
-                    InfoCon = RegistryHelper.GetInfoCon(),
-
-                };
-                if (RegistryHelper.GetCaveatsEnabled() == 1)
-                {
-                    registry.Caveats = RegistryHelper.GetCaveat();
-                }
-                if (RegistryHelper.GetCustomSettingsKey() == 1)
-                {
-                    registry.CustomSettings = RegistryHelper.GetCustomSettingsKey();
-                    registry.CustomDisplayText = RegistryHelper.GetCustomDisplayText();
-                    registry.CustomBackgroundColor = RegistryHelper.GetCustomBackgroundColor();
-                    registry.CustomForeColor = RegistryHelper.GetCustomForeColor();
-                }
-                RegistryHelper.DisconnectRegistry();
-            }
-
+            var registry = new RegistrySetting();
+            
             var settings = new Setting
             {
                 Classification = GetClassification(registry.Classification),
