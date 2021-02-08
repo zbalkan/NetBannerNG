@@ -57,6 +57,7 @@
     <Compile Include="CustomBackgroundColors.cs" />
     <Compile Include="CustomForeColors.cs" />
     <Compile Include="ForeColor.cs" />
+    <Compile Include="Logger.cs" />
     <Compile Include="Setting.cs" />
     <Compile Include="RegistrySetting.cs" />
     <Compile Include="ClassificationMark.cs" />
