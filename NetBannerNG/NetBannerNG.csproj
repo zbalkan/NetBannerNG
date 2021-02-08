@@ -48,6 +48,12 @@
     <Compile Include="Banner.Designer.cs">
       <DependentUpon>Banner.cs</DependentUpon>
     </Compile>
+    <Compile Include="ClassificationLabel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ConditionLabel.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="CustomBackgroundColors.cs" />
     <Compile Include="CustomForeColors.cs" />
     <Compile Include="ForeColor.cs" />
