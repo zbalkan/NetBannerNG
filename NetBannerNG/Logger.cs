@@ -21,5 +21,16 @@ namespace NetBannerNG
                 eventLog.WriteEntry(message, EventLogEntryType.Error, 105, 1);
             }
         }
+
+        public static void LogDebug(string message)
+        {
+#if DEBUG
+            using (EventLog eventLog = new EventLog("Application"))
+            {
+                eventLog.Source = "Application";
+                eventLog.WriteEntry(message, EventLogEntryType.Information, 103, 1);
+            }
+#endif
+        }
     }
 }
