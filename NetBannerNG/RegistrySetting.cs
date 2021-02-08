@@ -21,6 +21,7 @@ namespace NetBannerNG
         public RegistrySetting()
         {
             netBannerKey = Registry.LocalMachine.OpenSubKey(@"Software\Policies\Microsoft\NetBanner");
+            if (netBannerKey == null) throw new Exception("Classification not configured.");
         }
 
         protected virtual void Dispose(bool disposing)

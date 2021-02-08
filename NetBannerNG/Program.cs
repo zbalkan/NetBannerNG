@@ -34,7 +34,7 @@ namespace NetBannerNG
 
         private static void MyHandler(object sender, UnhandledExceptionEventArgs e)
         {
-            MessageBox.Show(((Exception)e.ExceptionObject).Message, "An Unhandled Error Occured.", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            // MessageBox.Show(((Exception)e.ExceptionObject).Message, "An Unhandled Error Occured.", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Application.Run(Banner.Error());
         }
 
