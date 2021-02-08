@@ -19,7 +19,7 @@ namespace NetBannerNG
         {
             return new Banner()
             {
-                ClassificationLabel = new Label() { Text = "Classification not configured" } ,
+                ClassificationLabel = new ClassificationLabel() { Text = "Classification not configured" } ,
                 BackColor = Color.White,
                 ForeColor = Color.Black
             };

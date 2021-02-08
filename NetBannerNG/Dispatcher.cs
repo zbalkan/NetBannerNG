@@ -14,7 +14,7 @@ namespace NetBannerNG
 
         public Banner DrawBanner()
         {
-             // TODO: CUSTOM SETTINGS Handling must be rewritten
+            // TODO: CUSTOM SETTINGS Handling must be rewritten
             var banner = new Banner
             {
                 BackColor = settings.CustomSettings != null ?
@@ -37,28 +37,18 @@ namespace NetBannerNG
             if (!string.IsNullOrEmpty(setting.CustomSettings.CustomDisplayText))
             {
                 // Custom settings override other settings
-                var customLabel = new Label
+                var customLabel = new ClassificationLabel
                 {
-                    AutoSize = true,
-                    Name = "ClassificationLabel",
-                    Size = new Size(20, 20),
-                    Dock = DockStyle.None,
                     Text = setting.CustomSettings.CustomDisplayText,
-                    Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
                     ForeColor = setting.CustomSettings.CustomForeColor.Color
                 };
                 return customLabel;
             }
 
             // Plain clasification
-            var label = new Label
+            var label = new ClassificationLabel
             {
-                AutoSize = true,
-                Name = "ClassificationLabel",
-                Size = new Size(20, 20),
-                Dock = DockStyle.None,
                 Text = setting.Classification.ClassificationName,
-                Font = new Font("Segoe UI Semibold", 14, FontStyle.Bold),
                 ForeColor = setting.Classification.TextColor
             };
 
@@ -75,13 +65,9 @@ namespace NetBannerNG
         {
             var text = string.Join(" | ", setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
 
-            return new Label
+            return new ConditionLabel
             {
-                AutoSize = true,
-                Name = "ConLabel",
-                Size = new Size(20, 14),
                 Text = text,
-                Font = new Font("Segoe UI", 12, FontStyle.Regular),
                 ForeColor = setting.Classification.TextColor
             };
         }
