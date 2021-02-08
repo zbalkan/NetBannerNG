@@ -21,9 +21,10 @@ namespace NetBannerNG
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
+            AppDomain.CurrentDomain.AssemblyLoad += new AssemblyLoadEventHandler(CurrentDomain_AssemblyLoad);
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
-            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(MyHandler);
+            AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(GlobalExceptionHandler);
 
             dispatcher = new Dispatcher();
             banner = dispatcher.DrawBanner();
@@ -32,20 +33,27 @@ namespace NetBannerNG
             GC.KeepAlive(mutex);                // mutex shouldn't be released - important line
         }
 
-        private static void MyHandler(object sender, UnhandledExceptionEventArgs e)
+        private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs e)
         {
-            // MessageBox.Show(((Exception)e.ExceptionObject).Message, "An Unhandled Error Occured.", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Logger.LogInformation("NetBannerNG started.");
+        }
+
+        private static void GlobalExceptionHandler(object sender, UnhandledExceptionEventArgs e)
+        {
+            Logger.LogError(((Exception)e.ExceptionObject).Message + Environment.NewLine + ((Exception)e.ExceptionObject).InnerException.Message ?? string.Empty);
             Application.Run(Banner.Error());
         }
 
         private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
         {
             AppBarHelper.SetAppBar(banner, AppBarEdge.None);
+            Logger.LogInformation("NetBannerNG exited successfully.");
         }
 
         private static void Application_ApplicationExit(object sender, EventArgs e)
         {
             AppBarHelper.SetAppBar(banner, AppBarEdge.None);
+            Logger.LogInformation("NetBannerNG exited successfully.");
         }
     }
 }
