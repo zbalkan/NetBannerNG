@@ -14,20 +14,14 @@ namespace NetBannerNG
 
         public Banner DrawBanner()
         {
-            // TODO: CUSTOM SETTINGS Handling must be rewritten
             var banner = new Banner
             {
                 BackColor = settings.CustomSettings != null ?
                             settings.CustomSettings.CustomBackgroundColor.Color :
                             settings.Classification.BackgroundColor,
-                ClassificationLabel = WriteClassification(settings)
+                ClassificationLabel = WriteClassification(settings),
+                ConditionLabel = WriteCon(settings)
             };
-
-
-            if (settings.ForceProtectionCondition != null || settings.InformationOperationCondition != null)
-            {
-                banner.ConditionLabel = WriteCon(settings);
-            }
 
             return banner;
         }
@@ -63,8 +57,12 @@ namespace NetBannerNG
 
         private Label WriteCon(Setting setting)
         {
-            var text = string.Join(" | ", setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
-
+            var separator = " | ";
+            var text = string.Join(separator, setting.ForceProtectionCondition.ConditionLevel ?? string.Empty, setting.InformationOperationCondition.ConditionLevel ?? string.Empty);
+            if (text.Equals(separator))
+            {
+                return null;
+            }
             return new ConditionLabel
             {
                 Text = text,
