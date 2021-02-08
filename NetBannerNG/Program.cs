@@ -21,14 +21,12 @@ namespace NetBannerNG
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
-            dispatcher = new Dispatcher();
-            banner = dispatcher.DrawBanner();
-
             Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
             AppDomain.CurrentDomain.ProcessExit += new EventHandler(CurrentDomain_ProcessExit);
             AppDomain.CurrentDomain.UnhandledException += new UnhandledExceptionEventHandler(MyHandler);
 
+            dispatcher = new Dispatcher();
+            banner = dispatcher.DrawBanner();
             Application.Run(banner);
 
             GC.KeepAlive(mutex);                // mutex shouldn't be released - important line
