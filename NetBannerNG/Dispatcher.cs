@@ -14,7 +14,7 @@ namespace NetBannerNG
 
         public Banner DrawBanner()
         {
-             // CUSROM SETTINGS Handling must be rewritten
+             // TODO: CUSTOM SETTINGS Handling must be rewritten
             var banner = new Banner
             {
                 BackColor = settings.CustomSettings != null ?
@@ -96,7 +96,7 @@ namespace NetBannerNG
                 Caveats = registry.CaveatsEnabled == 1 ? registry.Caveats : null,
                 ForceProtectionCondition = GetFpCon(registry.FpCon),
                 InformationOperationCondition = GetInfoCon(registry.InfoCon),
-                CustomSettings = GetCustomSettings(registry.CustomBackgroundColor, registry.CustomForeColor, registry.CustomDisplayText)
+                CustomSettings = GetCustomSettings((CustomBackgroundColors)registry.CustomBackgroundColor, (CustomForeColors)registry.CustomForeColor, registry.CustomDisplayText)
             };
             return settings;
         }
@@ -153,9 +153,6 @@ namespace NetBannerNG
                 : new ConditionMark() { ConditionLevel = value.ToString() };
         }
 
-        private CustomSettings GetCustomSettings(int bgColor, int foreColor, string displayText)
-        {
-            return new CustomSettings((CustomBackgroundColorEnum)(bgColor), (CustomForeColorEnum)(foreColor), displayText);
-        }
+        private CustomSettings GetCustomSettings(CustomBackgroundColors bgColor, CustomForeColors foreColor, string displayText) => new CustomSettings(bgColor, foreColor, displayText);
     }
 }

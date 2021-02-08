@@ -2,14 +2,14 @@
 {
     public class CustomSettings
     {
-        private readonly CustomBackgroundColorEnum customBackgroundColor;
-        private readonly CustomForeColorEnum customForeColor;
+        private readonly CustomBackgroundColors customBackgroundColor;
+        private readonly CustomForeColors customForeColor;
 
         public BackgroundColor CustomBackgroundColor => new BackgroundColor((int)customBackgroundColor);
         public ForeColor CustomForeColor => new ForeColor((int)customForeColor);
         public string CustomDisplayText { get; }
 
-        public CustomSettings(CustomBackgroundColorEnum customBackgroundColor, CustomForeColorEnum customForeColor, string customDisplayText)
+        public CustomSettings(CustomBackgroundColors customBackgroundColor, CustomForeColors customForeColor, string customDisplayText)
         {
             this.customBackgroundColor = customBackgroundColor;
             this.customForeColor = customForeColor;

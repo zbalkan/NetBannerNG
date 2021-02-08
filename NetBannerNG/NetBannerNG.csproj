@@ -48,8 +48,8 @@
     <Compile Include="Banner.Designer.cs">
       <DependentUpon>Banner.cs</DependentUpon>
     </Compile>
-    <Compile Include="CustomBackgroundColorEnum.cs" />
-    <Compile Include="CustomForeColorEnum.cs" />
+    <Compile Include="CustomBackgroundColors.cs" />
+    <Compile Include="CustomForeColors.cs" />
     <Compile Include="ForeColor.cs" />
     <Compile Include="Setting.cs" />
     <Compile Include="RegistrySetting.cs" />
