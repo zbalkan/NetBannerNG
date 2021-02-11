@@ -47,6 +47,7 @@ namespace NetBannerNG
             if(ConditionLabel != null) Controls.Add(ConditionLabel);
 
             AppBarHelper.AppBarMessage = "NetBannerNG";
+            AppBarHelper.SetAppBar(this, AppBarEdge.None); // Reset First
             AppBarHelper.SetAppBar(this, AppBarEdge.Top);
 
             CenterClassification();
@@ -58,11 +59,6 @@ namespace NetBannerNG
             CenterClassification();
             AlignCon();
         }
-
-        private void Banner_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            AppBarHelper.SetAppBar(this, AppBarEdge.None);
-        } 
         #endregion
     }
 }
