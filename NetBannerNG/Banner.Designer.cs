@@ -44,7 +44,6 @@
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
             this.TopMost = true;
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Banner_FormClosing);
             this.Load += new System.EventHandler(this.Banner_Load);
             this.SizeChanged += new System.EventHandler(this.Banner_SizeChanged);
             this.ResumeLayout(false);
