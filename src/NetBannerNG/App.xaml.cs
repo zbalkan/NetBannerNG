@@ -1,5 +1,5 @@
 using NetBannerNG.Common.Extensions;
-using NetBannerNG.Common.Native;
+using NetBannerNG.Services;
 using NetBannerNG.Utils;
 using System.Diagnostics;
 using System.IO;
@@ -14,35 +14,26 @@ namespace NetBannerNG
     /// </summary>
     public partial class App : Application
     {
-        private static readonly string _tmpFilePath = Path.Combine(UserHelper.UserTempPath, "netbannerng-pipe.tmp");
         private static bool _isClosing;
-        internal static NamedPipeClient? Client { get; private set; }
+        private readonly AppLifecycleService _lifecycleService = new();
 
-        internal static void ShutDownGracefully()
+        internal static async void ShutDownGracefully()
         {
             if (Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
             {
-                dispatcher.Invoke(ShutDownGracefully);
+                _ = dispatcher.BeginInvoke(ShutDownGracefully);
                 return;
             }
 
             try
             {
                 _isClosing = true;
-                BorderManager.CloseAllBorders();
-                PinClearShutdown();
-                WindowWatcher.Unwatch();
-                MonitorWatcher.Unwatch();
-                // ReSharper disable once ConstantConditionalAccessQualifier
-                _ = Client?.DisposeAsync().IsCompleted;
-                ProcessHelper.Unprotect();
+                await ((App)Current!)._lifecycleService.ShutdownRuntimeAsync();
                 Current?.Shutdown();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                ex.Submit();
                 _isClosing = true;
-                ProcessHelper.Unprotect();
                 Current?.Shutdown();
             }
         }
@@ -51,21 +42,17 @@ namespace NetBannerNG
         {
             try
             {
-                if (!ProcessHelper.EnsureSingleInstance())
+                if (!_lifecycleService.EnsureSingleInstance())
                 {
                     ShutDownGracefully();
                     return;
                 }
 
                 //If no debugger is attached and the argument --debug was passed launch the debugger
-                if (e?.Args.Length == 1 && e?.Args[0] == "--debug" && !Debugger.IsAttached)
-                {
-                    _ = Debugger.Launch();
-                }
+                AppLifecycleService.TryLaunchDebugger(e?.Args ?? []);
 
                 // TODO: Make timeout configurable
-                Client = new NamedPipeClient();
-                var result = await Client.InitializeAsync();
+                var result = await _lifecycleService.InitializePipeClientAsync();
                 if (!result)
                 {
 #if DEBUG
@@ -77,17 +64,7 @@ namespace NetBannerNG
 
                 base.OnStartup(e);
 
-                BorderManager.Init(IsClearStart());
-                BorderManager.InitiateAllBorders();
-                PinClearStart();
-
-                // TODO: dispatcher
-                WindowWatcher.Watch();
-                MonitorWatcher.Watch();
-                MonitorWatcher.SetTrigger(BorderManager.Refresh);
-
-
-                ProcessHelper.Protect();
+                await _lifecycleService.InitializeRuntimeAsync();
             }
             catch (Exception ex)
             {
@@ -98,18 +75,16 @@ namespace NetBannerNG
 
         private static async Task Dump(Exception ex)
         {
-            var messageStack = ex.GetMessageStack();
-            var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
-            File.WriteAllText(path, messageStack);
-            Debug.WriteLine($"Dump file is saved to path: {path}");
-            Debug.WriteLine(messageStack);
+            await Task.Run(() =>
+            {
+                var messageStack = ex.GetMessageStack();
+                var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
+                File.WriteAllText(path, messageStack);
+                Debug.WriteLine($"Dump file is saved to path: {path}");
+                Debug.WriteLine(messageStack);
+            });
         }
 
-        private static bool IsClearStart() => !File.Exists(_tmpFilePath);
-
-        private static void PinClearShutdown() => File.Delete(_tmpFilePath);
-
-        private static void PinClearStart() => File.WriteAllText(_tmpFilePath, "1");
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {
