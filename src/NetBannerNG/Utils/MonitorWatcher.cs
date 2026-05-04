@@ -6,16 +6,17 @@ namespace NetBannerNG.Utils
 {
     internal static class MonitorWatcher
     {
-        private static Action? _onDisplaySettingsChanged;
+        private static Action _onDisplaySettingsChanged = () => { };
         private static bool _isWatching;
 
-        internal static void Watch()
+        internal static void Watch(Action onDisplaySettingsChanged)
         {
             if (_isWatching)
             {
                 return;
             }
 
+            _onDisplaySettingsChanged = onDisplaySettingsChanged ?? (() => { });
             SystemEvents.DisplaySettingsChanged += ScreenHandler!;
             _isWatching = true;
         }
@@ -33,15 +34,7 @@ namespace NetBannerNG.Utils
 
         private static void ScreenHandler(object sender, EventArgs e)
         {
-            var callbacks = _onDisplaySettingsChanged;
-            if (callbacks == null)
-            {
-                return;
-            }
-
-            _ = Application.Current.Dispatcher.BeginInvoke(callbacks, DispatcherPriority.Background);
+            _ = Application.Current.Dispatcher.BeginInvoke(_onDisplaySettingsChanged, DispatcherPriority.Background);
         }
-
-        internal static void SetTrigger(Action action) => _onDisplaySettingsChanged = action;
     }
 }
