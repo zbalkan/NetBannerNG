@@ -9,6 +9,7 @@ using Polly;
 using Polly.Timeout;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace NetBannerNG.Service
 {
@@ -89,7 +90,7 @@ namespace NetBannerNG.Service
                 };
                 bootstrapMessage.Checksum = PipeMessageChecksum.Compute(bootstrapMessage);
                 await args.Connection.WriteAsync(bootstrapMessage).ConfigureAwait(false);
-                DebugTrace($"BootstrapSent action={bootstrapMessage.Action} checksum_len={bootstrapMessage.Checksum?.Length ?? 0}");
+                DebugTrace($"BootstrapSent action={bootstrapMessage.Action} checksum_len={bootstrapMessage.Checksum?.Length ?? 0} checksum={ByteArrayToString(bootstrapMessage.Checksum)}");
             }
             catch (IOException ex)
             {
@@ -126,7 +127,7 @@ namespace NetBannerNG.Service
             if (!IsValidInboundMessage(args.Message))
             {
                 Program.Log.LogWarning("Rejected invalid inbound pipe message.");
-                DebugTrace($"InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length}");
+                DebugTrace($"InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length} checksum={ByteArrayToString(args.Message.Checksum)}");
                 return;
             }
 
@@ -166,5 +167,14 @@ namespace NetBannerNG.Service
 
         [Conditional("DEBUG")]
         private static void DebugTrace(string message) => Debug.WriteLine($"[PipeServer] {message}");
+
+
+        private static string ByteArrayToString(byte[] ba)
+        {
+            var hex = new StringBuilder(ba.Length * 2);
+            foreach (byte b in ba)
+                hex.AppendFormat("{0:x2}", b);
+            return hex.ToString();
+        }
     }
 }
