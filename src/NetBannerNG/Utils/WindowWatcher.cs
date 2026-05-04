@@ -9,6 +9,9 @@ namespace NetBannerNG.Utils
 {
     internal static class WindowWatcher
     {
+        private const int EventObjectCreate = 0x8000;
+        private const int EventObjectLocationChange = 0x800B;
+
         private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
         private static IntPtr DesktopHandle => NativeMethods.GetDesktopWindow(); //Window handle for the desktop
         private static IntPtr ShellHandle => NativeMethods.GetShellWindow(); //Window handle for the shell
@@ -33,8 +36,8 @@ namespace NetBannerNG.Utils
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc)
         {
-            return NativeMethods.SetWinEventHook((int)ObjectEvent.EventObjectCreate,
-                (int)ObjectEvent.EventObjectLocationChange, IntPtr.Zero, hookProc, 0, 0,
+            return NativeMethods.SetWinEventHook(EventObjectCreate,
+                EventObjectLocationChange, IntPtr.Zero, hookProc, 0, 0,
                 (int)NativeMethods.SetWinEventHookFlags.SkipOwnProcess);
         }
 
