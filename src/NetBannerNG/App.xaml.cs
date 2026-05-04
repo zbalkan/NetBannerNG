@@ -55,9 +55,6 @@ namespace NetBannerNG
                 var result = await _lifecycleService.InitializePipeClientAsync();
                 if (!result)
                 {
-#if DEBUG
-                    _ = MessageBox.Show("Error while connecting to pipe server");
-#endif
                     ShutDownGracefully();
                     return;
                 }

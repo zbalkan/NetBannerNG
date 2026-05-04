@@ -147,16 +147,10 @@ namespace NetBannerNG
 
         private void OnConnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-#if  DEBUG
-            _ = MessageBox.Show("Connected to server");
-#endif
         }
 
         private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-#if DEBUG
-            _ = MessageBox.Show("Disconnected from server");
-#endif
             Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
         }
 
