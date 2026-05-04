@@ -36,7 +36,7 @@ namespace NetBannerNG.Borders
 
         protected override void ReadSettings()
         {
-            Background = Settings.Instance.BannerColor;
+            Background = Settings.Instance.CustomBackgroundColor;
             Width = Settings.Instance.BorderSize;
         }
 

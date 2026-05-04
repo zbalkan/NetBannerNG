@@ -1,7 +1,5 @@
-﻿using Microsoft.Win32;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Globalization;
+using Microsoft.Win32;
 
 namespace NetBannerNG.Utils
 {
@@ -50,8 +48,8 @@ namespace NetBannerNG.Utils
             return new GeneralSettings
             {
                 Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
-                BannerColor = GetOrCreateEnumName(localKey, "CustomBackgroundColor", CustomBackgroundColors.Green),
-                FontColor = GetOrCreateEnumName(localKey, "CustomForeColor", CustomForeColors.White),
+                CustomBackgroundColor = GetOrCreateEnumName(localKey, "CustomBackgroundColor", CustomBackgroundColors.Green),
+                CustomForeColor = GetOrCreateEnumName(localKey, "CustomForeColor", CustomForeColors.White),
                 FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
                 BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
                 Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
@@ -78,8 +76,8 @@ namespace NetBannerNG.Utils
             return new GeneralSettings
             {
                 Classification = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, caveats),
-                BannerColor = customSettings ? background.ToString() : localDefaults.BannerColor,
-                FontColor = customSettings ? foreground.ToString() : localDefaults.FontColor,
+                CustomBackgroundColor = customSettings ? background.ToString() : localDefaults.CustomBackgroundColor,
+                CustomForeColor = customSettings ? foreground.ToString() : localDefaults.CustomForeColor,
                 FontSize = GetInt(policyKey, "FontSize", localDefaults.FontSize),
                 BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
                 Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
