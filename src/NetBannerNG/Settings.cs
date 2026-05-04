@@ -31,7 +31,7 @@ namespace NetBannerNG
         internal static Settings Instance => Lazy.Value;
 
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
-        private GeneralSettings _currentGeneralSettings;
+        private SettingsHelper.SettingsSnapshot _currentSettings;
         private bool _needsResize;
         private const int MinimumBorderSize = 2;
         private const double BorderBannerRatio = 0.25;
@@ -40,21 +40,21 @@ namespace NetBannerNG
 
         internal void Refresh()
         {
-            var newGeneralSettings = this.LoadGeneralSettings();
-            _needsResize = _currentGeneralSettings == null ||
-                           newGeneralSettings.DisableBorders != _currentGeneralSettings.DisableBorders ||
-                           newGeneralSettings.BannerSize != _currentGeneralSettings.BannerSize ||
-                           newGeneralSettings.FontSize != _currentGeneralSettings.FontSize;
+            var newSettings = SettingsHelper.LoadSettings();
+            _needsResize = _currentSettings == null ||
+                           newSettings.DisableBorders != _currentSettings.DisableBorders ||
+                           newSettings.BannerSize != _currentSettings.BannerSize ||
+                           newSettings.FontSize != _currentSettings.FontSize;
 
-            Classification = newGeneralSettings.Classification;
-            CustomBackgroundColor = ColorHelper.GetColorBrush(newGeneralSettings.CustomBackgroundColor);
-            FontSize = newGeneralSettings.FontSize;
-            CustomForeColor = ColorHelper.GetColorBrush(newGeneralSettings.CustomForeColor);
-            BannerSize = newGeneralSettings.BannerSize;
-            Heartbeat = newGeneralSettings.Heartbeat;
-            DisableBorders = newGeneralSettings.DisableBorders;
+            Classification = newSettings.Classification;
+            CustomBackgroundColor = ColorHelper.GetColorBrush(newSettings.CustomBackgroundColor);
+            FontSize = newSettings.FontSize;
+            CustomForeColor = ColorHelper.GetColorBrush(newSettings.CustomForeColor);
+            BannerSize = newSettings.BannerSize;
+            Heartbeat = newSettings.Heartbeat;
+            DisableBorders = newSettings.DisableBorders;
 
-            _currentGeneralSettings = newGeneralSettings;
+            _currentSettings = newSettings;
 
             HostInformation = GatherHostInfo();
         }
