@@ -85,7 +85,6 @@ namespace NetBannerNG
             });
         }
 
-
         private void Application_Exit(object sender, ExitEventArgs e)
         {
             if (_isClosing)

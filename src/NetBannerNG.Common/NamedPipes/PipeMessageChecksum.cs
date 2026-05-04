@@ -48,6 +48,5 @@ namespace NetBannerNG.Common.NamedPipes
 
             return accum == 0;
         }
-
     }
 }

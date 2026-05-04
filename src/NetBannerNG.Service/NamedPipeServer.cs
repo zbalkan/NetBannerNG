@@ -8,7 +8,6 @@ using NetBannerNG.Common.NamedPipes;
 using Polly;
 using Polly.Timeout;
 using System.Diagnostics;
-using System.IO;
 using System.Text;
 
 namespace NetBannerNG.Service
@@ -167,7 +166,6 @@ namespace NetBannerNG.Service
 
         [Conditional("DEBUG")]
         private static void DebugTrace(string message) => Debug.WriteLine($"[PipeServer] {message}");
-
 
         private static string ByteArrayToString(byte[] ba)
         {

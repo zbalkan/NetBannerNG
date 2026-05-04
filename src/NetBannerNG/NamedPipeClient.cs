@@ -33,6 +33,7 @@ namespace NetBannerNG
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private static readonly Random _random = new Random();
+
         public NamedPipeClient(int timeout = 10000)
         {
             _client = new SingleConnectionPipeClient<PipeMessage>(PipeName, formatter: new MessagePackFormatter());

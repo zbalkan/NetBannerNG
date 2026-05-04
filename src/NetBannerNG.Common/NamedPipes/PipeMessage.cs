@@ -27,7 +27,6 @@ namespace NetBannerNG.Common.NamedPipes
         public string Text { get; set; }
 
         [Key(3)]
-#pragma warning disable CA1819 // Properties should not return arrays
         public byte[] Checksum
         {
             get
@@ -43,6 +42,7 @@ namespace NetBannerNG.Common.NamedPipes
                 Array.Copy(value, _checksum, PipeMessageChecksum.ChecksumLengthBytes);
             }
         }
+
 #pragma warning restore CA1819 // Properties should not return arrays
     }
 }
