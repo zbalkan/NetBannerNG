@@ -14,8 +14,19 @@ namespace NetBannerNG.Common.AppBar
     public static class AppBarFunctions
     {
         private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo = new();
+        private static int _batchDepth;
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
+
+        public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
+
+        public static void EndBatch()
+        {
+            if (Interlocked.Decrement(ref _batchDepth) < 0)
+            {
+                Interlocked.Exchange(ref _batchDepth, 0);
+            }
+        }
 
         public static void SetAppBar(Window appbarWindow, DockEdge edge, FrameworkElement? childElement = null, bool topMost = true)
         {
@@ -32,6 +43,7 @@ namespace NetBannerNG.Common.AppBar
                 Debug.Unindent();
             }
 
+            var dockTimer = Stopwatch.StartNew();
             var info = appbarWindow.GetRegisterInfo().DockWithChild(edge, childElement);
             var appBarData = new APPBARDATA().WithWindow(appbarWindow);
 
@@ -60,6 +72,7 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.StyleForDocking(topMost);
 
             AbSetPos(info, appbarWindow, childElement);
+            Debug.WriteLine($"[RenderPerf] Dock {appbarWindow.GetType().Name} ({edge}) completed in {dockTimer.ElapsedMilliseconds}ms");
         }
 
         // Why twice?
@@ -177,6 +190,11 @@ namespace NetBannerNG.Common.AppBar
             internal DispatcherOperation? PendingResizeOperation { get; set; }
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
+                if (Volatile.Read(ref _batchDepth) > 0)
+                {
+                    return IntPtr.Zero;
+                }
+
                 if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)
                 {
                     return IntPtr.Zero;
