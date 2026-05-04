@@ -1,0 +1,52 @@
+﻿<borders:BorderBase
+    x:Class="NetBannerNG.Borders.Banner"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:borders="clr-namespace:NetBannerNG.Borders"
+    Title="Banner"
+    Closing="BorderBase_Closing"
+    Loaded="Window_Loaded"
+    MouseDoubleClick="Window_MouseDoubleClick"
+    ResizeMode="NoResize"
+    ScrollViewer.CanContentScroll="False"
+    ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+    ScrollViewer.VerticalScrollBarVisibility="Hidden"
+    ShowInTaskbar="False"
+    WindowStyle="None">
+    <Grid x:Name="Grid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="11*" />
+            <ColumnDefinition Width="4*" />
+            <ColumnDefinition Width="11*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Label
+            x:Name="LbHostInformation"
+            Grid.Row="0"
+            Grid.Column="0"
+            Margin="10,0,0,0"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Center"
+            Content="" />
+        <Label
+            x:Name="LbClientName"
+            Grid.Row="0"
+            Grid.Column="1"
+            Margin="0,0,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Background="{x:Null}"
+            Content=""
+            FontWeight="Bold" />
+        <Label
+            x:Name="LbClassification"
+            Grid.Row="0"
+            Grid.Column="2"
+            Margin="0,0,10,0"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Center"
+            Content="" />
+    </Grid>
+</borders:BorderBase>

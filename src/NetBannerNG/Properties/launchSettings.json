@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NetBannerNG": {
+      "commandName": "Project",
+      "commandLineArgs": "--debug"
+    }
+  }
+}
