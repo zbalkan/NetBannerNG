@@ -217,6 +217,7 @@ namespace NetBannerNG.Service
             }
 
             public static bool operator ==(PendingEntry left, PendingEntry right) => left.Equals(right);
+
             public static bool operator !=(PendingEntry left, PendingEntry right) => !left.Equals(right);
         }
     }

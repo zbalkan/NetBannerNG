@@ -1,5 +1,5 @@
-﻿using NetBannerNG.Common.Native;
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
+using NetBannerNG.Common.Native;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
