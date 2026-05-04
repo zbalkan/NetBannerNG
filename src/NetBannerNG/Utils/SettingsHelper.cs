@@ -29,13 +29,11 @@ namespace NetBannerNG.Utils
             "DisableBorders",
         };
 
-        internal static GeneralSettings LoadGeneralSettings(this Settings settings)
+        internal static SettingsSnapshot LoadSettings()
         {
             using var localMachineKey = OpenLocalMachineKey();
-
             using var localKey = OpenLocalSettingsKey(localMachineKey);
             var localDefaults = LoadOrCreateLocalSettings(localKey);
-
             using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
 
             return policyKey != null && HasManagedPolicyValue(policyKey)
@@ -43,22 +41,18 @@ namespace NetBannerNG.Utils
                 : localDefaults;
         }
 
-        private static GeneralSettings LoadOrCreateLocalSettings(RegistryKey localKey)
+        private static SettingsSnapshot LoadOrCreateLocalSettings(RegistryKey localKey) => new()
         {
-            return new GeneralSettings
-            {
-                Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
-                CustomBackgroundColor = GetOrCreateEnumName(localKey, "CustomBackgroundColor", CustomBackgroundColors.Green),
-                CustomForeColor = GetOrCreateEnumName(localKey, "CustomForeColor", CustomForeColors.White),
-                FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
-                BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
-                Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
-                DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
-                IsPolicyManaged = false,
-            };
-        }
+            Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
+            CustomBackgroundColor = GetOrCreateEnumName(localKey, "CustomBackgroundColor", CustomBackgroundColors.Green),
+            CustomForeColor = GetOrCreateEnumName(localKey, "CustomForeColor", CustomForeColors.White),
+            FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
+            BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
+            Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
+            DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
+        };
 
-        private static GeneralSettings LoadPolicySettings(RegistryKey policyKey, GeneralSettings localDefaults)
+        private static SettingsSnapshot LoadPolicySettings(RegistryKey policyKey, SettingsSnapshot localDefaults)
         {
             var defaultClassification = ParseClassification(localDefaults.Classification);
             var classification = GetInt(policyKey, "Classification", defaultClassification);
@@ -73,7 +67,7 @@ namespace NetBannerNG.Utils
             var fpcon = GetInt(policyKey, "FpCon", 0);
             var caveats = caveatsEnabled ? GetString(policyKey, "Caveats", string.Empty) : string.Empty;
 
-            return new GeneralSettings
+            return new SettingsSnapshot
             {
                 Classification = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, caveats),
                 CustomBackgroundColor = customSettings ? background.ToString() : localDefaults.CustomBackgroundColor,
@@ -82,11 +76,6 @@ namespace NetBannerNG.Utils
                 BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
                 Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
                 DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
-                InfoCon = infocon,
-                FpCon = fpcon,
-                Caveats = caveats,
-                CustomDisplayText = displayText,
-                IsPolicyManaged = true,
             };
         }
 
@@ -118,7 +107,6 @@ namespace NetBannerNG.Utils
             _ => DefaultClassificationValue,
         };
 
-
         private static bool HasManagedPolicyValue(RegistryKey policyKey)
             => ManagedPolicyKeys.Any(key => policyKey.GetValue(key) != null);
 
@@ -135,10 +123,7 @@ namespace NetBannerNG.Utils
         private static string GetOrCreateString(RegistryKey key, string name, string defaultValue)
         {
             var value = key.GetValue(name)?.ToString();
-            if (!string.IsNullOrEmpty(value))
-            {
-                return value;
-            }
+            if (!string.IsNullOrEmpty(value)) return value;
 
             key.SetValue(name, defaultValue, RegistryValueKind.String);
             return defaultValue;
@@ -147,10 +132,7 @@ namespace NetBannerNG.Utils
         private static int GetOrCreateInt(RegistryKey key, string name, int defaultValue)
         {
             var value = key.GetValue(name);
-            if (value != null)
-            {
-                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
-            }
+            if (value != null) return Convert.ToInt32(value, CultureInfo.InvariantCulture);
 
             key.SetValue(name, defaultValue, RegistryValueKind.DWord);
             return defaultValue;
@@ -159,11 +141,7 @@ namespace NetBannerNG.Utils
         private static string GetOrCreateEnumName<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
         {
             var raw = key.GetValue(name);
-            if (raw != null)
-            {
-                var parsed = ParseEnumValue(raw, defaultValue);
-                return parsed.ToString();
-            }
+            if (raw != null) return ParseEnumValue(raw, defaultValue).ToString();
 
             key.SetValue(name, Convert.ToInt32(defaultValue, CultureInfo.InvariantCulture), RegistryValueKind.DWord);
             return defaultValue.ToString();
@@ -173,17 +151,9 @@ namespace NetBannerNG.Utils
         {
             if (rawValue is string text)
             {
-                if (Enum.TryParse<TEnum>(text, true, out var parsedByName) && Enum.IsDefined(typeof(TEnum), parsedByName))
-                {
-                    return parsedByName;
-                }
-
+                if (Enum.TryParse<TEnum>(text, true, out var parsedByName) && Enum.IsDefined(typeof(TEnum), parsedByName)) return parsedByName;
                 if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedByNumber)
-                    && Enum.IsDefined(typeof(TEnum), parsedByNumber))
-                {
-                    return (TEnum)Enum.ToObject(typeof(TEnum), parsedByNumber);
-                }
-
+                    && Enum.IsDefined(typeof(TEnum), parsedByNumber)) return (TEnum)Enum.ToObject(typeof(TEnum), parsedByNumber);
                 return defaultValue;
             }
 
@@ -196,10 +166,7 @@ namespace NetBannerNG.Utils
         private static bool GetOrCreateBool(RegistryKey key, string name, bool defaultValue)
         {
             var value = key.GetValue(name);
-            if (value != null)
-            {
-                return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
-            }
+            if (value != null) return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
 
             key.SetValue(name, defaultValue ? 1 : 0, RegistryValueKind.DWord);
             return defaultValue;
@@ -212,11 +179,8 @@ namespace NetBannerNG.Utils
         }
 
         private static RegistryKey OpenLocalSettingsKey(RegistryKey localMachineKey)
-        {
-            return localMachineKey.CreateSubKey(LocalRegistryPath, true)
-                ?? throw new InvalidOperationException(
-                    $@"Unable to open or create HKLM\{LocalRegistryPath}");
-        }
+            => localMachineKey.CreateSubKey(LocalRegistryPath, true)
+                ?? throw new InvalidOperationException($@"Unable to open or create HKLM\{LocalRegistryPath}");
 
         private static int GetInt(RegistryKey key, string name, int defaultValue)
         {
@@ -228,6 +192,17 @@ namespace NetBannerNG.Utils
         {
             var value = key?.GetValue(name);
             return value == null ? defaultValue : Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+        }
+
+        internal sealed class SettingsSnapshot
+        {
+            internal string Classification { get; set; }
+            internal string CustomBackgroundColor { get; set; }
+            internal string CustomForeColor { get; set; }
+            internal int FontSize { get; set; }
+            internal int BannerSize { get; set; }
+            internal int Heartbeat { get; set; }
+            internal bool DisableBorders { get; set; }
         }
     }
 }
