@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.31729.503
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11723.231 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetBannerNG", "NetBannerNG\NetBannerNG.csproj", "{6FA45981-2F56-4B8A-911F-DC515FB0D980}"
 EndProject
@@ -16,6 +16,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetBannerNG.LittleForker", "NetBannerNG.LittleForker\NetBannerNG.LittleForker.csproj", "{73F0C22F-DB11-47FB-8604-0551FF916CC0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{55F150C5-202D-4E41-AD4A-9C187DD76B50}"
+	ProjectSection(SolutionItems) = preProject
+		Assets\colorpicker1.png = Assets\colorpicker1.png
+		Assets\colorpicker2.png = Assets\colorpicker2.png
+		Assets\DeltaZulu - dark.ico = Assets\DeltaZulu - dark.ico
+		Assets\DeltaZulu - dark.png = Assets\DeltaZulu - dark.png
+		Assets\DeltaZulu - light.png = Assets\DeltaZulu - light.png
+		Assets\exit.png = Assets\exit.png
+		Assets\info.png = Assets\info.png
+		Assets\key.png = Assets\key.png
+		Assets\settings.png = Assets\settings.png
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +55,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{55F150C5-202D-4E41-AD4A-9C187DD76B50} = {F9D767AF-6A9B-4910-88A3-DE2EA81472BB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F78B797A-A7CC-48E0-9705-A276529550B2}

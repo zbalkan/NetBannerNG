@@ -39,23 +39,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Resource Include="..\Assets\DeltaZulu - dark.ico">
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</Resource>
-		<Resource Include="..\Assets\DeltaZulu - light.png">
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</Resource>
-		<Resource Include="..\Assets\DeltaZulu - dark.png">
-			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
-		</Resource>
-		<Resource Include="..\Assets\colorpicker1.png" />
-		<Resource Include="..\Assets\colorpicker2.png" />
-		<Resource Include="..\Assets\exit.png" />
-		<Resource Include="..\Assets\info.png" />
-		<Resource Include="..\Assets\settings.png" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
 	</ItemGroup>
 
