@@ -148,7 +148,7 @@ namespace NetBannerNG.Windows
 
             var dialog = new SaveFileDialog
             {
-                InitialDirectory = Path.Join(profilePath, "Desktop"),
+                InitialDirectory = Path.Combine(profilePath, "Desktop"),
                 AddExtension = true,
                 DefaultExt = ".json",
                 CreatePrompt = true,

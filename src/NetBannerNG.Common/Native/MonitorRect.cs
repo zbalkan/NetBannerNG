@@ -19,7 +19,7 @@ namespace NetBannerNG.Common.Native
 
         public override readonly bool Equals(object? obj) => obj is MonitorRect other && Equals(other);
 
-        public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+        public override readonly int GetHashCode() => (Left, Top, Right, Bottom).GetHashCode();
 
         public static bool operator ==(MonitorRect left, MonitorRect right)
         {

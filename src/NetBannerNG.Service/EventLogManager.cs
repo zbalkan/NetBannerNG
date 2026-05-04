@@ -189,6 +189,35 @@ namespace NetBannerNG.Service
             }
         }
 
-        private readonly record struct PendingEntry(EventLogEntryType Type, string Message);
+        public struct PendingEntry : IEquatable<PendingEntry>
+        {
+            public EventLogEntryType Type { get; }
+            public string Message { get; }
+
+            public PendingEntry(EventLogEntryType type, string message)
+            {
+                Type = type;
+                Message = message;
+            }
+
+            // Manual Value Equality
+            public readonly bool Equals(PendingEntry other) =>
+                Type == other.Type && Message == other.Message;
+
+            public override bool Equals(object obj) =>
+                obj is PendingEntry other && Equals(other);
+
+            public override readonly int GetHashCode()
+            {
+                // Using the BCL HashCode package we discussed!
+                var hash = new HashCode();
+                hash.Add(Type);
+                hash.Add(Message);
+                return hash.ToHashCode();
+            }
+
+            public static bool operator ==(PendingEntry left, PendingEntry right) => left.Equals(right);
+            public static bool operator !=(PendingEntry left, PendingEntry right) => !left.Equals(right);
+        }
     }
 }

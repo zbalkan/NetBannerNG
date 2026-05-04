@@ -15,7 +15,7 @@ namespace NetBannerNG
     /// </summary>
     public partial class App : Application
     {
-        private static readonly string _tmpFilePath = Path.Join(UserHelper.UserTempPath, "netbannerng-pipe.tmp");
+        private static readonly string _tmpFilePath = Path.Combine(UserHelper.UserTempPath, "netbannerng-pipe.tmp");
         private static bool _isClosing;
         private static TaskbarIcon? _notifyIcon;
         internal static NamedPipeClient? Client { get; private set; }
@@ -105,7 +105,7 @@ namespace NetBannerNG
         {
             var messageStack = ex.GetMessageStack();
             var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
-            await File.WriteAllTextAsync(path, messageStack).ConfigureAwait(false);
+            File.WriteAllText(path, messageStack);
             Debug.WriteLine($"Dump file is saved to path: {path}");
             Debug.WriteLine(messageStack);
         }

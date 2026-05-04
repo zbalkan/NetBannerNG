@@ -32,7 +32,7 @@ namespace NetBannerNG
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
-
+        private static readonly Random _random = new Random();
         public NamedPipeClient(int timeout = 10000)
         {
             _client = new SingleConnectionPipeClient<PipeMessage>(PipeName, formatter: new MessagePackFormatter());
@@ -51,8 +51,7 @@ namespace NetBannerNG
                 .Or<IOException>()
                 .WaitAndRetryAsync(
                     retryCount: 5,
-                    sleepDurationProvider: attempt =>
-                        TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + Random.Shared.Next(25, 150)),
+                    sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + _random.Next(25, 150)),
                     onRetry: (exception, delay, attempt, _) =>
                     {
                         DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}");
@@ -104,7 +103,7 @@ namespace NetBannerNG
 
             if (message.Length > MaxMessageTextLength)
             {
-                message = message[..MaxMessageTextLength];
+                message = message.Substring(0, MaxMessageTextLength);
             }
 
             try

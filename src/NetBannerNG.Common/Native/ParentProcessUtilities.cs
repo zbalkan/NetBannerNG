@@ -11,19 +11,19 @@ namespace NetBannerNG.Common.Native
         /// <summary>
         /// These members must match PROCESS_BASIC_INFORMATION
         /// </summary>
-        public nint Reserved1;
+        public System.IntPtr Reserved1;
 
-        public nint PebBaseAddress;
-        public nint Reserved2_0;
-        public nint Reserved2_1;
-        public nint UniqueProcessId;
-        public nint InheritedFromUniqueProcessId;
+        public System.IntPtr PebBaseAddress;
+        public System.IntPtr Reserved2_0;
+        public System.IntPtr Reserved2_1;
+        public System.IntPtr UniqueProcessId;
+        public System.IntPtr InheritedFromUniqueProcessId;
 
         public override readonly bool Equals(object? obj) => obj is ParentProcessUtilities utilities && Equals(utilities);
 
         public readonly bool Equals(ParentProcessUtilities other) => Reserved1.Equals(other.Reserved1) && PebBaseAddress.Equals(other.PebBaseAddress) && Reserved2_0.Equals(other.Reserved2_0) && Reserved2_1.Equals(other.Reserved2_1) && UniqueProcessId.Equals(other.UniqueProcessId) && InheritedFromUniqueProcessId.Equals(other.InheritedFromUniqueProcessId);
 
-        public override readonly int GetHashCode() => HashCode.Combine(Reserved1, PebBaseAddress, Reserved2_0, Reserved2_1, UniqueProcessId, InheritedFromUniqueProcessId);
+        public override readonly int GetHashCode() => (Reserved1, PebBaseAddress, Reserved2_0, Reserved2_1, UniqueProcessId, InheritedFromUniqueProcessId).GetHashCode();
 
         public static bool operator ==(ParentProcessUtilities left, ParentProcessUtilities right) => left.Equals(right);
 

@@ -80,7 +80,7 @@ namespace NetBannerNG.Common
 
         public static bool IsUserAdministrator(WindowsIdentity user)
         {
-            ArgumentNullException.ThrowIfNull(user);
+            if (user == null) throw new ArgumentNullException(nameof(user));
 
             PrincipalContext? ctx = null;
             try

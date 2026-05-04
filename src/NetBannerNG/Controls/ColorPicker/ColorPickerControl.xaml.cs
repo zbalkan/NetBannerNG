@@ -188,7 +188,10 @@ namespace NetBannerNG.Controls.ColorPicker
 
         protected void SampleImageClick(BitmapSource img, Point pos)
         {
-            ArgumentNullException.ThrowIfNull(img);
+            if (img is null)
+            {
+                throw new ArgumentNullException(nameof(img));
+            }
 
             // https://social.msdn.microsoft.com/Forums/vstudio/en-US/82a5731e-e201-4aaf-8d4b-062b138338fe/getting-pixel-information-from-a-bitmapimage?forum=wpf
 
