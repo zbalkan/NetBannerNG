@@ -41,31 +41,6 @@
               <decimal value="4" />
             </value>
           </item>
-          <item displayName="$(string.unknown_40)">
-            <value>
-              <decimal value="5" />
-            </value>
-          </item>
-          <item displayName="$(string.unknown_41)">
-            <value>
-              <decimal value="6" />
-            </value>
-          </item>
-          <item displayName="$(string.unknown_42)">
-            <value>
-              <decimal value="7" />
-            </value>
-          </item>
-          <item displayName="$(string.unknown_43)">
-            <value>
-              <decimal value="8" />
-            </value>
-          </item>
-          <item displayName="$(string.unknown_44)">
-            <value>
-              <decimal value="9" />
-            </value>
-          </item>
         </enum>
       </elements>
     </policy>
