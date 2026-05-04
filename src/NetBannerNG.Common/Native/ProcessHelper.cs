@@ -35,8 +35,6 @@ namespace NetBannerNG.Common.Native
 
             if (parentName == "NetBannerNG.Service") return true;
 
-            _ = MessageBox.Show($"Parent process: {parentName} @ {parentPath ?? string.Empty}", "Invalid attempt!");
-
             return false;
         }
 
