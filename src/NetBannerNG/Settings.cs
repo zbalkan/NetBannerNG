@@ -5,6 +5,7 @@ namespace NetBannerNG
 {
     internal sealed class Settings
     {
+        private static readonly BrushConverter BrushConverter = new();
         #region General Settings
 
         internal string Classification { get; set; }
@@ -50,9 +51,9 @@ namespace NetBannerNG
                            newSettings.FontSize != _currentSettings.FontSize;
 
             Classification = newSettings.Classification;
-            CustomBackgroundColor = ColorHelper.GetColorBrush(newSettings.CustomBackgroundColor);
+            CustomBackgroundColor = ParseBrush(newSettings.CustomBackgroundColor);
             FontSize = newSettings.FontSize;
-            CustomForeColor = ColorHelper.GetColorBrush(newSettings.CustomForeColor);
+            CustomForeColor = ParseBrush(newSettings.CustomForeColor);
             BannerSize = newSettings.BannerSize;
             Heartbeat = newSettings.Heartbeat;
             DisableBorders = newSettings.DisableBorders;
@@ -61,6 +62,9 @@ namespace NetBannerNG
 
             HostInformation = GatherHostInfo();
         }
+
+        private static SolidColorBrush ParseBrush(string name)
+            => (SolidColorBrush)BrushConverter.ConvertFromInvariantString(name);
 
         private static string GatherHostInfo() => $"{Environment.MachineName} | {Environment.UserName} | {Environment.OSVersion} | {NetworkHelper.GetPhysicalIPAddress()}";
     }

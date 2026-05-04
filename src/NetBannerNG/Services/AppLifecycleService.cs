@@ -33,8 +33,7 @@ namespace NetBannerNG.Services
             BorderManager.InitiateAllBorders();
             PinClearStart();
             WindowWatcher.Watch();
-            MonitorWatcher.Watch();
-            MonitorWatcher.SetTrigger(BorderManager.Refresh);
+            MonitorWatcher.Watch(BorderManager.Refresh);
             ProcessHelper.Protect();
             return Task.CompletedTask;
         }
