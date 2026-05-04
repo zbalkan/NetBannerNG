@@ -5,6 +5,8 @@ namespace NetBannerNG.Service
 {
     public static class ProcessHelper
     {
+        private const string ChildProcessName = "NetBannerNG";
+
         public static void InitiateChildProcess()
         {
             var psi = new ProcessStartInfo();
@@ -46,7 +48,12 @@ namespace NetBannerNG.Service
 
         public static void KillAllChildProcess()
         {
-            Process.GetProcesses().Where(p => p.ProcessName == "NetBannerNG").ToList().ForEach(p => p.Kill());
+            Process.GetProcesses().Where(p => p.ProcessName == ChildProcessName).ToList().ForEach(p => p.Kill());
+        }
+
+        public static bool IsChildProcessRunning()
+        {
+            return Process.GetProcessesByName(ChildProcessName).Any();
         }
     }
 }
