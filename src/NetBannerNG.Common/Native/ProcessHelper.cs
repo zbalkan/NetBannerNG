@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.Windows;
 
 namespace NetBannerNG.Common.Native
 {
@@ -31,11 +30,8 @@ namespace NetBannerNG.Common.Native
                 return false;
             }
             var parentName = parent.ProcessName;
-            var parentPath = parent.MainModule?.FileName;
 
-            if (parentName == "NetBannerNG.Service") return true;
-
-            return false;
+            return parentName == "NetBannerNG.Service";
         }
 
         /// <summary>
@@ -89,7 +85,7 @@ namespace NetBannerNG.Common.Native
                 throw new ArgumentNullException(nameof(process));
             }
 
-            var hToken = System.IntPtr.Zero;
+            var hToken = IntPtr.Zero;
 
             var token = NativeMethods.OpenProcessToken(process.Handle, SecurityImpersonationLevel.TokenQuery |
                                                                       SecurityImpersonationLevel.TokenImpersonate |
@@ -99,10 +95,12 @@ namespace NetBannerNG.Common.Native
             return new WindowsIdentity(token);
         }
 
-        private static RawSecurityDescriptor GetProcessSecurityDescriptor(System.IntPtr processHandle)
+        private static RawSecurityDescriptor GetProcessSecurityDescriptor(IntPtr processHandle)
         {
-            if (processHandle == System.IntPtr.Zero)
+            if (processHandle == IntPtr.Zero)
+            {
                 throw new ArgumentException("The process handle is invalid.", nameof(processHandle));
+            }
 
             var psd = Array.Empty<byte>();
             // Call with 0 size to obtain the actual size needed in bufSizeNeeded
@@ -120,10 +118,12 @@ namespace NetBannerNG.Common.Native
             return new RawSecurityDescriptor(psd, 0);
         }
 
-        private static void SetProcessSecurityDescriptor(System.IntPtr processHandle, RawSecurityDescriptor dacl)
+        private static void SetProcessSecurityDescriptor(IntPtr processHandle, RawSecurityDescriptor dacl)
         {
-            if (processHandle == System.IntPtr.Zero)
+            if (processHandle == IntPtr.Zero)
+            {
                 throw new ArgumentException("The process handle is invalid.", nameof(processHandle));
+            }
 
             var pSecurityDescriptor = new byte[dacl.BinaryLength];
             dacl.GetBinaryForm(pSecurityDescriptor, 0);
@@ -244,15 +244,19 @@ namespace NetBannerNG.Common.Native
         /// <returns>An instance of the Process class.</returns>
         /// <exception cref="Win32Exception"></exception>
         /// <exception cref="ArgumentException"><paramref name="handle"/></exception>
-        private static Process? GetParentProcess(System.IntPtr handle)
+        private static Process? GetParentProcess(IntPtr handle)
         {
-            if (handle == System.IntPtr.Zero)
+            if (handle == IntPtr.Zero)
+            {
                 throw new ArgumentException("The parent process handle is invalid.", nameof(handle));
+            }
 
             var parentProcessUtil = new ParentProcessUtilities();
             var status = NativeMethods.NtQueryInformationProcess(handle, 0, ref parentProcessUtil, Marshal.SizeOf(parentProcessUtil), out _);
             if (status != 0)
+            {
                 throw new Win32Exception(status);
+            }
 
             try
             {

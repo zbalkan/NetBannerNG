@@ -7,9 +7,9 @@ namespace NetBannerNG.Common.Native
 {
     public sealed class Monitor : IEquatable<Monitor>
     {
-        private static readonly HandleRef HandleRef = new(null, System.IntPtr.Zero);
+        private static readonly HandleRef HandleRef = new(null, IntPtr.Zero);
 
-        private Monitor(System.IntPtr monitor, System.IntPtr? hdc)
+        private Monitor(IntPtr monitor, IntPtr? hdc)
         {
             var info = new MonitorInfoEx();
             _ = NativeMethods.GetMonitorInfo(new HandleRef(null, monitor), info);
@@ -34,7 +34,7 @@ namespace NetBannerNG.Common.Native
             {
                 var closure = new MonitorEnumCallback();
                 var proc = new MonitorEnumProc(closure.Callback);
-                _ = NativeMethods.EnumDisplayMonitors(HandleRef, System.IntPtr.Zero, proc, System.IntPtr.Zero);
+                _ = NativeMethods.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);
                 return closure.Monitors.Cast<Monitor>();
             }
         }
@@ -43,15 +43,15 @@ namespace NetBannerNG.Common.Native
         public bool IsPrimary { get; }
         public string Name { get; }
         public Rect WorkingArea { get; }
-        public System.IntPtr Handle { get; }
+        public IntPtr Handle { get; }
 
-        public static HandleRef GetMonitorHandleFromWindow(System.IntPtr hWnd)
+        public static HandleRef GetMonitorHandleFromWindow(IntPtr hWnd)
         {
             var ptrMonitor = NativeMethods.MonitorFromWindow(hWnd, NativeMethods.MonitorDefaultTo.Nearest);
             return new HandleRef(null, ptrMonitor);
         }
 
-        public static MonitorRect GetMonitorWorkArea(System.IntPtr hWindow)
+        public static MonitorRect GetMonitorWorkArea(IntPtr hWindow)
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
@@ -59,7 +59,7 @@ namespace NetBannerNG.Common.Native
             return monitorInfoEx.rcWork;
         }
 
-        public static MonitorRect GetMonitorBounds(System.IntPtr hWindow)
+        public static MonitorRect GetMonitorBounds(IntPtr hWindow)
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
@@ -67,10 +67,7 @@ namespace NetBannerNG.Common.Native
             return monitorInfoEx.rcMonitor;
         }
 
-        public override string ToString()
-        {
-            return $"Name: {Name} | IsPrimary: {IsPrimary} | Bounds: {Bounds} | WorkingArea: {WorkingArea}";
-        }
+        public override string ToString() => $"Name: {Name} | IsPrimary: {IsPrimary} | Bounds: {Bounds} | WorkingArea: {WorkingArea}";
 
         public override bool Equals(object? obj) => obj is Monitor monitor && EqualityComparer<Rect>.Default.Equals(Bounds, monitor.Bounds) && IsPrimary == monitor.IsPrimary && Name == monitor.Name && EqualityComparer<Rect>.Default.Equals(WorkingArea, monitor.WorkingArea) && Handle.Equals(monitor.Handle);
 
@@ -78,15 +75,18 @@ namespace NetBannerNG.Common.Native
 
         public override int GetHashCode() => (Bounds, IsPrimary, Name, WorkingArea, Handle).GetHashCode();
 
-        public delegate bool MonitorEnumProc(System.IntPtr monitor, System.IntPtr hdc, System.IntPtr lprcMonitor, System.IntPtr lParam);
+        public delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lParam);
 
         private class MonitorEnumCallback
         {
             public ArrayList Monitors { get; }
 
-            public MonitorEnumCallback() => Monitors = new ArrayList();
+            public MonitorEnumCallback()
+            {
+                Monitors = new ArrayList();
+            }
 
-            public bool Callback(System.IntPtr monitor, System.IntPtr hdc, System.IntPtr lprcMonitor, System.IntPtr lParam)
+            public bool Callback(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lParam)
             {
                 _ = Monitors.Add(new Monitor(monitor, hdc));
                 return true;

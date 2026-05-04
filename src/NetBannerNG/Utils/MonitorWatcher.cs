@@ -42,9 +42,6 @@ namespace NetBannerNG.Utils
             _ = Application.Current.Dispatcher.BeginInvoke(callbacks, DispatcherPriority.Background);
         }
 
-        internal static void SetTrigger(Action action)
-        {
-            _onDisplaySettingsChanged = action;
-        }
+        internal static void SetTrigger(Action action) => _onDisplaySettingsChanged = action;
     }
 }

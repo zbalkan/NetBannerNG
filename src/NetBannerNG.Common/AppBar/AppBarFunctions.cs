@@ -81,14 +81,11 @@ namespace NetBannerNG.Common.AppBar
             Debug.WriteLine($"{appbarWindow} new size: {dockedSize}");
         }
 
-        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement childElement)
-        {
-            return childElement != null ?
+        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement childElement) => childElement != null ?
                 WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(childElement.ActualWidth, childElement.ActualHeight))
                 : WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(appbarWindow.ActualWidth, appbarWindow.ActualHeight));
-        }
 
         private static void DoResize(Window appbarWindow, Rect rect)
         {
@@ -276,7 +273,11 @@ namespace NetBannerNG.Common.AppBar
 
         private static APPBARDATA Unregister(this APPBARDATA abd, RegisterInfo info)
         {
-            if (!info.IsRegistered) return abd;
+            if (!info.IsRegistered)
+            {
+                return abd;
+            }
+
             abd = SendAppBarRemovalToShell(abd);
             info.IsRegistered = false;
 
@@ -297,10 +298,7 @@ namespace NetBannerNG.Common.AppBar
 
         #region Window Extensions
 
-        public static IntPtr GetHandle(this Window window)
-        {
-            return new WindowInteropHelper(window).Handle;
-        }
+        public static IntPtr GetHandle(this Window window) => new WindowInteropHelper(window).Handle;
 
         private static RegisterInfo GetRegisterInfo(this Window appbarWindow)
         {

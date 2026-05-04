@@ -13,13 +13,13 @@ namespace NetBannerNG.Common.Native
         public int Right { get; set; }
         public int Bottom { get; set; }
 
-        public override readonly string ToString() => $"{Left},{Top},{Right},{Bottom}";
+        public readonly override string ToString() => $"{Left},{Top},{Right},{Bottom}";
 
         public readonly bool Equals(MonitorRect other) => Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
 
-        public override readonly bool Equals(object? obj) => obj is MonitorRect other && Equals(other);
+        public readonly override bool Equals(object? obj) => obj is MonitorRect other && Equals(other);
 
-        public override readonly int GetHashCode() => (Left, Top, Right, Bottom).GetHashCode();
+        public readonly override int GetHashCode() => (Left, Top, Right, Bottom).GetHashCode();
 
         public static bool operator ==(MonitorRect left, MonitorRect right)
         {

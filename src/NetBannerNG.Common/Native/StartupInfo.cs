@@ -21,16 +21,16 @@ namespace NetBannerNG.Common.Native
         public int dwFlags;
         public short wShowWindow;
         public short cbReserved2;
-        public System.IntPtr lpReserved2;
-        public System.IntPtr hStdInput;
-        public System.IntPtr hStdOutput;
-        public System.IntPtr hStdError;
+        public IntPtr lpReserved2;
+        public IntPtr hStdInput;
+        public IntPtr hStdOutput;
+        public IntPtr hStdError;
 
-        public override readonly bool Equals(object? obj) => obj is StartupInfo info && Equals(info);
+        public readonly override bool Equals(object? obj) => obj is StartupInfo info && Equals(info);
 
         public readonly bool Equals(StartupInfo other) => cb == other.cb && lpReserved == other.lpReserved && lpDesktop == other.lpDesktop && lpTitle == other.lpTitle && dwX == other.dwX && dwY == other.dwY && dwXSize == other.dwXSize && dwYSize == other.dwYSize && dwXCountChars == other.dwXCountChars && dwYCountChars == other.dwYCountChars && dwFillAttribute == other.dwFillAttribute && dwFlags == other.dwFlags && wShowWindow == other.wShowWindow && cbReserved2 == other.cbReserved2 && lpReserved2.Equals(other.lpReserved2) && hStdInput.Equals(other.hStdInput) && hStdOutput.Equals(other.hStdOutput) && hStdError.Equals(other.hStdError);
 
-        public override readonly int GetHashCode()
+        public readonly override int GetHashCode()
         {
             var hash = new HashCode();
             hash.Add(cb);

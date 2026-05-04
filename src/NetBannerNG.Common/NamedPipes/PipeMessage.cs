@@ -27,14 +27,9 @@ namespace NetBannerNG.Common.NamedPipes
         public string Text { get; set; }
 
         [Key(3)]
-        public byte[] Checksum
-        {
-            get
-            {
-                return (byte[])_checksum.Clone();
-            }
-            set
-            {
+        public byte[] Checksum {
+            get => (byte[])_checksum.Clone();
+            set {
                 if (value == null || value.Length != PipeMessageChecksum.ChecksumLengthBytes)
                 {
                     throw new ArgumentException($"Checksum must be {PipeMessageChecksum.ChecksumLengthBytes} bytes long.", nameof(value));

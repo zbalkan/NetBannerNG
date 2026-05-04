@@ -17,7 +17,10 @@ namespace NetBannerNG.Common.Extensions
         /// <exception cref="ArgumentNullException"></exception>
         public static bool RunAsActiveUser(this ProcessStartInfo psi)
         {
-            if (psi == null) throw new ArgumentNullException(nameof(psi));
+            if (psi == null)
+            {
+                throw new ArgumentNullException(nameof(psi));
+            }
 
             var result = PrivilegeHelper.GetActiveUser(out var user) && psi.RunImpersonated(user);
             user?.Dispose();
@@ -34,9 +37,15 @@ namespace NetBannerNG.Common.Extensions
         /// <exception cref="ArgumentNullException"><paramref name="psi"/> is <c>null</c>.</exception>
         private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity)
         {
-            if (psi == null) throw new ArgumentNullException(nameof(psi));
+            if (psi == null)
+            {
+                throw new ArgumentNullException(nameof(psi));
+            }
 
-            if (userIdentity == null) throw new ArgumentNullException(nameof(userIdentity));
+            if (userIdentity == null)
+            {
+                throw new ArgumentNullException(nameof(userIdentity));
+            }
 
             Console.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
             var userToken = userIdentity.AccessToken.DangerousGetHandle();
@@ -53,7 +62,7 @@ namespace NetBannerNG.Common.Extensions
                 bInheritHandle = 0
             };
             sa.nLength = Marshal.SizeOf(sa);
-            sa.lpSecurityDescriptor = System.IntPtr.Zero;
+            sa.lpSecurityDescriptor = IntPtr.Zero;
 
             Console.WriteLine($"During impersonation: {userIdentity.Name}. ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
 
@@ -64,7 +73,7 @@ namespace NetBannerNG.Common.Extensions
                 ref sa, // thread  security attributes ( none )
                 false, // inherit handles?
                 0, // creation flags
-                System.IntPtr.Zero, // environment variables
+                IntPtr.Zero, // environment variables
                 dir, // current directory of the new process
                 ref si, // startup info
                 out var pi)) // receive process information in pi

@@ -28,11 +28,7 @@ namespace NetBannerNG.Utils
                     }
 
                     var path = key.GetValue("ProfileImagePath") as string;
-                    if (Directory.Exists(path))
-                    {
-                        return path;
-                    }
-                    return null;
+                    return Directory.Exists(path) ? path : null;
                 }
                 catch
                 {

@@ -13,10 +13,7 @@ namespace NetBannerNG.Borders
             InitializeComponent();
         }
 
-        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            App.Current.MainWindow.Close();
-        }
+        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => App.Current.MainWindow.Close();
 
         internal override void Refresh(bool needsResize = false)
         {

@@ -70,17 +70,13 @@ namespace NetBannerNG
             }
         }
 
-        private static async Task Dump(Exception ex)
-        {
-            await Task.Run(() =>
-            {
-                var messageStack = ex.GetMessageStack();
-                var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
-                File.WriteAllText(path, messageStack);
-                Debug.WriteLine($"Dump file is saved to path: {path}");
-                Debug.WriteLine(messageStack);
-            });
-        }
+        private static async Task Dump(Exception ex) => await Task.Run(() => {
+            var messageStack = ex.GetMessageStack();
+            var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
+            File.WriteAllText(path, messageStack);
+            Debug.WriteLine($"Dump file is saved to path: {path}");
+            Debug.WriteLine(messageStack);
+        });
 
         private void Application_Exit(object sender, ExitEventArgs e)
         {

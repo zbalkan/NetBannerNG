@@ -156,12 +156,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(message.Text))
-            {
-                return false;
-            }
-
-            return message.Text.Length <= maxTextLength;
+            return !string.IsNullOrWhiteSpace(message.Text) && message.Text.Length <= maxTextLength;
         }
 
         [Conditional("DEBUG")]
@@ -170,8 +165,11 @@ namespace NetBannerNG.Service
         private static string ByteArrayToString(byte[] ba)
         {
             var hex = new StringBuilder(ba.Length * 2);
-            foreach (byte b in ba)
+            foreach (var b in ba)
+            {
                 hex.AppendFormat("{0:x2}", b);
+            }
+
             return hex.ToString();
         }
     }

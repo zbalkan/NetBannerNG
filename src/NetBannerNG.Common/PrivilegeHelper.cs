@@ -74,7 +74,10 @@ namespace NetBannerNG.Common
 
         public static bool IsUserAdministrator(WindowsIdentity user)
         {
-            if (user == null) throw new ArgumentNullException(nameof(user));
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
 
             // This is the "Gold Standard" for checking local admin rights
             var principal = new WindowsPrincipal(user);
