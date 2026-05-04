@@ -12,7 +12,7 @@ namespace NetBannerNG.Utils
         internal static GeneralSettings LoadGeneralSettings(this Settings settings)
         {
             using var policyKey = Registry.LocalMachine.OpenSubKey(PolicyRegistryPath, false);
-            if (policyKey != null && policyKey.GetValue("Classification") != null)
+            if (policyKey != null && HasManagedPolicyValue(policyKey))
             {
                 return LoadPolicySettings(policyKey);
             }
@@ -29,18 +29,6 @@ namespace NetBannerNG.Utils
                 DisableBorders = GetBool(localKey, "DisableBorders", false),
                 IsPolicyManaged = false,
             };
-        }
-
-        internal static void SaveSettings(this Settings settings, GeneralSettings generalSettings)
-        {
-            using var key = OpenLocalSettingsKey();
-            key?.SetValue("Classification", generalSettings.Classification ?? MapClassification(DefaultClassificationValue), RegistryValueKind.String);
-            key?.SetValue("BannerColor", generalSettings.BannerColor ?? CustomBackgroundColors.Green.ToString(), RegistryValueKind.String);
-            key?.SetValue("FontColor", generalSettings.FontColor ?? CustomForeColors.White.ToString(), RegistryValueKind.String);
-            key?.SetValue("FontSize", generalSettings.FontSize, RegistryValueKind.DWord);
-            key?.SetValue("BannerSize", generalSettings.BannerSize, RegistryValueKind.DWord);
-            key?.SetValue("Heartbeat", generalSettings.Heartbeat, RegistryValueKind.DWord);
-            key?.SetValue("DisableBorders", generalSettings.DisableBorders ? 1 : 0, RegistryValueKind.DWord);
         }
 
         private static GeneralSettings LoadPolicySettings(RegistryKey policyKey)
@@ -87,11 +75,22 @@ namespace NetBannerNG.Utils
         private static string MapClassification(int value) => value switch
         {
             1 => "Unclassified",
-            2 => "Confidential",
-            3 => "Secret",
-            4 => "Top Secret",
+            2 => "Secret",
+            3 => "Top Secret",
+            4 => "SCI",
             _ => "Public",
         };
+
+        private static bool HasManagedPolicyValue(RegistryKey policyKey)
+            => policyKey.GetValue("Classification") != null
+            || policyKey.GetValue("CustomSettings") != null
+            || policyKey.GetValue("CustomBackgroundColor") != null
+            || policyKey.GetValue("CustomForeColor") != null
+            || policyKey.GetValue("CustomDisplayText") != null
+            || policyKey.GetValue("InfoCon") != null
+            || policyKey.GetValue("FpCon") != null
+            || policyKey.GetValue("CaveatsEnabled") != null
+            || policyKey.GetValue("Caveats") != null;
 
         private static TEnum GetEnum<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
         {
