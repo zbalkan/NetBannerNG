@@ -27,21 +27,22 @@ namespace NetBannerNG.Services
             return await Client.InitializeAsync();
         }
 
-        internal async Task InitializeRuntimeAsync()
+        internal Task InitializeRuntimeAsync()
         {
-            BorderManager.Init(await IsClearStartAsync());
+            BorderManager.Init(IsClearStart());
             BorderManager.InitiateAllBorders();
-            await PinClearStartAsync();
+            PinClearStart();
             WindowWatcher.Watch();
             MonitorWatcher.Watch();
             MonitorWatcher.SetTrigger(BorderManager.Refresh);
             ProcessHelper.Protect();
+            return Task.CompletedTask;
         }
 
         internal async Task ShutdownRuntimeAsync()
         {
             BorderManager.CloseAllBorders();
-            await PinClearShutdownAsync();
+            PinClearShutdown();
             WindowWatcher.Unwatch();
             MonitorWatcher.Unwatch();
             if (Client is not null)
@@ -52,11 +53,11 @@ namespace NetBannerNG.Services
             ProcessHelper.Unprotect();
         }
 
-        private static async Task<bool> IsClearStartAsync() => !await Task.Run(() => File.Exists(TmpFilePath));
+        private static bool IsClearStart() => !File.Exists(TmpFilePath);
 
-        private static async Task PinClearShutdownAsync()
+        private static void PinClearShutdown()
         {
-            if (!await Task.Run(() => File.Exists(TmpFilePath)))
+            if (!File.Exists(TmpFilePath))
             {
                 return;
             }
@@ -64,6 +65,6 @@ namespace NetBannerNG.Services
             File.Delete(TmpFilePath);
         }
 
-        private static Task PinClearStartAsync() => Task.Run(() => File.WriteAllText(TmpFilePath, "1"));
+        private static void PinClearStart() => File.WriteAllText(TmpFilePath, "1");
     }
 }
