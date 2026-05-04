@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetBannerNG.Service", "NetB
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetBannerNG.Common", "NetBannerNG.Common\NetBannerNG.Common.csproj", "{F6996EF7-1C26-4E28-9CFA-1997DB13CE3B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetBannerNG.Tests", "NetBannerNG.Tests\NetBannerNG.Tests.csproj", "{2CC6E374-809A-4A42-A4F2-E8A2B67D168B}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F9D767AF-6A9B-4910-88A3-DE2EA81472BB}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -40,6 +42,10 @@ Global
 		{F6996EF7-1C26-4E28-9CFA-1997DB13CE3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6996EF7-1C26-4E28-9CFA-1997DB13CE3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6996EF7-1C26-4E28-9CFA-1997DB13CE3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CC6E374-809A-4A42-A4F2-E8A2B67D168B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CC6E374-809A-4A42-A4F2-E8A2B67D168B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CC6E374-809A-4A42-A4F2-E8A2B67D168B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CC6E374-809A-4A42-A4F2-E8A2B67D168B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
