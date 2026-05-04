@@ -32,14 +32,14 @@ namespace NetBannerNG.Borders
         protected override void ReadSettings()
         {
             LbClassification.Content = Settings.Instance.Classification;
-            LbClassification.Foreground = Settings.Instance.FontColor;
+            LbClassification.Foreground = Settings.Instance.CustomForeColor;
 
             LbHostInformation.Content = Settings.Instance.HostInformation;
-            LbHostInformation.Foreground = Settings.Instance.FontColor;
+            LbHostInformation.Foreground = Settings.Instance.CustomForeColor;
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
-            Background = Settings.Instance.BannerColor;
+            Background = Settings.Instance.CustomBackgroundColor;
             FontSize = Settings.Instance.FontSize;
         }
 

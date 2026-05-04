@@ -9,9 +9,9 @@ namespace NetBannerNG
 
         internal string Classification { get; set; }
 
-        internal SolidColorBrush BannerColor { get; set; }
+        internal SolidColorBrush CustomBackgroundColor { get; set; }
 
-        internal SolidColorBrush FontColor { get; set; }
+        internal SolidColorBrush CustomForeColor { get; set; }
 
         internal int FontSize { get; set; }
 
@@ -47,9 +47,9 @@ namespace NetBannerNG
                            newGeneralSettings.FontSize != _currentGeneralSettings.FontSize;
 
             Classification = newGeneralSettings.Classification;
-            BannerColor = ColorHelper.GetColorBrush(newGeneralSettings.BannerColor);
+            CustomBackgroundColor = ColorHelper.GetColorBrush(newGeneralSettings.CustomBackgroundColor);
             FontSize = newGeneralSettings.FontSize;
-            FontColor = ColorHelper.GetColorBrush(newGeneralSettings.FontColor);
+            CustomForeColor = ColorHelper.GetColorBrush(newGeneralSettings.CustomForeColor);
             BannerSize = newGeneralSettings.BannerSize;
             Heartbeat = newGeneralSettings.Heartbeat;
             DisableBorders = newGeneralSettings.DisableBorders;
