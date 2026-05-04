@@ -161,17 +161,28 @@ namespace NetBannerNG.Common.AppBar
             internal FrameworkElement? ChildElement { get; set; }
             internal Rect? DockedSize { get; set; }
             internal bool IsHandled { get; set; }
+            internal long LastPosChangedHandledAtTicks;
 
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
-                if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged || IsHandled)
+                if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)
+                {
+                    return IntPtr.Zero;
+                }
+                const long debounceWindowTicks = TimeSpan.TicksPerMillisecond * 50;
+                var nowTicks = DateTime.UtcNow.Ticks;
+                var previousTicks = Interlocked.Read(ref LastPosChangedHandledAtTicks);
+                if (nowTicks - previousTicks < debounceWindowTicks)
                 {
                     return IntPtr.Zero;
                 }
 
+                // Fix: Use a ref field, not a property or indexer
+                Interlocked.Exchange(ref LastPosChangedHandledAtTicks, nowTicks);
+                IsHandled = true;
                 AbSetPos(this, Window, ChildElement);
                 handled = true; // This is set but never used
-                IsHandled = true; // Added to reduce unnecessary duplicate callbacks
+                IsHandled = false; // Added to reduce unnecessary duplicate callbacks
                 Debug.WriteLine($"WndProc hook: {CallbackId} | Window: {Window} | Edge: {Enum.GetName(typeof(DockEdge), Edge)} | DockedSize: {DockedSize ?? new()}");
                 return IntPtr.Zero;
             }
