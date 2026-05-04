@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetFramework>net481</TargetFramework>
 		<OutputType>WinExe</OutputType>
 		<UseWPF>true</UseWPF>
+		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
@@ -17,7 +18,7 @@
 		<ApplicationIcon>..\Assets\DeltaZulu - dark.ico</ApplicationIcon>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-windows|AnyCPU'">
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
 		<Optimize>false</Optimize>
 	</PropertyGroup>
 
@@ -33,8 +34,8 @@
 		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />
 		<PackageReference Include="H.Pipes" Version="15.0.0" />
 		<PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
-		<PackageReference Include="Polly" Version="8.6.6" />
-		<PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.7" />
+		<PackageReference Include="Polly" Version="7.2.4" />
+		<PackageReference Include="System.Text.Json" Version="10.0.7" />
 		<PackageReference Include="WriteableBitmapEx" Version="1.6.11" />
 	</ItemGroup>
 

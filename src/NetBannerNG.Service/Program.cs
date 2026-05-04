@@ -73,8 +73,8 @@ namespace NetBannerNG.Service
         private static bool IsExpectedTransient(Exception exception) =>
             exception is OperationCanceledException ||
             (exception is COMException comEx && comEx.HResult == unchecked((int)0x80005000)) ||
-            (exception is IOException ioEx && (ioEx.Message.Contains("Pipe is broken", StringComparison.OrdinalIgnoreCase) ||
-                                              ioEx.Message.Contains("Integrity of the message is broken", StringComparison.OrdinalIgnoreCase)));
+            (exception is IOException ioEx && (ioEx.Message.Contains("Pipe is broken") ||
+                                              ioEx.Message.Contains("Integrity of the message is broken")));
 
         private static bool AreValidArguments(string[] args)
         {

@@ -7,9 +7,9 @@ namespace NetBannerNG.Common.Native
 {
     public sealed class Monitor : IEquatable<Monitor>
     {
-        private static readonly HandleRef HandleRef = new(null, nint.Zero);
+        private static readonly HandleRef HandleRef = new(null, System.IntPtr.Zero);
 
-        private Monitor(nint monitor, nint? hdc)
+        private Monitor(System.IntPtr monitor, System.IntPtr? hdc)
         {
             var info = new MonitorInfoEx();
             _ = NativeMethods.GetMonitorInfo(new HandleRef(null, monitor), info);
@@ -34,7 +34,7 @@ namespace NetBannerNG.Common.Native
             {
                 var closure = new MonitorEnumCallback();
                 var proc = new MonitorEnumProc(closure.Callback);
-                _ = NativeMethods.EnumDisplayMonitors(HandleRef, nint.Zero, proc, nint.Zero);
+                _ = NativeMethods.EnumDisplayMonitors(HandleRef, System.IntPtr.Zero, proc, System.IntPtr.Zero);
                 return closure.Monitors.Cast<Monitor>();
             }
         }
@@ -43,15 +43,15 @@ namespace NetBannerNG.Common.Native
         public bool IsPrimary { get; }
         public string Name { get; }
         public Rect WorkingArea { get; }
-        public nint Handle { get; }
+        public System.IntPtr Handle { get; }
 
-        public static HandleRef GetMonitorHandleFromWindow(nint hWnd)
+        public static HandleRef GetMonitorHandleFromWindow(System.IntPtr hWnd)
         {
             var ptrMonitor = NativeMethods.MonitorFromWindow(hWnd, NativeMethods.MonitorDefaultTo.Nearest);
             return new HandleRef(null, ptrMonitor);
         }
 
-        public static MonitorRect GetMonitorWorkArea(nint hWindow)
+        public static MonitorRect GetMonitorWorkArea(System.IntPtr hWindow)
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
@@ -59,7 +59,7 @@ namespace NetBannerNG.Common.Native
             return monitorInfoEx.rcWork;
         }
 
-        public static MonitorRect GetMonitorBounds(nint hWindow)
+        public static MonitorRect GetMonitorBounds(System.IntPtr hWindow)
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
@@ -76,9 +76,9 @@ namespace NetBannerNG.Common.Native
 
         public bool Equals(Monitor? other) => Equals(other);
 
-        public override int GetHashCode() => HashCode.Combine(Bounds, IsPrimary, Name, WorkingArea, Handle);
+        public override int GetHashCode() => (Bounds, IsPrimary, Name, WorkingArea, Handle).GetHashCode();
 
-        public delegate bool MonitorEnumProc(nint monitor, nint hdc, nint lprcMonitor, nint lParam);
+        public delegate bool MonitorEnumProc(System.IntPtr monitor, System.IntPtr hdc, System.IntPtr lprcMonitor, System.IntPtr lParam);
 
         private class MonitorEnumCallback
         {
@@ -86,7 +86,7 @@ namespace NetBannerNG.Common.Native
 
             public MonitorEnumCallback() => Monitors = new ArrayList();
 
-            public bool Callback(nint monitor, nint hdc, nint lprcMonitor, nint lParam)
+            public bool Callback(System.IntPtr monitor, System.IntPtr hdc, System.IntPtr lprcMonitor, System.IntPtr lParam)
             {
                 _ = Monitors.Add(new Monitor(monitor, hdc));
                 return true;
@@ -110,7 +110,7 @@ namespace NetBannerNG.Common.Native
 
             public bool Equals(MonitorInfoEx? other) => Equals(other);
 
-            public override int GetHashCode() => HashCode.Combine(cbSize, rcMonitor, rcWork, dwFlags, szDevice);
+            public override int GetHashCode() => (cbSize, rcMonitor, rcWork, dwFlags, szDevice).GetHashCode();
 
             public static bool operator ==(MonitorInfoEx? left, MonitorInfoEx? right) => EqualityComparer<MonitorInfoEx>.Default.Equals(left, right);
 

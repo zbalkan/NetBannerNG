@@ -11,8 +11,7 @@ namespace NetBannerNG.Service
             string path;
 #if DEBUG
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-            path = Path.Combine(new DirectoryInfo(path: AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, @"NetBannerNG\bin\Debug\net9.0-windows\NetBannerNG.exe");
-            //psi.Arguments = "--debug";
+            path = Path.Combine(new DirectoryInfo(path: AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, @"NetBannerNG\bin\Debug\net481\NetBannerNG.exe");            //psi.Arguments = "--debug";
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 #else
             path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");

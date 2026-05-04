@@ -7,8 +7,8 @@ namespace NetBannerNG.Common.Native
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     internal struct ProcessInformation : IEquatable<ProcessInformation>
     {
-        public nint hProcess;
-        public nint hThread;
+        public System.IntPtr hProcess;
+        public System.IntPtr hThread;
         public int dwProcessId;
         public int dwThreadId;
 
@@ -16,7 +16,7 @@ namespace NetBannerNG.Common.Native
 
         public readonly bool Equals(ProcessInformation other) => hProcess.Equals(other.hProcess) && hThread.Equals(other.hThread) && dwProcessId == other.dwProcessId && dwThreadId == other.dwThreadId;
 
-        public override readonly int GetHashCode() => HashCode.Combine(hProcess, hThread, dwProcessId, dwThreadId);
+        public override readonly int GetHashCode() => (hProcess, hThread, dwProcessId, dwThreadId).GetHashCode();
 
         public static bool operator ==(ProcessInformation left, ProcessInformation right) => left.Equals(right);
 

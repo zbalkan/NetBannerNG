@@ -25,9 +25,9 @@ namespace NetBannerNG.Common.Extensions
         /// <exception cref="ArgumentNullException"><paramref name="process"/> is <c>null</c>.</exception>
         private static bool RunImpersonated(this Process process, WindowsIdentity userIdentity)
         {
-            ArgumentNullException.ThrowIfNull(process);
+            if (process == null) throw new ArgumentNullException(nameof(process));
 
-            ArgumentNullException.ThrowIfNull(userIdentity);
+            if (userIdentity == null) throw new ArgumentNullException(nameof(userIdentity));
 
             Console.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
             var userToken = userIdentity.AccessToken.DangerousGetHandle();

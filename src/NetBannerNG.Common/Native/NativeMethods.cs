@@ -13,7 +13,7 @@ namespace NetBannerNG.Common.Native
 
         [DllImport("kernel32.dll", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern bool CloseHandle(nint handle);
+        public static extern bool CloseHandle(System.IntPtr handle);
 
         /// <summary>
         /// The WTSGetActiveConsoleSessionId function retrieves the Remote Desktop Services session that
@@ -33,43 +33,43 @@ namespace NetBannerNG.Common.Native
         [DllImport("wtsapi32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [CLSCompliant(false)]
-        public static extern bool WTSQueryUserToken(uint sessionId, out nint token);
+        public static extern bool WTSQueryUserToken(uint sessionId, out System.IntPtr token);
 
         [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern bool CreateProcessAsUser(
-            nint hToken,
+            System.IntPtr hToken,
             string lpApplicationName,
             string lpCommandLine,
             ref SecurityAttributes lpProcessAttributes,
             ref SecurityAttributes lpThreadAttributes,
             bool bInheritHandles,
             uint dwCreationFlags,
-            nint lpEnvironment,
+            System.IntPtr lpEnvironment,
             string lpCurrentDirectory,
             ref StartupInfo lpStartupInfo,
             out ProcessInformation lpProcessInformation);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern bool DuplicateToken(nint existingTokenHandle, int securityImpersonationLevel, ref nint duplicateTokenHandle);
+        public static extern bool DuplicateToken(System.IntPtr existingTokenHandle, int securityImpersonationLevel, ref System.IntPtr duplicateTokenHandle);
 
         [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern bool DuplicateToken(nint existingTokenHandle, SecurityImpersonationLevel securityImpersonationLevel, ref nint duplicateTokenHandle);
+        internal static extern bool DuplicateToken(System.IntPtr existingTokenHandle, SecurityImpersonationLevel securityImpersonationLevel, ref System.IntPtr duplicateTokenHandle);
 
         [DllImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int OpenProcessToken(nint processHandle, // handle to process
+        public static extern int OpenProcessToken(System.IntPtr processHandle, // handle to process
             int desiredAccess, // desired access to process
-            ref nint tokenHandle // handle to open access token
+            ref System.IntPtr tokenHandle // handle to open access token
         );
 
         [DllImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern int OpenProcessToken(nint processHandle, // handle to process
+        internal static extern int OpenProcessToken(System.IntPtr processHandle, // handle to process
             SecurityImpersonationLevel desiredAccess, // desired access to process
-            ref nint tokenHandle // handle to open access token
+            ref System.IntPtr tokenHandle // handle to open access token
         );
 
         #endregion Security
@@ -88,16 +88,16 @@ namespace NetBannerNG.Common.Native
 
         [DllImport("dwmapi.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern int DwmSetWindowAttribute(nint hWnd, int attr, ref int attrValue, int attrSize);
+        internal static extern int DwmSetWindowAttribute(System.IntPtr hWnd, int attr, ref int attrValue, int attrSize);
 
         [DllImport("User32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern nint MonitorFromWindow(nint hWnd, MonitorDefaultTo dwFlags);
+        internal static extern System.IntPtr MonitorFromWindow(System.IntPtr hWnd, MonitorDefaultTo dwFlags);
 
         [DllImport("user32.dll", ExactSpelling = true)]
         [ResourceExposure(ResourceScope.None)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern bool EnumDisplayMonitors(HandleRef hdc, nint rcClip, Monitor.MonitorEnumProc lpfnEnum, nint dwData);
+        internal static extern bool EnumDisplayMonitors(HandleRef hdc, System.IntPtr rcClip, Monitor.MonitorEnumProc lpfnEnum, System.IntPtr dwData);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         [ResourceExposure(ResourceScope.None)]
@@ -107,75 +107,75 @@ namespace NetBannerNG.Common.Native
         [DllImport("user32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         [CLSCompliant(false)]
-        public static extern nint SetWinEventHook(int eventMin, int eventMax, nint hmodWinEventProc, WinEventHook lpfnWinEventProc, int idProcess, int idThread, int dwflags);
+        public static extern System.IntPtr SetWinEventHook(int eventMin, int eventMax, System.IntPtr hmodWinEventProc, WinEventHook lpfnWinEventProc, int idProcess, int idThread, int dwflags);
 
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern bool UnhookWinEvent(nint hWinEventHook);
+        public static extern bool UnhookWinEvent(System.IntPtr hWinEventHook);
 
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern nint GetForegroundWindow();
+        public static extern System.IntPtr GetForegroundWindow();
 
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern nint GetDesktopWindow();
+        public static extern System.IntPtr GetDesktopWindow();
 
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern nint GetShellWindow();
+        public static extern System.IntPtr GetShellWindow();
 
         [DllImport("user32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int GetWindowRect(nint hWnd, out MonitorRect rc);
+        public static extern int GetWindowRect(System.IntPtr hWnd, out MonitorRect rc);
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int GetWindowText(nint hWnd, StringBuilder lpString, int nMaxCount);
+        public static extern int GetWindowText(System.IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int GetWindowTextLength(nint hWnd);
+        public static extern int GetWindowTextLength(System.IntPtr hWnd);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
+        internal static extern bool SetWindowPos(System.IntPtr hWnd, System.IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, SetWindowPosFlags uFlags);
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern nint FindWindow(string lpClassName, string lpWindowName);
+        public static extern System.IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         [DllImport("user32", CharSet = CharSet.Auto)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int GetWindowLong(nint hWnd, int nIndex);
+        public static extern int GetWindowLong(System.IntPtr hWnd, int nIndex);
 
         [DllImport("user32", CharSet = CharSet.Auto)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
+        public static extern int SetWindowLong(System.IntPtr hWnd, int nIndex, int dwNewLong);
 
         [DllImport("kernel32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern nint GetCurrentProcess();
+        internal static extern System.IntPtr GetCurrentProcess();
 
         [DllImport("advapi32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern bool GetKernelObjectSecurity(nint handle, int securityInformation, [Out] byte[] pSecurityDescriptor, uint nLength, out uint lpnLengthNeeded);
+        internal static extern bool GetKernelObjectSecurity(System.IntPtr handle, int securityInformation, [Out] byte[] pSecurityDescriptor, uint nLength, out uint lpnLengthNeeded);
 
         [DllImport("advapi32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern bool SetKernelObjectSecurity(nint handle, int securityInformation, [In] byte[] pSecurityDescriptor);
+        internal static extern bool SetKernelObjectSecurity(System.IntPtr handle, int securityInformation, [In] byte[] pSecurityDescriptor);
 
         [DllImport("ntdll.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        internal static extern int NtQueryInformationProcess(nint processHandle, int processInformationClass, ref ParentProcessUtilities processInformation, int processInformationLength, out int returnLength);
+        internal static extern int NtQueryInformationProcess(System.IntPtr processHandle, int processInformationClass, ref ParentProcessUtilities processInformation, int processInformationLength, out int returnLength);
 
         #endregion Interop Functions
 
         #region WinEvent Hook
 
         [CLSCompliant(false)]
-        public delegate void WinEventHook(nint hWinEventHook, uint eventType, nint hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
+        public delegate void WinEventHook(System.IntPtr hWinEventHook, uint eventType, System.IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
         #endregion WinEvent Hook
 

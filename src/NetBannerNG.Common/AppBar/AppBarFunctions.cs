@@ -19,9 +19,12 @@ namespace NetBannerNG.Common.AppBar
 
         public static void SetAppBar(Window appbarWindow, DockEdge edge, FrameworkElement? childElement = null, bool topMost = true)
         {
-            ArgumentNullException.ThrowIfNull(appbarWindow);
+            if (appbarWindow is null)
+            {
+                throw new ArgumentNullException(nameof(appbarWindow));
+            }
 
-            Debug.WriteLine($"Started docking window {appbarWindow} to {Enum.GetName(edge)} (topMost = {topMost}).");
+            Debug.WriteLine($"Started docking window {appbarWindow} to {Enum.GetName(typeof(DockEdge), edge)} (topMost = {topMost}).");
             if (childElement != null)
             {
                 Debug.Indent();
@@ -164,7 +167,7 @@ namespace NetBannerNG.Common.AppBar
                 AbSetPos(this, Window, ChildElement);
                 handled = true; // This is set but never used
                 IsHandled = true; // Added to reduce unnecessary duplicate callbacks
-                Debug.WriteLine($"WndProc hook: {CallbackId} | Window: {Window} | Edge: {Enum.GetName(Edge)} | DockedSize: {DockedSize ?? new()}");
+                Debug.WriteLine($"WndProc hook: {CallbackId} | Window: {Window} | Edge: {Enum.GetName(typeof(DockEdge), Edge)} | DockedSize: {DockedSize ?? new()}");
                 return IntPtr.Zero;
             }
         }

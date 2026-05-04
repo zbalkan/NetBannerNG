@@ -21,10 +21,10 @@ namespace NetBannerNG.Common.Native
         public int dwFlags;
         public short wShowWindow;
         public short cbReserved2;
-        public nint lpReserved2;
-        public nint hStdInput;
-        public nint hStdOutput;
-        public nint hStdError;
+        public System.IntPtr lpReserved2;
+        public System.IntPtr hStdInput;
+        public System.IntPtr hStdOutput;
+        public System.IntPtr hStdError;
 
         public override readonly bool Equals(object? obj) => obj is StartupInfo info && Equals(info);
 

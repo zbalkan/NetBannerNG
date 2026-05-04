@@ -86,9 +86,12 @@ namespace NetBannerNG.Common.Native
 
         public static WindowsIdentity Owner(Process process)
         {
-            ArgumentNullException.ThrowIfNull(process);
+            if (process is null)
+            {
+                throw new ArgumentNullException(nameof(process));
+            }
 
-            var hToken = nint.Zero;
+            var hToken = System.IntPtr.Zero;
 
             var token = NativeMethods.OpenProcessToken(process.Handle, SecurityImpersonationLevel.TokenQuery |
                                                                       SecurityImpersonationLevel.TokenImpersonate |
@@ -98,9 +101,9 @@ namespace NetBannerNG.Common.Native
             return new WindowsIdentity(token);
         }
 
-        private static RawSecurityDescriptor GetProcessSecurityDescriptor(nint processHandle)
+        private static RawSecurityDescriptor GetProcessSecurityDescriptor(System.IntPtr processHandle)
         {
-            if (processHandle == nint.Zero)
+            if (processHandle == System.IntPtr.Zero)
                 throw new ArgumentException("The process handle is invalid.", nameof(processHandle));
 
             var psd = Array.Empty<byte>();
@@ -119,9 +122,9 @@ namespace NetBannerNG.Common.Native
             return new RawSecurityDescriptor(psd, 0);
         }
 
-        private static void SetProcessSecurityDescriptor(nint processHandle, RawSecurityDescriptor dacl)
+        private static void SetProcessSecurityDescriptor(System.IntPtr processHandle, RawSecurityDescriptor dacl)
         {
-            if (processHandle == nint.Zero)
+            if (processHandle == System.IntPtr.Zero)
                 throw new ArgumentException("The process handle is invalid.", nameof(processHandle));
 
             var pSecurityDescriptor = new byte[dacl.BinaryLength];
@@ -243,9 +246,9 @@ namespace NetBannerNG.Common.Native
         /// <returns>An instance of the Process class.</returns>
         /// <exception cref="Win32Exception"></exception>
         /// <exception cref="ArgumentException"><paramref name="handle"/></exception>
-        private static Process? GetParentProcess(nint handle)
+        private static Process? GetParentProcess(System.IntPtr handle)
         {
-            if (handle == nint.Zero)
+            if (handle == System.IntPtr.Zero)
                 throw new ArgumentException("The parent process handle is invalid.", nameof(handle));
 
             var parentProcessUtil = new ParentProcessUtilities();

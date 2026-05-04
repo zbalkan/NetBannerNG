@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetFramework>net481</TargetFramework>
 		<UseWPF>true</UseWPF>
+		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 
@@ -14,6 +15,10 @@
 		<PackageReference Include="MessagePack" Version="3.1.4">
 			<TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
-		<PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="System.DirectoryServices" />
+	  <Reference Include="System.DirectoryServices.AccountManagement" />
 	</ItemGroup>
 </Project>
