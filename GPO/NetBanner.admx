@@ -44,7 +44,7 @@
         </enum>
       </elements>
     </policy>
-    <policy name="CustomSettings" class="Machine" displayName="$(string.unknown_7)" explainText="$(string.unknown_8)" presentation="$(presentation.CustomSettings)" key="Software\Policies\Microsoft\NetBanner" valueName="CustomSettings">
+    <policy name="CustomSettings" class="Machine" displayName="$(string.unknown_7)" explainText="$(string.CustomSettings_Help)" presentation="$(presentation.CustomSettings)" key="Software\Policies\Microsoft\NetBanner" valueName="CustomSettings">
       <parentCategory ref="NetBanner" />
       <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
       <elements>
@@ -182,6 +182,37 @@
       <elements>
         <text id="SizeMessage" key="Software\Policies\Microsoft\NetBanner" valueName="Caveats" maxLength="40" />
       </elements>
+    </policy>
+    <policy name="FontSize" class="Machine" displayName="$(string.FontSize)" explainText="$(string.FontSize_Help)" presentation="$(presentation.FontSize)" key="Software\Policies\Microsoft\NetBanner" valueName="FontSize">
+      <parentCategory ref="NetBanner" />
+      <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
+      <elements>
+        <decimal id="FontSizeValue" key="Software\Policies\Microsoft\NetBanner" valueName="FontSize" minValue="1" maxValue="72" />
+      </elements>
+    </policy>
+    <policy name="BannerSize" class="Machine" displayName="$(string.BannerSize)" explainText="$(string.BannerSize_Help)" presentation="$(presentation.BannerSize)" key="Software\Policies\Microsoft\NetBanner" valueName="BannerSize">
+      <parentCategory ref="NetBanner" />
+      <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
+      <elements>
+        <decimal id="BannerSizeValue" key="Software\Policies\Microsoft\NetBanner" valueName="BannerSize" minValue="1" maxValue="200" />
+      </elements>
+    </policy>
+    <policy name="Heartbeat" class="Machine" displayName="$(string.Heartbeat)" explainText="$(string.Heartbeat_Help)" presentation="$(presentation.Heartbeat)" key="Software\Policies\Microsoft\NetBanner" valueName="Heartbeat">
+      <parentCategory ref="NetBanner" />
+      <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
+      <elements>
+        <decimal id="HeartbeatValue" key="Software\Policies\Microsoft\NetBanner" valueName="Heartbeat" minValue="1" maxValue="3600" />
+      </elements>
+    </policy>
+    <policy name="DisableBorders" class="Machine" displayName="$(string.DisableBorders)" explainText="$(string.DisableBorders_Help)" key="Software\Policies\Microsoft\NetBanner" valueName="DisableBorders">
+      <parentCategory ref="NetBanner" />
+      <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
     </policy>
   </policies>
 </policyDefinitions>

@@ -37,15 +37,23 @@
       <string id="unknown_34">Bravo</string>
       <string id="unknown_35">Charlie</string>
       <string id="unknown_36">Delta</string>
-      <string id="unknown_8">If this policy setting is configured, Classification and Caveats policy settings are ignored.</string>
+      <string id="CustomSettings_Help">Backwards compatibility: if this policy setting is configured, Classification and Caveats policy settings are ignored.</string>
       <string id="SizeMessage">40 Characters Max</string>
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>
-      <string id="Caveats_Help">Allows administrators to enter free form text.</string>
+      <string id="Caveats_Help">Backwards compatibility: allows administrators to enter free form text.</string>
       <string id="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1">At least Microsoft Windows XP Professional with SP2 or Windows Server 2003 family with SP1</string>
-      <string id="Classification_Help">Classification level for the Organizational Unit (OU).</string>
-      <string id="InformationCondition_Help">Information condition setting.</string>
-      <string id="ForceProtectionCondition_Help">Force Protection Condition setting.</string>
+      <string id="Classification_Help">Backwards compatibility: classification level for the Organizational Unit (OU).</string>
+      <string id="InformationCondition_Help">Backwards compatibility: information condition setting.</string>
+      <string id="ForceProtectionCondition_Help">Backwards compatibility: Force Protection Condition setting.</string>
+      <string id="FontSize">Font Size</string>
+      <string id="FontSize_Help">NetBannerNG-specific: sets the banner text size.</string>
+      <string id="BannerSize">Banner Size</string>
+      <string id="BannerSize_Help">NetBannerNG-specific: sets banner thickness/height.</string>
+      <string id="Heartbeat">Heartbeat</string>
+      <string id="Heartbeat_Help">NetBannerNG-specific: refresh heartbeat interval in seconds.</string>
+      <string id="DisableBorders">Disable Borders</string>
+      <string id="DisableBorders_Help">NetBannerNG-specific: disables banner borders when enabled.</string>
     </stringTable>
     <presentationTable>
       <presentation id="Classification">
@@ -68,6 +76,21 @@
         <textBox refId="SizeMessage">
           <label>40 Characters Max</label>
         </textBox>
+      </presentation>
+      <presentation id="FontSize">
+        <decimalTextBox refId="FontSizeValue" defaultValue="9" spinStep="1">
+          <label>Font Size</label>
+        </decimalTextBox>
+      </presentation>
+      <presentation id="BannerSize">
+        <decimalTextBox refId="BannerSizeValue" defaultValue="20" spinStep="1">
+          <label>Banner Size</label>
+        </decimalTextBox>
+      </presentation>
+      <presentation id="Heartbeat">
+        <decimalTextBox refId="HeartbeatValue" defaultValue="20" spinStep="1">
+          <label>Heartbeat</label>
+        </decimalTextBox>
       </presentation>
     </presentationTable>
   </resources>
