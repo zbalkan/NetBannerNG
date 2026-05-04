@@ -89,15 +89,10 @@ namespace NetBannerNG
             _cleanStart = true;
         }
 
-        internal static void ResizeAllBorders()
+        internal static void Refresh()
         {
             CloseAllBorders();
             InitiateAllBorders();
-        }
-
-        internal static void Refresh()
-        {
-            ResizeAllBorders();
         }
 
         internal static void CloseAllBorders()
