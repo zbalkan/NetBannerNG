@@ -45,8 +45,8 @@ namespace NetBannerNG.Common.AppBar
             }
 
             // Skip redundant docking when this window is already registered on the same edge
-            // with an existing docked rectangle. This avoids duplicate shell docking work during
-            // startup window sequencing.
+            // with an existing docked rectangle. This keeps the interval between first appbar
+            // render and the last appbar docking as short as possible during startup.
             if (info.IsRegistered && info.Edge == edge && info.DockedSize.HasValue)
             {
                 return;
@@ -93,7 +93,10 @@ namespace NetBannerNG.Common.AppBar
         {
             info.PendingResizeOperation?.Abort();
             info.PendingResizeOperation = appbarWindow.Dispatcher.BeginInvoke(
-                DispatcherPriority.ContextIdle,
+                // Loaded runs after initial layout/measure has completed for this dispatcher turn,
+                // but before ContextIdle. That keeps shell-position correction responsive while
+                // still avoiding immediate-size races with WPF's own startup resize messages.
+                DispatcherPriority.Loaded,
                 new ResizeDelegate(DoResize),
                 appbarWindow,
                 rect);
