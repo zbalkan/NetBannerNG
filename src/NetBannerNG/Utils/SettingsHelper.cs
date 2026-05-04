@@ -8,32 +8,44 @@ namespace NetBannerNG.Utils
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const string PolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
         private const int DefaultClassificationValue = 1;
+        private const int DefaultFontSize = 9;
+        private const int DefaultBannerSize = 20;
+        private const int DefaultHeartbeat = 20;
+
 
         internal static GeneralSettings LoadGeneralSettings(this Settings settings)
         {
-            using var policyKey = Registry.LocalMachine.OpenSubKey(PolicyRegistryPath, false);
-            if (policyKey != null && HasManagedPolicyValue(policyKey))
-            {
-                return LoadPolicySettings(policyKey);
-            }
+            using var localMachineKey = OpenLocalMachineKey();
 
-            using var localKey = OpenLocalSettingsKey();
+            using var localKey = OpenLocalSettingsKey(localMachineKey);
+            var localDefaults = LoadOrCreateLocalSettings(localKey);
+
+            using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
+
+            return policyKey != null && HasManagedPolicyValue(policyKey)
+                ? LoadPolicySettings(policyKey, localDefaults)
+                : localDefaults;
+        }
+
+        private static GeneralSettings LoadOrCreateLocalSettings(RegistryKey localKey)
+        {
             return new GeneralSettings
             {
-                Classification = GetString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
-                BannerColor = GetString(localKey, "BannerColor", CustomBackgroundColors.Green.ToString()),
-                FontColor = GetString(localKey, "FontColor", CustomForeColors.White.ToString()),
-                FontSize = GetInt(localKey, "FontSize", 9),
-                BannerSize = GetInt(localKey, "BannerSize", 20),
-                Heartbeat = GetInt(localKey, "Heartbeat", 20),
-                DisableBorders = GetBool(localKey, "DisableBorders", false),
+                Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
+                BannerColor = GetOrCreateString(localKey, "BannerColor", CustomBackgroundColors.Green.ToString()),
+                FontColor = GetOrCreateString(localKey, "FontColor", CustomForeColors.White.ToString()),
+                FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
+                BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
+                Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
+                DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
                 IsPolicyManaged = false,
             };
         }
 
-        private static GeneralSettings LoadPolicySettings(RegistryKey policyKey)
+        private static GeneralSettings LoadPolicySettings(RegistryKey policyKey, GeneralSettings localDefaults)
         {
-            var classification = GetInt(policyKey, "Classification", DefaultClassificationValue);
+            var defaultClassification = ParseClassification(localDefaults.Classification);
+            var classification = GetInt(policyKey, "Classification", defaultClassification);
             var customSettings = GetInt(policyKey, "CustomSettings", 0) == 1;
             var caveatsEnabled = GetInt(policyKey, "CaveatsEnabled", 0) == 1;
 
@@ -48,12 +60,12 @@ namespace NetBannerNG.Utils
             return new GeneralSettings
             {
                 Classification = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, caveats),
-                BannerColor = customSettings ? background.ToString() : CustomBackgroundColors.Green.ToString(),
-                FontColor = customSettings ? foreground.ToString() : CustomForeColors.White.ToString(),
-                FontSize = 9,
-                BannerSize = 20,
-                Heartbeat = 20,
-                DisableBorders = false,
+                BannerColor = customSettings ? background.ToString() : localDefaults.BannerColor,
+                FontColor = customSettings ? foreground.ToString() : localDefaults.FontColor,
+                FontSize = GetInt(policyKey, "FontSize", localDefaults.FontSize),
+                BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
+                Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
+                DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
                 InfoCon = infocon,
                 FpCon = fpcon,
                 Caveats = caveats,
@@ -81,6 +93,16 @@ namespace NetBannerNG.Utils
             _ => "Public",
         };
 
+        private static int ParseClassification(string classification) => classification switch
+        {
+            "Unclassified" => 1,
+            "Secret" => 2,
+            "Top Secret" => 3,
+            "SCI" => 4,
+            _ => DefaultClassificationValue,
+        };
+
+
         private static bool HasManagedPolicyValue(RegistryKey policyKey)
             => policyKey.GetValue("Classification") != null
             || policyKey.GetValue("CustomSettings") != null
@@ -90,7 +112,11 @@ namespace NetBannerNG.Utils
             || policyKey.GetValue("InfoCon") != null
             || policyKey.GetValue("FpCon") != null
             || policyKey.GetValue("CaveatsEnabled") != null
-            || policyKey.GetValue("Caveats") != null;
+            || policyKey.GetValue("Caveats") != null
+            || policyKey.GetValue("FontSize") != null
+            || policyKey.GetValue("BannerSize") != null
+            || policyKey.GetValue("Heartbeat") != null
+            || policyKey.GetValue("DisableBorders") != null;
 
         private static TEnum GetEnum<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
         {
@@ -102,7 +128,54 @@ namespace NetBannerNG.Utils
 
         private static string GetString(RegistryKey key, string name, string defaultValue) => key?.GetValue(name)?.ToString() ?? defaultValue;
 
-        private static RegistryKey OpenLocalSettingsKey() => Registry.LocalMachine.CreateSubKey(LocalRegistryPath, true);
+        private static string GetOrCreateString(RegistryKey key, string name, string defaultValue)
+        {
+            var value = key.GetValue(name)?.ToString();
+            if (!string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+
+            key.SetValue(name, defaultValue, RegistryValueKind.String);
+            return defaultValue;
+        }
+
+        private static int GetOrCreateInt(RegistryKey key, string name, int defaultValue)
+        {
+            var value = key.GetValue(name);
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
+
+            key.SetValue(name, defaultValue, RegistryValueKind.DWord);
+            return defaultValue;
+        }
+
+        private static bool GetOrCreateBool(RegistryKey key, string name, bool defaultValue)
+        {
+            var value = key.GetValue(name);
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+            }
+
+            key.SetValue(name, defaultValue ? 1 : 0, RegistryValueKind.DWord);
+            return defaultValue;
+        }
+
+        private static RegistryKey OpenLocalMachineKey()
+        {
+            var view = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Default;
+            return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+        }
+
+        private static RegistryKey OpenLocalSettingsKey(RegistryKey localMachineKey)
+        {
+            return localMachineKey.CreateSubKey(LocalRegistryPath, true)
+                ?? throw new InvalidOperationException(
+                    $@"Unable to open or create HKLM\{LocalRegistryPath}");
+        }
 
         private static int GetInt(RegistryKey key, string name, int defaultValue)
         {
