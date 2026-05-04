@@ -11,12 +11,11 @@
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="H.Formatters.Inferno" Version="15.0.0" />
 		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0">
 			<TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
 		<PackageReference Include="H.Pipes.AccessControl" Version="15.0.0" />
-		<PackageReference Include="Polly" Version="7.2.4" />
+		<PackageReference Include="Polly" Version="8.6.6" />
 		<PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.7" />
 	</ItemGroup>
 
