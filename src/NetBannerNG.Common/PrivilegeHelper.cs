@@ -13,10 +13,8 @@ namespace NetBannerNG.Common
         private static bool? _isSessionOwnerAdmin;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public static bool IsCurrentUserAdmin
-        {
-            get
-            {
+        public static bool IsCurrentUserAdmin {
+            get {
                 if (_isCurrentUserAdmin.HasValue)
                 {
                     return _isCurrentUserAdmin.Value;
@@ -29,10 +27,8 @@ namespace NetBannerNG.Common
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        public static bool IsSessionOwnerAdmin
-        {
-            get
-            {
+        public static bool IsSessionOwnerAdmin {
+            get {
                 if (_isSessionOwnerAdmin.HasValue)
                 {
                     return _isSessionOwnerAdmin.Value;
@@ -60,8 +56,6 @@ namespace NetBannerNG.Common
 
         public static bool IsSystem => WindowsIdentity.GetCurrent().IsSystem;
 
-        private static bool DomainJoined => Environment.UserDomainName != Environment.MachineName && Environment.UserDomainName != "WORKGROUP";
-
         public static bool GetActiveUser(out WindowsIdentity? user)
         {
             var session = GetActiveSessionId();
@@ -82,46 +76,21 @@ namespace NetBannerNG.Common
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
 
-            PrincipalContext? ctx = null;
-            try
+            // This is the "Gold Standard" for checking local admin rights
+            var principal = new WindowsPrincipal(user);
+
+            // 1. Check for the local Built-in Administrator Role (covers S-1-5-32-544)
+            if (principal.IsInRole(WindowsBuiltInRole.Administrator))
             {
-                if (DomainJoined)
-                {
-                    var domain = Domain.GetComputerDomain();
-                    try
-                    {
-                        ctx = new PrincipalContext(ContextType.Domain);
-                    }
-                    catch (PrincipalServerDownException)
-                    {
-                        // can't access domain, check local machine instead
-                        ctx = new PrincipalContext(ContextType.Machine);
-                    }
-                }
-                else
-                {
-                    // not in a domain
-                    ctx = new PrincipalContext(ContextType.Machine);
-                }
-                // Slow method. ref: https://github.com/dotnet/runtime/issues/34598
-                var up = UserPrincipal.FindByIdentity(ctx, IdentityType.SamAccountName, user.Name);
-                if (up == null) return false;
-                var authGroups = up.GetAuthorizationGroups();
-                return authGroups.Any(principal =>
-                   principal.Sid.IsWellKnown(WellKnownSidType.BuiltinAdministratorsSid) ||
-                   principal.Sid.IsWellKnown(WellKnownSidType.AccountDomainAdminsSid) ||
-                   principal.Sid.IsWellKnown(WellKnownSidType.AccountAdministratorSid) ||
-                   principal.Sid.IsWellKnown(WellKnownSidType.AccountEnterpriseAdminsSid));
+                return true;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return false;
-            }
-            finally
-            {
-                ctx?.Dispose();
-            }
+
+            // 2. Check for Domain/Enterprise Admin SIDs if you need specific AD coverage
+            // These are often not caught by WindowsBuiltInRole.Administrator on non-DCs
+            return user.Groups.Any(g => g is SecurityIdentifier sid && (
+                sid.IsWellKnown(WellKnownSidType.AccountDomainAdminsSid) ||
+                sid.IsWellKnown(WellKnownSidType.AccountEnterpriseAdminsSid) ||
+                sid.IsWellKnown(WellKnownSidType.AccountAdministratorSid)));
         }
 
         private static uint GetActiveSessionId()
