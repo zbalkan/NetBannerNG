@@ -10,10 +10,10 @@ namespace NetBannerNG.Service
         private static bool _stopping;
         internal static NamedPipeServer? pipeServer;
 
-        // TODO: Add event log
         public ServiceHost()
         {
             ServiceName = "NetBannerNG Service";
+            EventLogManager.Initialize();
         }
 
         protected override void OnStart(string[] args)

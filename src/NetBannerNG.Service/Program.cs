@@ -1,7 +1,4 @@
 ﻿using NetBannerNG.Common.Extensions;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
@@ -18,11 +15,9 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     public static class Program
     {
-        // TODO: Add debug log when possible
-        // TODO: Add event log
         // TODO: Add crash reporting, e.g. https://github.com/getsentry/sentry-dotnet
         // TODO: Move business logic to service, Add Utils to Common first, then remove accordingly.
-        public static ILogManager Log { get; set; } = new NLogManager();
+        public static ILogManager Log { get; set; } = new EventLogManager();
 
         public static void Main(string[] args)
         {
@@ -118,16 +113,7 @@ namespace NetBannerNG.Service
 
         private static void StartLogger()
         {
-            var config = new LoggingConfiguration();
-            using (var logEventLog = new EventLogTarget()
-            {
-                Layout = "DateTime: ${longdate}${newline}Level: ${level:uppercase=true}${newline}Source: ${logger}${newline}Message: ${message}${newline}Stacktrace: ${stacktrace}",
-                Name = "NetBannerNG",
-            })
-            {
-                config.AddRule(LogLevel.Info, LogLevel.Error, logEventLog);
-            }
-            LogManager.Configuration = config;
+            EventLogManager.Initialize();
         }
     }
 }
