@@ -3,6 +3,7 @@ using NetBannerNG.Common.Native;
 using System.Diagnostics;
 using System.Text;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace NetBannerNG.Utils
 {
@@ -56,18 +57,14 @@ namespace NetBannerNG.Utils
 
             if (isFullScreen)
             {
-                Application.Current
-                    .Dispatcher
-                    .Invoke(BorderManager.SendBottom); // TODO: Add event delegate here
+                Dispatch(BorderManager.SendBottom);
                 //var newBounds = GetModifiedFullscreenBound(foregroundWindowHandle);
                 //ResizeForegroundWindow(foregroundWindowHandle, newBounds);
                 //BorderManager.InitiateAllBorders(true, true);
             }
             else
             {
-                Application.Current
-                    .Dispatcher
-                    .Invoke(BorderManager.SendTop);
+                Dispatch(BorderManager.SendTop);
             }
         }
 
@@ -129,6 +126,12 @@ namespace NetBannerNG.Utils
         //    _ = NativeMethods.SetWindowPos(targetWindowHandle, IntPtr.Zero, x, y, width, height,
         //        NativeMethods.SetWindowPosFlags.Undefined);
         //}
+
+
+        private static void Dispatch(Action action)
+        {
+            _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+        }
 
         private static Rect GetWindowBounds(IntPtr current)
         {

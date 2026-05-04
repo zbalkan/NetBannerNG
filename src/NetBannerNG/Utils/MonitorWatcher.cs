@@ -1,36 +1,50 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace NetBannerNG.Utils
 {
     internal static class MonitorWatcher
     {
-        private static readonly List<Action> ActionsToTrigger = new();
+        private static event Action? DisplaySettingsChanged;
         private static bool _isWatching;
 
         internal static void Watch()
         {
+            if (_isWatching)
+            {
+                return;
+            }
+
             SystemEvents.DisplaySettingsChanged += ScreenHandler!;
             _isWatching = true;
         }
 
         internal static void Unwatch()
         {
-            if (_isWatching) SystemEvents.DisplaySettingsChanged -= ScreenHandler!;
+            if (!_isWatching)
+            {
+                return;
+            }
+
+            SystemEvents.DisplaySettingsChanged -= ScreenHandler!;
+            _isWatching = false;
         }
 
         private static void ScreenHandler(object sender, EventArgs e)
         {
-            foreach (var action in ActionsToTrigger)
+            var callbacks = DisplaySettingsChanged;
+            if (callbacks == null)
             {
-                Application.Current.Dispatcher.Invoke(action);
+                return;
             }
+
+            _ = Application.Current.Dispatcher.BeginInvoke(callbacks, DispatcherPriority.Background);
         }
 
-        // TODO: Convert to event delegate
         internal static void SetTrigger(Action action)
         {
-            ActionsToTrigger.Add(action);
+            DisplaySettingsChanged += action;
         }
     }
 }
