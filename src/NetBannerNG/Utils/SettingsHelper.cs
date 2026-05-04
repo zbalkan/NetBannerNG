@@ -1,5 +1,7 @@
 ﻿using Microsoft.Win32;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace NetBannerNG.Utils
 {
@@ -12,6 +14,22 @@ namespace NetBannerNG.Utils
         private const int DefaultBannerSize = 20;
         private const int DefaultHeartbeat = 20;
 
+        private static readonly string[] ManagedPolicyKeys =
+        {
+            "Classification",
+            "CustomSettings",
+            "CustomBackgroundColor",
+            "CustomForeColor",
+            "CustomDisplayText",
+            "InfoCon",
+            "FpCon",
+            "CaveatsEnabled",
+            "Caveats",
+            "FontSize",
+            "BannerSize",
+            "Heartbeat",
+            "DisableBorders",
+        };
 
         internal static GeneralSettings LoadGeneralSettings(this Settings settings)
         {
@@ -104,19 +122,7 @@ namespace NetBannerNG.Utils
 
 
         private static bool HasManagedPolicyValue(RegistryKey policyKey)
-            => policyKey.GetValue("Classification") != null
-            || policyKey.GetValue("CustomSettings") != null
-            || policyKey.GetValue("CustomBackgroundColor") != null
-            || policyKey.GetValue("CustomForeColor") != null
-            || policyKey.GetValue("CustomDisplayText") != null
-            || policyKey.GetValue("InfoCon") != null
-            || policyKey.GetValue("FpCon") != null
-            || policyKey.GetValue("CaveatsEnabled") != null
-            || policyKey.GetValue("Caveats") != null
-            || policyKey.GetValue("FontSize") != null
-            || policyKey.GetValue("BannerSize") != null
-            || policyKey.GetValue("Heartbeat") != null
-            || policyKey.GetValue("DisableBorders") != null;
+            => ManagedPolicyKeys.Any(key => policyKey.GetValue(key) != null);
 
         private static TEnum GetEnum<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
         {
