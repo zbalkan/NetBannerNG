@@ -44,6 +44,14 @@ namespace NetBannerNG.Common.AppBar
                 return;
             }
 
+            // Skip redundant docking when this window is already registered on the same edge
+            // with an existing docked rectangle. This avoids duplicate shell docking work during
+            // startup window sequencing.
+            if (info.IsRegistered && info.Edge == edge && info.DockedSize.HasValue)
+            {
+                return;
+            }
+
             // Set desktop window manager attributes to prevent window
             // from being hidden when peeking at the desktop or when
             // the 'show desktop' button is pressed
