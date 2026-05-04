@@ -20,20 +20,12 @@ namespace NetBannerNG.Utils
             return result ?? string.Empty;
         }
 
-        private static bool IsUp(NetworkInterface ni)
-        {
-            return ni.OperationalStatus == OperationalStatus.Up;
-        }
+        private static bool IsUp(NetworkInterface ni) => ni.OperationalStatus == OperationalStatus.Up;
 
-        private static bool IsPhysical(NetworkInterface ni)
-        {
+        private static bool IsPhysical(NetworkInterface ni) =>
             // If it is wired or wireleess it is not virtual
-            return ni.NetworkInterfaceType is NetworkInterfaceType.Wireless80211 or NetworkInterfaceType.Ethernet;
-        }
+            ni.NetworkInterfaceType is NetworkInterfaceType.Wireless80211 or NetworkInterfaceType.Ethernet;
 
-        private static bool IsSpecified(GatewayIPAddressInformation addr)
-        {
-            return addr?.Address.ToString().Equals("0.0.0.0", StringComparison.Ordinal) == false;
-        }
+        private static bool IsSpecified(GatewayIPAddressInformation addr) => addr?.Address.ToString().Equals("0.0.0.0", StringComparison.Ordinal) == false;
     }
 }

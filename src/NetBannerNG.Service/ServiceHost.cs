@@ -17,20 +17,11 @@ namespace NetBannerNG.Service
             EventLogManager.Initialize();
         }
 
-        protected override void OnStart(string[] args)
-        {
-            Run(args);
-        }
+        protected override void OnStart(string[] args) => Run(args);
 
-        protected override void OnStop()
-        {
-            Abort();
-        }
+        protected override void OnStop() => Abort();
 
-        protected override void OnShutdown()
-        {
-            Abort();
-        }
+        protected override void OnShutdown() => Abort();
 
         public static void Run(string[] args)
         {

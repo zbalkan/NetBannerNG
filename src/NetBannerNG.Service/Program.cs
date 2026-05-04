@@ -111,9 +111,6 @@ namespace NetBannerNG.Service
             Console.WriteLine("User interactive mode");
         }
 
-        private static void StartLogger()
-        {
-            EventLogManager.Initialize();
-        }
+        private static void StartLogger() => EventLogManager.Initialize();
     }
 }

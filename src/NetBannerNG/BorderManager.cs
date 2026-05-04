@@ -42,7 +42,10 @@ namespace NetBannerNG
                     IsDocked = !clean
                 };
 
-                if (Settings.Instance.DisableBorders) continue;
+                if (Settings.Instance.DisableBorders)
+                {
+                    continue;
+                }
 
                 var bottom = new BottomBar
                 {
@@ -107,15 +110,9 @@ namespace NetBannerNG
             _isInitiated = false;
         }
 
-        internal static void SendTop()
-        {
-            SetTopMost(true);
-        }
+        internal static void SendTop() => SetTopMost(true);
 
-        internal static void SendBottom()
-        {
-            SetTopMost(false);
-        }
+        internal static void SendBottom() => SetTopMost(false);
 
         private static List<BorderBase> GetOwnedBorders() => App.Current.MainWindow?.OwnedWindows.Cast<BorderBase>().ToList() ?? new List<BorderBase>();
 

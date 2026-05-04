@@ -46,14 +46,8 @@ namespace NetBannerNG.Service
             }
         }
 
-        public static void KillAllChildProcess()
-        {
-            Process.GetProcesses().Where(p => p.ProcessName == ChildProcessName).ToList().ForEach(p => p.Kill());
-        }
+        public static void KillAllChildProcess() => Process.GetProcesses().Where(p => p.ProcessName == ChildProcessName).ToList().ForEach(p => p.Kill());
 
-        public static bool IsChildProcessRunning()
-        {
-            return Process.GetProcessesByName(ChildProcessName).Any();
-        }
+        public static bool IsChildProcessRunning() => Process.GetProcessesByName(ChildProcessName).Any();
     }
 }

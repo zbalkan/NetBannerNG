@@ -82,10 +82,26 @@ namespace NetBannerNG.Utils
         private static string ComposeClassificationText(string classification, string customDisplayText, int infoCon, int fpCon, string caveats)
         {
             var values = new List<string> { classification };
-            if (!string.IsNullOrWhiteSpace(customDisplayText)) values.Add(customDisplayText.Trim());
-            if (infoCon > 0) values.Add($"INFOCON {infoCon}");
-            if (fpCon > 0) values.Add($"FPCON {fpCon}");
-            if (!string.IsNullOrWhiteSpace(caveats)) values.Add(caveats.Trim());
+            if (!string.IsNullOrWhiteSpace(customDisplayText))
+            {
+                values.Add(customDisplayText.Trim());
+            }
+
+            if (infoCon > 0)
+            {
+                values.Add($"INFOCON {infoCon}");
+            }
+
+            if (fpCon > 0)
+            {
+                values.Add($"FPCON {fpCon}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(caveats))
+            {
+                values.Add(caveats.Trim());
+            }
+
             return string.Join(" | ", values);
         }
 
@@ -123,7 +139,10 @@ namespace NetBannerNG.Utils
         private static string GetOrCreateString(RegistryKey key, string name, string defaultValue)
         {
             var value = key.GetValue(name)?.ToString();
-            if (!string.IsNullOrEmpty(value)) return value;
+            if (!string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
 
             key.SetValue(name, defaultValue, RegistryValueKind.String);
             return defaultValue;
@@ -132,7 +151,10 @@ namespace NetBannerNG.Utils
         private static int GetOrCreateInt(RegistryKey key, string name, int defaultValue)
         {
             var value = key.GetValue(name);
-            if (value != null) return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
 
             key.SetValue(name, defaultValue, RegistryValueKind.DWord);
             return defaultValue;
@@ -141,7 +163,10 @@ namespace NetBannerNG.Utils
         private static string GetOrCreateEnumName<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
         {
             var raw = key.GetValue(name);
-            if (raw != null) return ParseEnumValue(raw, defaultValue).ToString();
+            if (raw != null)
+            {
+                return ParseEnumValue(raw, defaultValue).ToString();
+            }
 
             key.SetValue(name, Convert.ToInt32(defaultValue, CultureInfo.InvariantCulture), RegistryValueKind.DWord);
             return defaultValue.ToString();
@@ -151,10 +176,15 @@ namespace NetBannerNG.Utils
         {
             if (rawValue is string text)
             {
-                if (Enum.TryParse<TEnum>(text, true, out var parsedByName) && Enum.IsDefined(typeof(TEnum), parsedByName)) return parsedByName;
-                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedByNumber)
-                    && Enum.IsDefined(typeof(TEnum), parsedByNumber)) return (TEnum)Enum.ToObject(typeof(TEnum), parsedByNumber);
-                return defaultValue;
+                if (Enum.TryParse<TEnum>(text, true, out var parsedByName) && Enum.IsDefined(typeof(TEnum), parsedByName))
+                {
+                    return parsedByName;
+                }
+
+                return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedByNumber)
+                    && Enum.IsDefined(typeof(TEnum), parsedByNumber)
+                    ? (TEnum)Enum.ToObject(typeof(TEnum), parsedByNumber)
+                    : defaultValue;
             }
 
             var asInt = Convert.ToInt32(rawValue, CultureInfo.InvariantCulture);
@@ -166,7 +196,10 @@ namespace NetBannerNG.Utils
         private static bool GetOrCreateBool(RegistryKey key, string name, bool defaultValue)
         {
             var value = key.GetValue(name);
-            if (value != null) return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+            }
 
             key.SetValue(name, defaultValue ? 1 : 0, RegistryValueKind.DWord);
             return defaultValue;

@@ -189,7 +189,7 @@ namespace NetBannerNG.Service
             }
         }
 
-        public struct PendingEntry : IEquatable<PendingEntry>
+        public readonly struct PendingEntry : IEquatable<PendingEntry>
         {
             public EventLogEntryType Type { get; }
             public string Message { get; }
@@ -207,7 +207,7 @@ namespace NetBannerNG.Service
             public override bool Equals(object obj) =>
                 obj is PendingEntry other && Equals(other);
 
-            public override readonly int GetHashCode()
+            public readonly override int GetHashCode()
             {
                 // Using the BCL HashCode package we discussed!
                 var hash = new HashCode();

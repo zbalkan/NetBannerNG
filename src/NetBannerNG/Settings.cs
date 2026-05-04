@@ -36,7 +36,10 @@ namespace NetBannerNG
         private const int MinimumBorderSize = 2;
         private const double BorderBannerRatio = 0.25;
 
-        private Settings() => Refresh();
+        private Settings()
+        {
+            Refresh();
+        }
 
         internal void Refresh()
         {

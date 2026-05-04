@@ -149,14 +149,15 @@ namespace NetBannerNG
         {
         }
 
-        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
-        {
-            Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
-        }
+        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args) => Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
-            if (args.Message == null) return;
+            if (args.Message == null)
+            {
+                return;
+            }
+
             if (!PipeMessageChecksum.IsValid(args.Message))
             {
                 DebugTrace($"InboundInvalidChecksum action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
@@ -189,10 +190,7 @@ namespace NetBannerNG
             }
         }
 
-        private void OnExceptionOccurred(object o, ExceptionEventArgs args)
-        {
-            DebugTrace($"PipeException {args.Exception.Message}");
-        }
+        private void OnExceptionOccurred(object o, ExceptionEventArgs args) => DebugTrace($"PipeException {args.Exception.Message}");
 
         [Conditional("DEBUG")]
         private static void DebugTrace(string message) => Debug.WriteLine($"[PipeClient] {message}");

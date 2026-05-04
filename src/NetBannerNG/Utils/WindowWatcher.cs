@@ -19,10 +19,7 @@ namespace NetBannerNG.Utils
         private static IntPtr _previousForegroundWindowHandle;
         private static IntPtr _hookId;
 
-        internal static void Watch()
-        {
-            _hookId = SetHook(ForegroundWindowHook);
-        }
+        internal static void Watch() => _hookId = SetHook(ForegroundWindowHook);
 
         internal static void Unwatch()
         {
@@ -34,21 +31,25 @@ namespace NetBannerNG.Utils
             _ = NativeMethods.UnhookWinEvent(_hookId);
         }
 
-        private static IntPtr SetHook(NativeMethods.WinEventHook hookProc)
-        {
-            return NativeMethods.SetWinEventHook(EventObjectCreate,
+        private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(EventObjectCreate,
                 EventObjectLocationChange, IntPtr.Zero, hookProc, 0, 0,
                 (int)NativeMethods.SetWinEventHookFlags.SkipOwnProcess);
-        }
 
         private static void HookCallback(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
         {
             var foregroundWindowHandle = NativeMethods.GetForegroundWindow();
-            if (foregroundWindowHandle == _previousForegroundWindowHandle) return;
+            if (foregroundWindowHandle == _previousForegroundWindowHandle)
+            {
+                return;
+            }
+
             _previousForegroundWindowHandle = foregroundWindowHandle;
 
-            if (!IsValid(foregroundWindowHandle)) return;
+            if (!IsValid(foregroundWindowHandle))
+            {
+                return;
+            }
 
             var windowTitle = GetWindowTitle(foregroundWindowHandle);
             var windowBounds = GetWindowBounds(foregroundWindowHandle);
@@ -74,13 +75,22 @@ namespace NetBannerNG.Utils
         private static bool IsValid(IntPtr windowHandle)
         {
             // If handle is default, there is a problem, return false.
-            if (windowHandle.Equals(IntPtr.Zero)) return false;
+            if (windowHandle.Equals(IntPtr.Zero))
+            {
+                return false;
+            }
 
             // Check we haven't picked up the desktop or the shell
-            if (windowHandle.Equals(DesktopHandle) || windowHandle.Equals(ShellHandle)) return false;
+            if (windowHandle.Equals(DesktopHandle) || windowHandle.Equals(ShellHandle))
+            {
+                return false;
+            }
 
             // Check if we picked the taskbar.
-            if (windowHandle.Equals(TaskbarHandle)) return false;
+            if (windowHandle.Equals(TaskbarHandle))
+            {
+                return false;
+            }
 
             // if window is one of ours, ignore the calculation
             return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
@@ -131,10 +141,7 @@ namespace NetBannerNG.Utils
         //}
 
 
-        private static void Dispatch(Action action)
-        {
-            _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
-        }
+        private static void Dispatch(Action action) => _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
 
         private static Rect GetWindowBounds(IntPtr current)
         {
