@@ -22,12 +22,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{55F150
 		Assets\colorpicker1.png = Assets\colorpicker1.png
 		Assets\colorpicker2.png = Assets\colorpicker2.png
 		Assets\DeltaZulu - dark.ico = Assets\DeltaZulu - dark.ico
-		Assets\DeltaZulu - dark.png = Assets\DeltaZulu - dark.png
-		Assets\DeltaZulu - light.png = Assets\DeltaZulu - light.png
-		Assets\exit.png = Assets\exit.png
-		Assets\info.png = Assets\info.png
-		Assets\key.png = Assets\key.png
-		Assets\settings.png = Assets\settings.png
 	EndProjectSection
 EndProject
 Global
