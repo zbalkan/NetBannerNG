@@ -79,12 +79,25 @@ namespace NetBannerNG
             var orderedWindows = App.Current.MainWindow
                 .OwnedWindows
                 .Cast<BorderBase>()
-                .OrderByDescending(w => w.GetMonitor().IsPrimary)
-                .ThenBy(w => w.GetMonitor().Bounds.Y)
-                .ThenBy(w => w.GetMonitor().Bounds.X)
-                .ThenBy(w => w.GetType().Name)
-                .Where(mainWindowOwnedWindow => !mainWindowOwnedWindow.IsVisible)
+                .Where(window => !window.IsVisible)
+                .Select(window => {
+                    var monitor = window.GetMonitor();
+                    return new {
+                        Window = window,
+                        monitor.IsPrimary,
+                        MonitorY = monitor.Bounds.Y,
+                        MonitorX = monitor.Bounds.X,
+                        WindowType = window.GetType().Name
+                    };
+                    ;
+                })
+                .OrderByDescending(entry => entry.IsPrimary)
+                .ThenBy(entry => entry.MonitorY)
+                .ThenBy(entry => entry.MonitorX)
+                .ThenBy(entry => entry.WindowType)
+                .Select(entry => entry.Window)
                 .ToList();
+
             foreach (var mainWindowOwnedWindow in orderedWindows)
             {
                 mainWindowOwnedWindow.Show();
