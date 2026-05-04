@@ -1,0 +1,16 @@
+﻿<borders:BorderBase
+    x:Class="NetBannerNG.Borders.BottomBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:borders="clr-namespace:NetBannerNG.Borders"
+    Title="BottomBar"
+    Closing="BorderBase_Closing"
+    Loaded="Window_Loaded"
+    MouseDoubleClick="Window_MouseDoubleClick"
+    ResizeMode="NoResize"
+    ScrollViewer.CanContentScroll="False"
+    ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+    ScrollViewer.VerticalScrollBarVisibility="Hidden"
+    ShowInTaskbar="False"
+    Top="-100"
+    WindowStyle="None" />

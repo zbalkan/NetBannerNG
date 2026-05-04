@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<OutputType>WinExe</OutputType>
+		<UseWPF>true</UseWPF>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<AnalysisMode>All</AnalysisMode>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+
+		<Version>1.0.0.0</Version>
+		<Company>Zafer Balkan</Company>
+		<Description>NetBannerNG</Description>
+		<Copyright>All Rights Reserved</Copyright>
+		<ApplicationIcon>..\Assets\DeltaZulu - dark.ico</ApplicationIcon>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-windows|AnyCPU'">
+		<Optimize>false</Optimize>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="AppData\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Dirkster.NumericUpDownLib" Version="3.4.0" />
+		<PackageReference Include="H.Formatters.Inferno" Version="15.0.0" />
+		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />
+		<PackageReference Include="H.Pipes" Version="15.0.0" />
+		<PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+		<PackageReference Include="Polly" Version="8.6.6" />
+		<PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.7" />
+		<PackageReference Include="WriteableBitmapEx" Version="1.6.11" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="..\Assets\DeltaZulu - dark.ico">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="..\Assets\DeltaZulu - light.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="..\Assets\DeltaZulu - dark.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="..\Assets\colorpicker1.png" />
+		<Resource Include="..\Assets\colorpicker2.png" />
+		<Resource Include="..\Assets\exit.png" />
+		<Resource Include="..\Assets\info.png" />
+		<Resource Include="..\Assets\settings.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
+	</ItemGroup>
+
+	<ProjectExtensions>
+		<VisualStudio>
+			<UserProperties Viade-Afterburner-Debug="DisposeMonitoring=True|DeadlockDetection=True|DeadlockPrediction=True|ThreadsMap=True" />
+		</VisualStudio>
+	</ProjectExtensions>
+</Project>
