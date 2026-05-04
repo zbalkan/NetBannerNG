@@ -32,8 +32,8 @@ namespace NetBannerNG.Utils
             return new GeneralSettings
             {
                 Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
-                BannerColor = GetOrCreateString(localKey, "BannerColor", CustomBackgroundColors.Green.ToString()),
-                FontColor = GetOrCreateString(localKey, "FontColor", CustomForeColors.White.ToString()),
+                BannerColor = GetOrCreateEnumName(localKey, "CustomBackgroundColor", CustomBackgroundColors.Green),
+                FontColor = GetOrCreateEnumName(localKey, "CustomForeColor", CustomForeColors.White),
                 FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
                 BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
                 Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
@@ -150,6 +150,43 @@ namespace NetBannerNG.Utils
 
             key.SetValue(name, defaultValue, RegistryValueKind.DWord);
             return defaultValue;
+        }
+
+        private static string GetOrCreateEnumName<TEnum>(RegistryKey key, string name, TEnum defaultValue) where TEnum : struct, Enum
+        {
+            var raw = key.GetValue(name);
+            if (raw != null)
+            {
+                var parsed = ParseEnumValue(raw, defaultValue);
+                return parsed.ToString();
+            }
+
+            key.SetValue(name, Convert.ToInt32(defaultValue, CultureInfo.InvariantCulture), RegistryValueKind.DWord);
+            return defaultValue.ToString();
+        }
+
+        private static TEnum ParseEnumValue<TEnum>(object rawValue, TEnum defaultValue) where TEnum : struct, Enum
+        {
+            if (rawValue is string text)
+            {
+                if (Enum.TryParse<TEnum>(text, true, out var parsedByName) && Enum.IsDefined(typeof(TEnum), parsedByName))
+                {
+                    return parsedByName;
+                }
+
+                if (int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedByNumber)
+                    && Enum.IsDefined(typeof(TEnum), parsedByNumber))
+                {
+                    return (TEnum)Enum.ToObject(typeof(TEnum), parsedByNumber);
+                }
+
+                return defaultValue;
+            }
+
+            var asInt = Convert.ToInt32(rawValue, CultureInfo.InvariantCulture);
+            return Enum.IsDefined(typeof(TEnum), asInt)
+                ? (TEnum)Enum.ToObject(typeof(TEnum), asInt)
+                : defaultValue;
         }
 
         private static bool GetOrCreateBool(RegistryKey key, string name, bool defaultValue)
