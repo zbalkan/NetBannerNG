@@ -8,6 +8,7 @@ namespace NetBannerNG.Service
     {
         private static Thread? _serviceThread;
         private static bool _stopping;
+        private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
         internal static NamedPipeServer? pipeServer;
 
         public ServiceHost()
@@ -64,9 +65,28 @@ namespace NetBannerNG.Service
 
                 while (!_stopping)
                 {
+                    MonitorChildProcess();
                     await Task.Delay(100).ConfigureAwait(false);
                 }
             }
+        }
+
+        private static void MonitorChildProcess()
+        {
+            if (ProcessHelper.IsChildProcessRunning())
+            {
+                return;
+            }
+
+            var now = DateTime.UtcNow;
+            if ((now - _lastWatchdogRestartAttemptUtc) < TimeSpan.FromSeconds(5))
+            {
+                return;
+            }
+
+            _lastWatchdogRestartAttemptUtc = now;
+            Program.Log.LogWarning("[NBNG-2004] Child process not found. Watchdog is restarting NetBannerNG.");
+            ProcessHelper.InitiateChildProcess();
         }
     }
 }
