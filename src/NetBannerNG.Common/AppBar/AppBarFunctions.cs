@@ -83,12 +83,21 @@ namespace NetBannerNG.Common.AppBar
 
             //This is done async, because WPF will send a resize after a new appbar is added.
             //if we size right away, WPFs resize comes last and overrides us.
-            _ = appbarWindow.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new ResizeDelegate(DoResize), appbarWindow, dockedSize);
+            ScheduleResize(info, appbarWindow, dockedSize);
 
             Debug.WriteLine($"Resized window: {appbarWindow}");
             Debug.WriteLine($"{appbarWindow} new size: {dockedSize}");
         }
 
+        private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect)
+        {
+            info.PendingResizeOperation?.Abort();
+            info.PendingResizeOperation = appbarWindow.Dispatcher.BeginInvoke(
+                DispatcherPriority.ContextIdle,
+                new ResizeDelegate(DoResize),
+                appbarWindow,
+                rect);
+        }
         private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement childElement) => childElement != null ?
                 WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(childElement.ActualWidth, childElement.ActualHeight))
@@ -125,7 +134,7 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.RestoreStyle(info);
             info.DockedSize = null;
             var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, info.OriginalSize.Width, info.OriginalSize.Height);
-            _ = appbarWindow.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new ResizeDelegate(DoResize), appbarWindow, rect);
+            ScheduleResize(info, appbarWindow, rect);
         }
 
         private static APPBARDATA SendAppBarRemovalToShell(APPBARDATA abd)
@@ -162,7 +171,7 @@ namespace NetBannerNG.Common.AppBar
             internal Rect? DockedSize { get; set; }
             internal bool IsHandled { get; set; }
             internal long LastPosChangedHandledAtTicks;
-
+            internal DispatcherOperation? PendingResizeOperation { get; set; }
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
                 if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)
