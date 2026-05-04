@@ -4,12 +4,4 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Exit="Application_Exit"
     SessionEnding="Application_SessionEnding"
-    ShutdownMode="OnExplicitShutdown">
-    <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="NotifyIconResources.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Application.Resources>
-</Application>
+    ShutdownMode="OnExplicitShutdown" />

@@ -1,4 +1,3 @@
-using Hardcodet.Wpf.TaskbarNotification;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.Native;
 using NetBannerNG.Utils;
@@ -17,7 +16,6 @@ namespace NetBannerNG
     {
         private static readonly string _tmpFilePath = Path.Combine(UserHelper.UserTempPath, "netbannerng-pipe.tmp");
         private static bool _isClosing;
-        private static TaskbarIcon? _notifyIcon;
         internal static NamedPipeClient? Client { get; private set; }
 
         internal static void ShutDownGracefully()
@@ -33,7 +31,6 @@ namespace NetBannerNG
                 _isClosing = true;
                 BorderManager.CloseAllBorders();
                 PinClearShutdown();
-                _notifyIcon?.Dispose(); //the icon would clean up automatically, but this is cleaner
                 WindowWatcher.Unwatch();
                 MonitorWatcher.Unwatch();
                 // ReSharper disable once ConstantConditionalAccessQualifier
@@ -89,8 +86,6 @@ namespace NetBannerNG
                 MonitorWatcher.Watch();
                 MonitorWatcher.SetTrigger(BorderManager.Refresh);
 
-                //create the notify icon (it's a resource declared in NotifyIconResources.xaml)
-                _notifyIcon = (TaskbarIcon)FindResource("NotifyIcon");
 
                 ProcessHelper.Protect();
             }
