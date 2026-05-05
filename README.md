@@ -26,6 +26,13 @@ It displays a persistent desktop classification banner and supports existing Net
 3. Confirm the NetBannerNG service is running.
 4. Log in as a user and verify the banner appears with expected values.
 
+## Build from source
+
+1. Open `src/NetBannerNG.sln` in Visual Studio 2022 (or newer).
+2. Restore NuGet packages when prompted.
+3. Build the `Release` configuration for `Any CPU`.
+4. Locate binaries in `src/NetBannerNG/bin/Release/`.
+
 ## Behavior under fullscreen and mouse-over
 
 The expected UX is based on current implementation behavior:
