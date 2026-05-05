@@ -6,7 +6,7 @@ using Microsoft.Win32;
 
 namespace NetBannerNG.Utils
 {
-    internal static class SettingsHelper
+    public static class SettingsHelper
     {
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const string PolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";

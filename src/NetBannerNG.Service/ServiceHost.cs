@@ -41,11 +41,21 @@ namespace NetBannerNG.Service
             _stopping = true;
         }
 
-        private static async void InitializeServiceThread()
+        private static void InitializeServiceThread()
         {
-            //Console.WriteLine("Simulating checks with 3-second-sleep.");
-            // TODO: Make timeout configurable
-            //Thread.Sleep(3000);
+            try
+            {
+                InitializeServiceThreadAsync().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, ex.ToString());
+                throw;
+            }
+        }
+
+        private static async Task InitializeServiceThreadAsync()
+        {
             pipeServer = new NamedPipeServer();
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
 
