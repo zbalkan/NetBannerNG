@@ -66,8 +66,6 @@ namespace NetBannerNG.Service
         {
             await _server?.StartAsync()!;
             Console.WriteLine($"Created pipe: {_server.PipeName}");
-            ProcessHelper.KillAllChildProcess();
-            ProcessHelper.InitiateChildProcess();
         }
 
         private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args) => _ = OnClientConnectedAsync(args);
