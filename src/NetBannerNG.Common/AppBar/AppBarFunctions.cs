@@ -14,25 +14,23 @@ namespace NetBannerNG.Common.AppBar
     public static class AppBarFunctions
     {
         private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo = new();
-        private static int _batchDepth;
+        private static readonly object RegisteredWindowInfoSync = new();
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
 
-        public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
+        public static void BeginBatch() { }
 
-        public static void EndBatch()
-        {
-            if (Interlocked.Decrement(ref _batchDepth) < 0)
-            {
-                Interlocked.Exchange(ref _batchDepth, 0);
-            }
-        }
+        public static void EndBatch() { }
 
-        public static void SetAppBar(Window appbarWindow, DockEdge edge, FrameworkElement? childElement = null, bool topMost = true)
+        public static void SetAppBar(Window appbarWindow, DockEdge edge, string messageKey, FrameworkElement? childElement = null, bool topMost = true)
         {
             if (appbarWindow is null)
             {
                 throw new ArgumentNullException(nameof(appbarWindow));
+            }
+            if (string.IsNullOrWhiteSpace(messageKey))
+            {
+                throw new ArgumentException("AppBar callback message key must be set.", nameof(messageKey));
             }
 
             Debug.WriteLine($"Started docking window {appbarWindow} to {Enum.GetName(typeof(DockEdge), edge)} (topMost = {topMost}).");
@@ -44,7 +42,7 @@ namespace NetBannerNG.Common.AppBar
             }
 
             var dockTimer = Stopwatch.StartNew();
-            var info = appbarWindow.GetRegisterInfo().DockWithChild(edge, childElement);
+            var info = appbarWindow.GetRegisterInfo().DockWithChild(edge, childElement, messageKey);
             var appBarData = new APPBARDATA().WithWindow(appbarWindow);
 
             if (edge == DockEdge.None)
@@ -186,15 +184,11 @@ namespace NetBannerNG.Common.AppBar
             internal FrameworkElement? ChildElement { get; set; }
             internal Rect? DockedSize { get; set; }
             internal bool IsHandled { get; set; }
+            internal string CallbackMessageKey { get; set; } = string.Empty;
             internal long LastPosChangedHandledAtTicks;
             internal DispatcherOperation? PendingResizeOperation { get; set; }
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
-                if (Volatile.Read(ref _batchDepth) > 0)
-                {
-                    return IntPtr.Zero;
-                }
-
                 if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)
                 {
                     return IntPtr.Zero;
@@ -303,7 +297,7 @@ namespace NetBannerNG.Common.AppBar
             }
 
             info.IsRegistered = true;
-            info.CallbackId = RegisterWindowMessage($"AppBarMessage-{abd.hWnd.ToInt32()}");
+            info.CallbackId = RegisterWindowMessage(info.CallbackMessageKey);
             abd.uCallbackMessage = info.CallbackId;
             abd = SendNewAppBarToShell(abd);
 
@@ -351,29 +345,34 @@ namespace NetBannerNG.Common.AppBar
 
         private static RegisterInfo GetRegisterInfo(this Window appbarWindow)
         {
-            RegisterInfo reg;
-            if (RegisteredWindowInfo.TryGetValue(appbarWindow, out var value))
+            lock (RegisteredWindowInfoSync)
             {
-                reg = value;
-            }
-            else
-            {
-                reg = new RegisterInfo
+                RegisterInfo reg;
+                if (RegisteredWindowInfo.TryGetValue(appbarWindow, out var value))
                 {
-                    CallbackId = 0,
-                    Window = appbarWindow,
-                    IsRegistered = false,
-                    Edge = DockEdge.Top,
-                    OriginalStyle = appbarWindow.WindowStyle,
-                    OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
-                    OriginalSize = new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
-                    OriginalResizeMode = appbarWindow.ResizeMode,
-                    OriginalTopmost = appbarWindow.Topmost,
-                    DockedSize = null
-                };
-                RegisteredWindowInfo.Add(appbarWindow, reg);
+                    reg = value;
+                }
+                else
+                {
+                    reg = new RegisterInfo
+                    {
+                        CallbackId = 0,
+                        Window = appbarWindow,
+                        IsRegistered = false,
+                        Edge = DockEdge.Top,
+                        OriginalStyle = appbarWindow.WindowStyle,
+                        OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
+                        OriginalSize = new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
+                        OriginalResizeMode = appbarWindow.ResizeMode,
+                        OriginalTopmost = appbarWindow.Topmost,
+                        DockedSize = null,
+                        CallbackMessageKey = string.Empty
+                    };
+                    RegisteredWindowInfo.Add(appbarWindow, reg);
+                }
+
+                return reg;
             }
-            return reg;
         }
 
         private static void RestoreStyle(this Window appbarWindow, RegisterInfo info)
@@ -392,10 +391,11 @@ namespace NetBannerNG.Common.AppBar
 
         #endregion Window Extensions
 
-        private static RegisterInfo DockWithChild(this RegisterInfo info, DockEdge edge, FrameworkElement? childElement)
+        private static RegisterInfo DockWithChild(this RegisterInfo info, DockEdge edge, FrameworkElement? childElement, string callbackMessageKey)
         {
             info.Edge = edge;
             info.ChildElement = childElement;
+            info.CallbackMessageKey = callbackMessageKey;
             return info;
         }
 

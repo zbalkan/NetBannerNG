@@ -6,6 +6,7 @@ namespace NetBannerNG.Borders
     public abstract class BorderBase : Window
     {
         internal bool IsDocked { get; set; }
+        internal string AppBarMessageKey { get; set; } = string.Empty;
 
         internal abstract void Refresh(bool needsResize = false);
 

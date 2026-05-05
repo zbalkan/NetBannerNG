@@ -1,6 +1,8 @@
 ﻿using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
+using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Threading;

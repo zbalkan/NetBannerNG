@@ -16,5 +16,6 @@
     <Compile Include="..\NetBannerNG\Utils\SettingsHelper.cs" Link="SettingsHelper.cs" />
     <Compile Include="..\NetBannerNG\CustomBackgroundColors.cs" Link="CustomBackgroundColors.cs" />
     <Compile Include="..\NetBannerNG\CustomForeColors.cs" Link="CustomForeColors.cs" />
+    <Compile Include="..\NetBannerNG\Services\GroupHealthPolicy.cs" Link="GroupHealthPolicy.cs" />
   </ItemGroup>
 </Project>
