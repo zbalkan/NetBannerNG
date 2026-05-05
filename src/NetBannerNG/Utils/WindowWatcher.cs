@@ -1,18 +1,17 @@
-﻿using NetBannerNG.Common.AppBar;
-using NetBannerNG.Common.Native;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Threading;
+using NetBannerNG.Common.AppBar;
+using NetBannerNG.Common.Native;
 
 namespace NetBannerNG.Utils
 {
     internal static class WindowWatcher
     {
-        private const int EventObjectCreate = 0x8000;
-        private const int EventObjectLocationChange = 0x800B;
+        private const int EventSystemForeground = 0x0003;
+        private const int ObjectIdWindow = 0;
 
         private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
         private static IntPtr DesktopHandle => NativeMethods.GetDesktopWindow(); //Window handle for the desktop
@@ -33,13 +32,23 @@ namespace NetBannerNG.Utils
             _ = NativeMethods.UnhookWinEvent(_hookId);
         }
 
-        private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(EventObjectCreate,
-                EventObjectLocationChange, IntPtr.Zero, hookProc, 0, 0,
-                (int)NativeMethods.SetWinEventHookFlags.SkipOwnProcess);
+        private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
+                EventSystemForeground,
+                EventSystemForeground,
+                IntPtr.Zero,
+                hookProc,
+                0,
+                0,
+                (int)(NativeMethods.SetWinEventHookFlags.SkipOwnProcess | NativeMethods.SetWinEventHookFlags.OutOfContext));
 
         private static void HookCallback(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
         {
+            if (eventType != EventSystemForeground || idObject != ObjectIdWindow || idChild != 0 || hWnd == IntPtr.Zero)
+            {
+                return;
+            }
+
             var foregroundWindowHandle = NativeMethods.GetForegroundWindow();
             if (foregroundWindowHandle == _previousForegroundWindowHandle)
             {
@@ -53,13 +62,11 @@ namespace NetBannerNG.Utils
                 return;
             }
 
-            var windowTitle = GetWindowTitle(foregroundWindowHandle);
             var windowBounds = GetWindowBounds(foregroundWindowHandle);
 
             var isFullScreen = IsFullScreen(foregroundWindowHandle);
             var monitorBounds = Common.Native.Monitor.GetMonitorBounds(foregroundWindowHandle);
-            Debug.WriteLine(
-                $"Window title: {windowTitle} | Full screen: {isFullScreen} | Window Bounds: {(Rect)windowBounds} | Monitor bounds: {monitorBounds}");
+            Debug.WriteLine($"Window handle: {foregroundWindowHandle} | Full screen: {isFullScreen} | Window Bounds: {(Rect)windowBounds} | Monitor bounds: {monitorBounds}");
 
             if (isFullScreen)
             {
@@ -98,14 +105,6 @@ namespace NetBannerNG.Utils
             return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
         }
 
-        private static string GetWindowTitle(IntPtr hWnd)
-        {
-            var length = NativeMethods.GetWindowTextLength(hWnd) + 1;
-            var title = new StringBuilder(length);
-            _ = NativeMethods.GetWindowText(hWnd, title, length);
-            return title.ToString();
-        }
-
         private static bool IsFullScreen(IntPtr current)
         {
             // Determine if the window is fullscreen
@@ -141,7 +140,6 @@ namespace NetBannerNG.Utils
         //    _ = NativeMethods.SetWindowPos(targetWindowHandle, IntPtr.Zero, x, y, width, height,
         //        NativeMethods.SetWindowPosFlags.Undefined);
         //}
-
 
         private static void Dispatch(Action action) => _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
 
