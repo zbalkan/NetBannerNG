@@ -1,7 +1,4 @@
-using System.Reflection;
 using NetBannerNG.Utils;
-
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetBannerNG.Tests;
 

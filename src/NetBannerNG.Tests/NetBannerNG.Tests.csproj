@@ -1,21 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net481</TargetFramework>
+        <IsPackable>false</IsPackable>
+
+        <!-- Optional but valid if your code already uses nullable annotations -->
+        <Nullable>enable</Nullable>
+
+        <!-- Avoid implicit usings for .NET Framework test projects unless you need them -->
+        <ImplicitUsings>false</ImplicitUsings>
+
+        <!-- Optional: use only if your compiler/VS version supports it -->
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <!-- Add this only if linked files use WPF types such as System.Windows.Media.Color -->
+    <!--
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <IsPackable>false</IsPackable>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
+  -->
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.6.2" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.6.2" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+        <PackageReference Include="MSTest.TestAdapter" Version="3.6.2" />
+        <PackageReference Include="MSTest.TestFramework" Version="3.6.2" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\NetBannerNG\Utils\SettingsHelper.cs" Link="SettingsHelper.cs" />
-    <Compile Include="..\NetBannerNG\CustomBackgroundColors.cs" Link="CustomBackgroundColors.cs" />
-    <Compile Include="..\NetBannerNG\CustomForeColors.cs" Link="CustomForeColors.cs" />
-    <Compile Include="..\NetBannerNG\Services\GroupHealthPolicy.cs" Link="GroupHealthPolicy.cs" />
-  </ItemGroup>
+    <ItemGroup>
+        <Compile Include="..\NetBannerNG\Utils\SettingsHelper.cs" Link="SettingsHelper.cs" />
+        <Compile Include="..\NetBannerNG\CustomBackgroundColors.cs" Link="CustomBackgroundColors.cs" />
+        <Compile Include="..\NetBannerNG\CustomForeColors.cs" Link="CustomForeColors.cs" />
+        <Compile Include="..\NetBannerNG\Services\GroupHealthPolicy.cs" Link="GroupHealthPolicy.cs" />
+        <Compile Include="..\NetBannerNG.Common\Native\MonitorRect.cs" Link="MonitorRect.cs" />
+    </ItemGroup>
+
 </Project>

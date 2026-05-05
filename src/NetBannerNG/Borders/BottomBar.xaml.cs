@@ -35,7 +35,7 @@ namespace NetBannerNG.Borders
             Height = Settings.Instance.BorderSize;
         }
 
-        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => App.Current.MainWindow.Close();
+        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();
 
         private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

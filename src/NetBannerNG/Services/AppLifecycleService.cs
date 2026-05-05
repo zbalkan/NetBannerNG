@@ -1,8 +1,8 @@
-using NetBannerNG.Common.Native;
-using NetBannerNG.Utils;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using NetBannerNG.Common.Native;
+using NetBannerNG.Utils;
 
 namespace NetBannerNG.Services
 {

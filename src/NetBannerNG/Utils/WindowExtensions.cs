@@ -1,7 +1,7 @@
-﻿using NetBannerNG.Borders;
-using NetBannerNG.Common.AppBar;
-using System.Linq;
+﻿using System.Linq;
 using System.Windows;
+using NetBannerNG.Borders;
+using NetBannerNG.Common.AppBar;
 using static NetBannerNG.Common.Native.NativeMethods;
 
 namespace NetBannerNG.Utils

@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFramework>net481</TargetFramework>
-		<UseWPF>true</UseWPF>
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
@@ -18,7 +17,10 @@
 		<PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <Reference Include="PresentationCore" />
+	  <Reference Include="PresentationFramework" />
 	  <Reference Include="System.DirectoryServices" />
 	  <Reference Include="System.DirectoryServices.AccountManagement" />
+	  <Reference Include="WindowsBase" />
 	</ItemGroup>
 </Project>
