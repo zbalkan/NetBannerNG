@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
@@ -10,16 +9,29 @@ namespace NetBannerNG.Utils
         // ReSharper disable once InconsistentNaming
         internal static string GetPhysicalIPAddress()
         {
-            var result = NetworkInterface.GetAllNetworkInterfaces()
-                .Where(ni => IsUp(ni) && IsPhysical(ni))
-                .FirstOrDefault(ni => IsSpecified(ni.GetIPProperties().GatewayAddresses.FirstOrDefault()))?
-                .GetIPProperties()
-                .UnicastAddresses
-                .FirstOrDefault(ip => ip.Address.AddressFamily == AddressFamily.InterNetwork)
-                ?.Address
-                .ToString();
+            foreach (var networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (!IsUp(networkInterface) || !IsPhysical(networkInterface))
+                {
+                    continue;
+                }
 
-            return result ?? string.Empty;
+                var ipProperties = networkInterface.GetIPProperties();
+                if (!HasSpecifiedGateway(ipProperties))
+                {
+                    continue;
+                }
+
+                foreach (var unicastAddress in ipProperties.UnicastAddresses)
+                {
+                    if (unicastAddress.Address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        return unicastAddress.Address.ToString();
+                    }
+                }
+            }
+
+            return string.Empty;
         }
 
         private static bool IsUp(NetworkInterface ni) => ni.OperationalStatus == OperationalStatus.Up;
@@ -28,6 +40,17 @@ namespace NetBannerNG.Utils
             // If it is wired or wireleess it is not virtual
             ni.NetworkInterfaceType is NetworkInterfaceType.Wireless80211 or NetworkInterfaceType.Ethernet;
 
-        private static bool IsSpecified(GatewayIPAddressInformation addr) => addr?.Address.ToString().Equals("0.0.0.0", StringComparison.Ordinal) == false;
+        private static bool HasSpecifiedGateway(IPInterfaceProperties properties)
+        {
+            foreach (var gatewayAddress in properties.GatewayAddresses)
+            {
+                if (gatewayAddress?.Address is { } address && !IPAddress.Any.Equals(address))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }
