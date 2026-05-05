@@ -11,6 +11,21 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition NamedPipeServerInitialized = new(2003, "Named pipe server initialized.");
         public static readonly EventDefinition ChildRestartByWatchdog = new(2004, "Child process not found. Watchdog is restarting NetBannerNG.");
 
+        public static readonly EventDefinition PipeTimeoutCallback = new(3000, "{0} at {1}: execution timed out after {2} seconds, with: {3}.");
+        public static readonly EventDefinition PipeTimeoutTaskCompleted = new(3001, "Task completed.");
+        public static readonly EventDefinition PipeClientConnected = new(3002, "Client {0} is now connected!");
+        public static readonly EventDefinition PipeSessionAdminQueryFailed = new(3003, "Failed to query active session admin token. Falling back to false. {0}");
+        public static readonly EventDefinition PipeBootstrapDisconnected = new(3004, "Client disconnected before bootstrap message could be sent. {0}");
+        public static readonly EventDefinition PipeBootstrapClientNotConnected = new(3005, "Client is not connected while sending bootstrap message. {0}");
+        public static readonly EventDefinition PipeClientDisconnected = new(3006, "Client {0} disconnected");
+        public static readonly EventDefinition PipeAutoRestartDisabled = new(3007, "Automatic child process restart on disconnect is disabled.");
+        public static readonly EventDefinition PipeExceptionOccurred = new(3008, "Exception occurred in pipe: {0}");
+        public static readonly EventDefinition PipeInboundRejected = new(3009, "Rejected invalid inbound pipe message.");
+        public static readonly EventDefinition PipeClientForwardedLog = new(3010, "Event log from client {0}:{1}{2}");
+        public static readonly EventDefinition PipeUnknownActionType = new(3011, "Unknown Action Type: {0}");
+
+        public static readonly EventDefinition ProcessStarting = new(4000, "Starting process:{0}");
+
         public static readonly EventDefinition UnhandledException = new(9000, "Unhandled exception captured. {0}");
     }
 

@@ -12,9 +12,7 @@ namespace NetBannerNG.Service
             var psi = new ProcessStartInfo();
             string path;
 #if DEBUG
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
             path = Path.Combine(new DirectoryInfo(path: AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, @"NetBannerNG\bin\Debug\net481\NetBannerNG.exe");            //psi.Arguments = "--debug";
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
 #else
             path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");
 #endif
@@ -33,7 +31,7 @@ namespace NetBannerNG.Service
 
             psi.FileName = path;
             Console.WriteLine($"Starting process:{psi.FileName}");
-            Program.Log.LogInformation($"Starting process:{psi.FileName}");
+            Program.Log.LogInformation(EventLogCatalog.ProcessStarting, psi.FileName);
             if (Environment.UserInteractive)
             {
                 _ = Process.Start(psi);
