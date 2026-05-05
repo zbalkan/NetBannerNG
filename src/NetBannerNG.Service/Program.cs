@@ -17,7 +17,7 @@ namespace NetBannerNG.Service
     {
         // TODO: Add crash reporting, e.g. https://github.com/getsentry/sentry-dotnet
         // TODO: Move business logic to service, Add Utils to Common first, then remove accordingly.
-        public static ILogManager Log { get; set; } = new EventLogManager();
+        public static EventLogManager Log { get; } = new();
 
         public static void Main(string[] args)
         {
@@ -35,13 +35,13 @@ namespace NetBannerNG.Service
 
             if (!Environment.UserInteractive)
             {
-                Log.LogInformation($"[NBNG-1000] NetBannerNG Service is started. Mode=Service");
+                Log.LogInformation(EventLogCatalog.ServiceStartedService);
                 using var serviceHost = new ServiceHost();
                 ServiceBase.Run(serviceHost);
             }
             else
             {
-                Log.LogInformation($"[NBNG-1001] NetBannerNG Service is started. Mode=Interactive");
+                Log.LogInformation(EventLogCatalog.ServiceStartedInteractive);
                 PrintConsoleHeader();
                 ServiceHost.Run(args);
                 Console.WriteLine("Interactive debug mode: service host is running. Press Enter to stop.");
@@ -94,7 +94,7 @@ namespace NetBannerNG.Service
         private static void Dump(Exception e)
         {
             var messageStack = e.GetMessageStack();
-            Log.LogError($"[NBNG-9000] Unhandled exception captured. {messageStack}");
+            Log.LogError(EventLogCatalog.UnhandledException, messageStack);
             var path = Path.Combine(Path.GetTempPath(), $"netbannerng-svcdump-{Guid.NewGuid()}");
             File.WriteAllText(path, messageStack);
             if (Environment.UserInteractive)

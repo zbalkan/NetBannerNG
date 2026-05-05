@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace NetBannerNG.Service
 {
-    internal sealed class EventLogManager : ILogManager
+    public sealed class EventLogManager
     {
         private const string LogName = "Application";
         private const string SourceName = "NetBannerNG";
@@ -40,18 +40,36 @@ namespace NetBannerNG.Service
         }
 
         public void LogInformation(string message) =>
-            Write(EventLogEntryType.Information, message);
+            Write(EventLogEntryType.Information, message, 0);
+
+        public void LogInformation(int eventId, string message) =>
+            Write(EventLogEntryType.Information, message, eventId);
+
+        public void LogInformation(EventDefinition definition, params object[] args) =>
+            Write(EventLogEntryType.Information, definition.Format(args), definition.EventId);
 
         public void LogWarning(string message) =>
-            Write(EventLogEntryType.Warning, message);
+            Write(EventLogEntryType.Warning, message, 0);
+
+        public void LogWarning(int eventId, string message) =>
+            Write(EventLogEntryType.Warning, message, eventId);
+
+        public void LogWarning(EventDefinition definition, params object[] args) =>
+            Write(EventLogEntryType.Warning, definition.Format(args), definition.EventId);
 
         public void LogDebug(string message) =>
             Trace.WriteLine($"DEBUG {message}");
 
         public void LogError(string message) =>
-            Write(EventLogEntryType.Error, message);
+            Write(EventLogEntryType.Error, message, 0);
 
-        private static void Write(EventLogEntryType type, string message)
+        public void LogError(int eventId, string message) =>
+            Write(EventLogEntryType.Error, message, eventId);
+
+        public void LogError(EventDefinition definition, params object[] args) =>
+            Write(EventLogEntryType.Error, definition.Format(args), definition.EventId);
+
+        private static void Write(EventLogEntryType type, string message, int eventId)
         {
             WriteToTrace(type, message);
 
@@ -60,7 +78,7 @@ namespace NetBannerNG.Service
                 ScheduleInitialization();
             }
 
-            var entry = new PendingEntry(type, message);
+            var entry = new PendingEntry(type, message, eventId);
             if (_ready)
             {
                 if (!TryWriteEntry(entry))
@@ -155,11 +173,12 @@ namespace NetBannerNG.Service
             }
         }
 
+
         private static bool TryWriteEntry(PendingEntry entry)
         {
             try
             {
-                EventLog.WriteEntry(SourceName, entry.Message, entry.Type);
+                EventLog.WriteEntry(SourceName, entry.Message, entry.Type, entry.EventId);
                 return true;
             }
             catch (Exception ex)
@@ -189,36 +208,18 @@ namespace NetBannerNG.Service
             }
         }
 
-        public readonly struct PendingEntry : IEquatable<PendingEntry>
+        public readonly struct PendingEntry
         {
             public EventLogEntryType Type { get; }
             public string Message { get; }
+            public int EventId { get; }
 
-            public PendingEntry(EventLogEntryType type, string message)
+            public PendingEntry(EventLogEntryType type, string message, int eventId)
             {
                 Type = type;
                 Message = message;
+                EventId = eventId;
             }
-
-            // Manual Value Equality
-            public readonly bool Equals(PendingEntry other) =>
-                Type == other.Type && Message == other.Message;
-
-            public override bool Equals(object obj) =>
-                obj is PendingEntry other && Equals(other);
-
-            public readonly override int GetHashCode()
-            {
-                // Using the BCL HashCode package we discussed!
-                var hash = new HashCode();
-                hash.Add(Type);
-                hash.Add(Message);
-                return hash.ToHashCode();
-            }
-
-            public static bool operator ==(PendingEntry left, PendingEntry right) => left.Equals(right);
-
-            public static bool operator !=(PendingEntry left, PendingEntry right) => !left.Equals(right);
         }
     }
 }

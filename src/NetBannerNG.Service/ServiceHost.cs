@@ -31,12 +31,12 @@ namespace NetBannerNG.Service
                 IsBackground = true
             };
             _serviceThread.Start();
-            Program.Log.LogInformation("[NBNG-2000] Service host thread started.");
+            Program.Log.LogInformation(EventLogCatalog.ServiceThreadStarted);
         }
 
         public static void Abort()
         {
-            Program.Log.LogInformation("[NBNG-2001] Service abort requested.");
+            Program.Log.LogInformation(EventLogCatalog.ServiceAbortRequested);
             ProcessHelper.KillAllChildProcess();
             _stopping = true;
         }
@@ -47,12 +47,12 @@ namespace NetBannerNG.Service
             // TODO: Make timeout configurable
             //Thread.Sleep(3000);
             pipeServer = new NamedPipeServer();
-            Program.Log.LogInformation("[NBNG-2002] Named pipe server created.");
+            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
 
             await using (pipeServer)
             {
                 await pipeServer.InitializeAsync().ConfigureAwait(false);
-                Program.Log.LogInformation("[NBNG-2003] Named pipe server initialized.");
+                Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
 
                 while (!_stopping)
                 {
@@ -76,7 +76,7 @@ namespace NetBannerNG.Service
             }
 
             _lastWatchdogRestartAttemptUtc = now;
-            Program.Log.LogWarning("[NBNG-2004] Child process not found. Watchdog is restarting NetBannerNG.");
+            Program.Log.LogWarning(EventLogCatalog.ChildRestartByWatchdog);
             ProcessHelper.InitiateChildProcess();
         }
     }
