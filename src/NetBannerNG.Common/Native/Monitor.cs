@@ -11,6 +11,11 @@ namespace NetBannerNG.Common.Native
 
         private Monitor(IntPtr monitor, IntPtr? hdc)
         {
+            if (hdc is null)
+            {
+                throw new ArgumentNullException(nameof(hdc));
+            }
+
             var info = new MonitorInfoEx();
             _ = NativeMethods.GetMonitorInfo(new HandleRef(null, monitor), info);
             Bounds = new Rect(
@@ -86,6 +91,7 @@ namespace NetBannerNG.Common.Native
                 Monitors = new ArrayList();
             }
 
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "")]
             public bool Callback(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lParam)
             {
                 _ = Monitors.Add(new Monitor(monitor, hdc));
@@ -112,15 +118,15 @@ namespace NetBannerNG.Common.Native
 
             public override int GetHashCode() => (cbSize, rcMonitor, rcWork, dwFlags, szDevice).GetHashCode();
 
-            public static bool operator ==(MonitorInfoEx? left, MonitorInfoEx? right) => EqualityComparer<MonitorInfoEx>.Default.Equals(left, right);
+            public static bool operator ==(MonitorInfoEx? left, MonitorInfoEx? right) => EqualityComparer<MonitorInfoEx?>.Default.Equals(left, right);
 
-            public static bool operator !=(MonitorInfoEx left, MonitorInfoEx right) => !(left == right);
+            public static bool operator !=(MonitorInfoEx? left, MonitorInfoEx? right) => !(left == right);
 
             private string GetDebuggerDisplay() => ToString() ?? string.Empty;
         }
 
-        public static bool operator ==(Monitor? left, Monitor? right) => EqualityComparer<Monitor>.Default.Equals(left, right);
+        public static bool operator ==(Monitor? left, Monitor? right) => EqualityComparer<Monitor?>.Default.Equals(left, right);
 
-        public static bool operator !=(Monitor left, Monitor right) => !(left == right);
+        public static bool operator !=(Monitor? left, Monitor? right) => !(left == right);
     }
 }

@@ -21,7 +21,7 @@ namespace NetBannerNG.Common.NamedPipes
                 return false;
             }
 
-            return !string.IsNullOrWhiteSpace(message.Text) && message.Text.Length <= MaxLogTextLength;
+            return !string.IsNullOrWhiteSpace(message.Text) && message.Text?.Length <= MaxLogTextLength;
         }
     }
 }

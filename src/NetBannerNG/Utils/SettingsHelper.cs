@@ -57,7 +57,7 @@ namespace NetBannerNG.Utils
 
         private static SettingsSnapshot LoadPolicySettings(RegistryKey policyKey, SettingsSnapshot localDefaults)
         {
-            var defaultClassification = ParseClassification(localDefaults.Classification);
+            var defaultClassification = ParseClassification(localDefaults.Classification ?? MapClassification(DefaultClassificationValue));
             var classification = GetInt(policyKey, "Classification", defaultClassification);
             var customSettings = GetInt(policyKey, "CustomSettings", 0) == 1;
             var caveatsEnabled = GetInt(policyKey, "CaveatsEnabled", 0) == 1;
@@ -144,7 +144,7 @@ namespace NetBannerNG.Utils
             var value = key.GetValue(name)?.ToString();
             if (!string.IsNullOrEmpty(value))
             {
-                return value;
+                return value!;
             }
 
             key.SetValue(name, defaultValue, RegistryValueKind.String);
@@ -232,9 +232,9 @@ namespace NetBannerNG.Utils
 
         internal sealed class SettingsSnapshot
         {
-            internal string Classification { get; set; }
-            internal string CustomBackgroundColor { get; set; }
-            internal string CustomForeColor { get; set; }
+            internal string? Classification { get; set; }
+            internal string? CustomBackgroundColor { get; set; }
+            internal string? CustomForeColor { get; set; }
             internal int FontSize { get; set; }
             internal int BannerSize { get; set; }
             internal int Heartbeat { get; set; }

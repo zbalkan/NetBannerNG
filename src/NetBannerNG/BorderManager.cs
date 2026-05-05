@@ -30,8 +30,8 @@ namespace NetBannerNG
         private sealed class BorderLaunchEntry
 
         {
-            internal BorderBase Window { get; set; }
-            internal string GroupId { get; set; }
+            internal BorderBase? Window { get; set; }
+            internal string? GroupId { get; set; }
             internal bool IsPrimaryMonitor { get; set; }
             internal double MonitorY { get; set; }
             internal double MonitorX { get; set; }
@@ -333,16 +333,16 @@ namespace NetBannerNG
             {
                 foreach (var launchEntry in launchPlan)
                 {
-                    if (!groupsById.TryGetValue(launchEntry.GroupId, out var group))
+                    if (launchEntry.GroupId == null || !groupsById.TryGetValue(launchEntry.GroupId, out var group))
                     {
                         continue;
                     }
-
-                    if (!group.TryShowWindow(launchEntry.Window, out var error))
+                    Exception? error = null;
+                    if (launchEntry.Window == null || !group.TryShowWindow(launchEntry.Window, out error))
                     {
                         if (error != null)
                         {
-                            Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry.Window.GetType().Name} failed: {error}");
+                            Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry.Window!.GetType().Name} failed: {error}");
                         }
                         continue;
                     }

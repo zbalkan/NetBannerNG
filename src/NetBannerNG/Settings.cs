@@ -9,12 +9,11 @@ namespace NetBannerNG
         private static readonly BrushConverter BrushConverter = new();
         #region General Settings
 
-        internal string Classification { get; set; }
+        internal string? Classification { get; set; }
 
-        internal SolidColorBrush CustomBackgroundColor { get; set; }
+        internal SolidColorBrush? CustomBackgroundColor { get; set; }
 
-        internal SolidColorBrush CustomForeColor { get; set; }
-
+        internal SolidColorBrush? CustomForeColor { get; set; }
         internal int FontSize { get; set; }
 
         internal int BannerSize { get; set; }
@@ -25,7 +24,7 @@ namespace NetBannerNG
 
         #endregion General Settings
 
-        internal string HostInformation { get; set; }
+        internal string? HostInformation { get; set; }
 
         internal int BorderSize => Math.Max(MinimumBorderSize, (int)(BannerSize * BorderBannerRatio));
 
@@ -33,7 +32,7 @@ namespace NetBannerNG
         internal static Settings Instance => Lazy.Value;
 
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
-        private SettingsHelper.SettingsSnapshot _currentSettings;
+        private SettingsHelper.SettingsSnapshot? _currentSettings;
         private bool _needsResize;
         private const int MinimumBorderSize = 2;
         private const double BorderBannerRatio = 0.25;
@@ -51,10 +50,10 @@ namespace NetBannerNG
                            newSettings.BannerSize != _currentSettings.BannerSize ||
                            newSettings.FontSize != _currentSettings.FontSize;
 
-            Classification = newSettings.Classification;
-            CustomBackgroundColor = ParseBrush(newSettings.CustomBackgroundColor);
+            Classification = newSettings.Classification!;
+            CustomBackgroundColor = ParseBrush(newSettings.CustomBackgroundColor!);
             FontSize = newSettings.FontSize;
-            CustomForeColor = ParseBrush(newSettings.CustomForeColor);
+            CustomForeColor = ParseBrush(newSettings.CustomForeColor!);
             BannerSize = newSettings.BannerSize;
             Heartbeat = newSettings.Heartbeat;
             DisableBorders = newSettings.DisableBorders;

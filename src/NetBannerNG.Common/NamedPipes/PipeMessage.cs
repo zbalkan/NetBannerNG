@@ -24,7 +24,7 @@ namespace NetBannerNG.Common.NamedPipes
         public ActionType Action { get; set; }
 
         [Key(2)]
-        public string Text { get; set; }
+        public string? Text { get; set; }
 
         [Key(3)]
         public byte[] Checksum {
@@ -37,7 +37,5 @@ namespace NetBannerNG.Common.NamedPipes
                 Array.Copy(value, _checksum, PipeMessageChecksum.ChecksumLengthBytes);
             }
         }
-
-#pragma warning restore CA1819 // Properties should not return arrays
     }
 }

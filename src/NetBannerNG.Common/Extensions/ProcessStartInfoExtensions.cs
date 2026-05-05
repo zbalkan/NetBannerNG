@@ -1,8 +1,7 @@
-﻿using NetBannerNG.Common.Native;
-using System.Diagnostics;
-using System.IO;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using NetBannerNG.Common.Native;
 
 namespace NetBannerNG.Common.Extensions
 {
@@ -22,7 +21,7 @@ namespace NetBannerNG.Common.Extensions
                 throw new ArgumentNullException(nameof(psi));
             }
 
-            var result = PrivilegeHelper.GetActiveUser(out var user) && psi.RunImpersonated(user);
+            var result = PrivilegeHelper.GetActiveUser(out var user) && psi.RunImpersonated(user!);
             user?.Dispose();
             return result;
         }
@@ -76,7 +75,7 @@ namespace NetBannerNG.Common.Extensions
                 IntPtr.Zero, // environment variables
                 dir, // current directory of the new process
                 ref si, // startup info
-                out var pi)) // receive process information in pi
+                out _)) // receive process information in pi
             {
                 var error = Marshal.GetLastWin32Error();
                 Console.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");

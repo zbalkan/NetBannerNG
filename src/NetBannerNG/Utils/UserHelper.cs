@@ -9,7 +9,7 @@ namespace NetBannerNG.Utils
 {
     public static class UserHelper
     {
-        private static WindowsIdentity _currentUser;
+        private static WindowsIdentity? _currentUser;
         internal static WindowsIdentity CurrentUser => _currentUser ??= ProcessHelper.Owner(Process.GetCurrentProcess());
 
         internal static string UserProfilePath
@@ -26,7 +26,7 @@ namespace NetBannerNG.Utils
                         var profilePath = key?.GetValue("ProfileImagePath") as string;
                         if (!string.IsNullOrWhiteSpace(profilePath) && Directory.Exists(profilePath))
                         {
-                            return profilePath;
+                            return profilePath!;
                         }
                     }
                     catch
