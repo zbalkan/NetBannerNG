@@ -24,7 +24,9 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition PipeClientForwardedLog = new(3010, "Event log from client {0}:{1}{2}");
         public static readonly EventDefinition PipeUnknownActionType = new(3011, "Unknown Action Type: {0}");
 
-        public static readonly EventDefinition ProcessStarting = new(4000, "Starting process:{0}");
+        public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
+        public static readonly EventDefinition ProcessStartedSuccesfully = new(4001, "Started process: {0}");
+        public static readonly EventDefinition ProcessStartFailed = new(4002, "Failed to start process: {0}. Error: {1}");
 
         public static readonly EventDefinition UnhandledException = new(9000, "Unhandled exception captured. {0}");
     }

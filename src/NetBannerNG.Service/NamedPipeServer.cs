@@ -65,7 +65,7 @@ namespace NetBannerNG.Service
         internal async Task InitializeAsync()
         {
             await _server?.StartAsync()!;
-            Console.WriteLine($"Created pipe: {_server.PipeName}");
+            Debug.WriteLine($"Created pipe: {_server.PipeName}");
         }
 
         private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args) => _ = OnClientConnectedAsync(args);
@@ -73,9 +73,9 @@ namespace NetBannerNG.Service
         private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
-            Console.WriteLine($"Client {args.Connection.PipeName} is now connected!");
-            DebugTrace($"ClientConnected pipe={args.Connection.PipeName}");
-            Console.WriteLine("Checking child process owner.");
+            Debug.WriteLine($"Client {args.Connection.PipeName} is now connected!");
+            Debug.WriteLine($"[PipeServer]  ClientConnected pipe={args.Connection.PipeName}");
+            Debug.WriteLine("Checking child process owner.");
             var isAdmin = false;
             try
             {
@@ -85,7 +85,7 @@ namespace NetBannerNG.Service
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeSessionAdminQueryFailed, ex.GetMessageStack());
             }
-            Console.WriteLine($"Child process owner has admin rights: {isAdmin}");
+            Debug.WriteLine($"Child process owner has admin rights: {isAdmin}");
 
             try
             {
@@ -96,17 +96,17 @@ namespace NetBannerNG.Service
                 };
                 bootstrapMessage.Checksum = PipeMessageChecksum.Compute(bootstrapMessage);
                 await args.Connection.WriteAsync(bootstrapMessage).ConfigureAwait(false);
-                DebugTrace($"BootstrapSent action={bootstrapMessage.Action} checksum_len={bootstrapMessage.Checksum?.Length ?? 0} checksum={ByteArrayToString(bootstrapMessage.Checksum!)}");
+                Debug.WriteLine($"[PipeServer]  BootstrapSent action={bootstrapMessage.Action} checksum_len={bootstrapMessage.Checksum?.Length ?? 0} checksum={ByteArrayToString(bootstrapMessage.Checksum!)}");
             }
             catch (IOException ex)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeBootstrapDisconnected, ex.GetMessageStack());
-                DebugTrace($"BootstrapSendFailed error={ex.Message}");
+                Debug.WriteLine($"[PipeServer]  BootstrapSendFailed error={ex.Message}");
             }
             catch (InvalidOperationException ex)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeBootstrapClientNotConnected, ex.GetMessageStack());
-                DebugTrace($"BootstrapSendSkipped reason=ClientNotConnected error={ex.Message}");
+                Debug.WriteLine($"[PipeServer]  BootstrapSendSkipped reason=ClientNotConnected error={ex.Message}");
             }
             catch (Exception ex)
             {
@@ -118,13 +118,13 @@ namespace NetBannerNG.Service
         {
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
-            DebugTrace($"ClientDisconnected pipe={args.Connection.PipeName}");
+            Debug.WriteLine($"[PipeServer]  ClientDisconnected pipe={args.Connection.PipeName}");
         }
 
         private void OnExceptionOccurred(object o, ExceptionEventArgs args)
         {
             Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, args.Exception.GetMessageStack());
-            Console.WriteLine($"Exception occurred in pipe: {args.Exception.GetMessageStack()}");
+            Debug.WriteLine($"Exception occurred in pipe: {args.Exception.GetMessageStack()}");
         }
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
@@ -137,7 +137,7 @@ namespace NetBannerNG.Service
             if (!PipeMessageValidator.IsValidInboundClientMessage(args.Message))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejected);
-                DebugTrace($"InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length} checksum={ByteArrayToString(args.Message.Checksum)}");
+                Debug.WriteLine($"[PipeServer]  InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length} checksum={ByteArrayToString(args.Message.Checksum)}");
                 return;
             }
 
@@ -145,7 +145,7 @@ namespace NetBannerNG.Service
             {
                 case { Action: ActionType.SendLog }:
                     Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, args.Message.Text!);
-                    DebugTrace($"InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
+                    Debug.WriteLine($"[PipeServer]  InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
                     break;
 
                 default:
@@ -153,9 +153,6 @@ namespace NetBannerNG.Service
                     break;
             }
         }
-
-        [Conditional("DEBUG")]
-        private static void DebugTrace(string message) => Debug.WriteLine($"[PipeServer] {message}");
 
         private static string ByteArrayToString(byte[] ba)
         {

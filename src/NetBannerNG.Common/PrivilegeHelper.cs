@@ -1,9 +1,7 @@
-﻿using NetBannerNG.Common.Native;
-using System.Diagnostics;
-using System.DirectoryServices.AccountManagement;
-using System.DirectoryServices.ActiveDirectory;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using NetBannerNG.Common.Native;
 
 namespace NetBannerNG.Common
 {
@@ -61,7 +59,7 @@ namespace NetBannerNG.Common
             var session = GetActiveSessionId();
             if (!NativeMethods.WTSQueryUserToken(session, out var userToken))
             {
-                Console.WriteLine($"Failed to query user token (Error no: {Marshal.GetLastWin32Error()})");
+                Debug.WriteLine($"Failed to query user token (Error no: {Marshal.GetLastWin32Error()})");
                 user = null;
                 NativeMethods.CloseHandle(userToken);
                 return false;
