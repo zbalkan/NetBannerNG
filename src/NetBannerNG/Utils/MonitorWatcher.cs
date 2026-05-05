@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using System;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -32,9 +33,6 @@ namespace NetBannerNG.Utils
             _isWatching = false;
         }
 
-        private static void ScreenHandler(object sender, EventArgs e)
-        {
-            _ = Application.Current.Dispatcher.BeginInvoke(_onDisplaySettingsChanged, DispatcherPriority.Background);
-        }
+        private static void ScreenHandler(object sender, EventArgs e) => _ = Application.Current.Dispatcher.BeginInvoke(_onDisplaySettingsChanged, DispatcherPriority.Background);
     }
 }

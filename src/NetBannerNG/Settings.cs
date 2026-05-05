@@ -1,4 +1,5 @@
 ﻿using NetBannerNG.Utils;
+using System;
 using System.Windows.Media;
 
 namespace NetBannerNG

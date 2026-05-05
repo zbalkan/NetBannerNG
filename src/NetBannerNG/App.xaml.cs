@@ -1,8 +1,10 @@
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Services;
 using NetBannerNG.Utils;
+using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 
 [assembly: CLSCompliant(true)]
@@ -49,7 +51,7 @@ namespace NetBannerNG
                 }
 
                 //If no debugger is attached and the argument --debug was passed launch the debugger
-                AppLifecycleService.TryLaunchDebugger(e?.Args ?? []);
+                AppLifecycleService.TryLaunchDebugger(e?.Args ?? Array.Empty<string>());
 
                 // TODO: Make timeout configurable
                 var result = await _lifecycleService.InitializePipeClientAsync();

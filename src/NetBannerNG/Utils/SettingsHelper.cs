@@ -1,4 +1,7 @@
 ﻿using System.Globalization;
+using System.Collections.Generic;
+using System;
+using System.Linq;
 using Microsoft.Win32;
 
 namespace NetBannerNG.Utils
