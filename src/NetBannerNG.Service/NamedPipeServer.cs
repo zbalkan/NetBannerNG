@@ -67,7 +67,12 @@ namespace NetBannerNG.Service
             ProcessHelper.InitiateChildProcess();
         }
 
-        private async void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
+        private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
+        {
+            _ = OnClientConnectedAsync(args);
+        }
+
+        private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
             Console.WriteLine($"Client {args.Connection.PipeName} is now connected!");
@@ -104,6 +109,10 @@ namespace NetBannerNG.Service
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeBootstrapClientNotConnected, ex.GetMessageStack());
                 DebugTrace($"BootstrapSendSkipped reason=ClientNotConnected error={ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, ex.GetMessageStack());
             }
         }
 
