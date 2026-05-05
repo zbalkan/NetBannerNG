@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
@@ -51,20 +53,31 @@ namespace NetBannerNG.Utils
             return monitor;
         }
 
-        internal static void HideFromTaskManager(this Window window)
+        internal static void HideFromTaskBar(this Window window)
         {
             const int gwlHwndParent = -8;
             const int gwlExstyle = -20;
             const int wsExToolwindow = 0x80;
             const int wsExAppwindow = 0x40000;
 
+            var windowHandle = window.GetHandle();
+
             if (window.Owner != null)
             {
-                _ = SetWindowLong(window.GetHandle(), gwlHwndParent, (int)window.Owner.GetHandle());
+                var result = SetWindowLong(windowHandle, gwlHwndParent, (int)window.Owner.GetHandle());
+                if (result == 0)
+                {
+                    throw new InvalidOperationException($"Failed to set window parent. Error code: {Marshal.GetLastWin32Error()}");
+                }
             }
 
-            _ = SetWindowLong(window.GetHandle(), gwlExstyle,
-                (GetWindowLong(window.GetHandle(), gwlExstyle) | wsExToolwindow) & ~wsExAppwindow);
+            var currentStyle = GetWindowLong(windowHandle, gwlExstyle);
+            var newStyle = (currentStyle | wsExToolwindow) & ~wsExAppwindow;
+            var result2 = SetWindowLong(windowHandle, gwlExstyle, newStyle);
+            if (result2 == 0)
+            {
+                throw new InvalidOperationException($"Failed to set extended window style. Error code: {Marshal.GetLastWin32Error()}");
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ namespace NetBannerNG.Borders
 
         protected abstract void ReadSettings();
 
-        internal void ApplyPostDockVisualState() => this.HideFromTaskManager();
+        internal void ApplyPostDockVisualState() => this.HideFromTaskBar();
 
         /// <summary>
         /// <para>    Base event for Window_Loaded event. Override this way:</para>
