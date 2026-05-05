@@ -74,9 +74,22 @@ namespace NetBannerNG.Common.AppBar
         }
 
         // Why twice?
-        private static void AbSetPos(RegisterInfo info, Window appbarWindow, FrameworkElement? childElement)
+        private static void AbSetPos(RegisterInfo info, Window? appbarWindow, FrameworkElement? childElement)
         {
-            //if (info.IsHandled) return;
+            if (info is null)
+            {
+                throw new ArgumentNullException(nameof(info));
+            }
+
+            if (appbarWindow is null)
+            {
+                throw new ArgumentNullException(nameof(appbarWindow));
+            }
+
+            if (childElement is null)
+            {
+                throw new ArgumentNullException(nameof(childElement));
+            }
 
             var barData = new APPBARDATA().FromWindow(appbarWindow, info.Edge);
 
@@ -112,7 +125,7 @@ namespace NetBannerNG.Common.AppBar
                 appbarWindow,
                 rect);
         }
-        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement childElement) => childElement != null ?
+        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement) => childElement != null ?
                 WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(childElement.ActualWidth, childElement.ActualHeight))
                 : WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
@@ -128,7 +141,7 @@ namespace NetBannerNG.Common.AppBar
 
         private static Rect GetActualWorkArea(RegisterInfo info)
         {
-            var hWnd = info.Window.GetHandle();
+            var hWnd = info.Window?.GetHandle() ?? IntPtr.Zero;
             var cwa = Native.Monitor.GetMonitorWorkArea(hWnd);
 
             var wa = new Rect(new Point(cwa.Left, cwa.Top), new Point(cwa.Right, cwa.Bottom));
@@ -174,7 +187,7 @@ namespace NetBannerNG.Common.AppBar
         {
             internal int CallbackId { get; set; }
             internal bool IsRegistered { get; set; }
-            internal Window Window { get; set; }
+            internal Window? Window { get; set; }
             internal DockEdge Edge { get; set; }
             internal WindowStyle OriginalStyle { get; set; }
             internal Point OriginalPosition { get; set; }
@@ -187,6 +200,8 @@ namespace NetBannerNG.Common.AppBar
             internal string CallbackMessageKey { get; set; } = string.Empty;
             internal long LastPosChangedHandledAtTicks;
             internal DispatcherOperation? PendingResizeOperation { get; set; }
+
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Values not needed as we filter by call type.")]
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
                 if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)

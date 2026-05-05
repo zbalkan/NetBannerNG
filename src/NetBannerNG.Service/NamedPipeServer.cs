@@ -54,10 +54,7 @@ namespace NetBannerNG.Service
         }
 
 
-        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server)
-        {
-            server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity());
-        }
+        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server) => server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity());
 
         public async ValueTask DisposeAsync()
         {
@@ -73,10 +70,7 @@ namespace NetBannerNG.Service
             ProcessHelper.InitiateChildProcess();
         }
 
-        private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
-        {
-            _ = OnClientConnectedAsync(args);
-        }
+        private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args) => _ = OnClientConnectedAsync(args);
 
         private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {

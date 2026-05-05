@@ -12,10 +12,7 @@ namespace NetBannerNG.Borders
 
         protected abstract void ReadSettings();
 
-        internal void ApplyPostDockVisualState()
-        {
-            this.HideFromTaskManager();
-        }
+        internal void ApplyPostDockVisualState() => this.HideFromTaskManager();
 
         /// <summary>
         /// <para>    Base event for Window_Loaded event. Override this way:</para>
@@ -30,9 +27,6 @@ namespace NetBannerNG.Borders
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        internal void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            Refresh(true);
-        }
+        internal void Window_Loaded(object sender, RoutedEventArgs e) => Refresh(true);
     }
 }

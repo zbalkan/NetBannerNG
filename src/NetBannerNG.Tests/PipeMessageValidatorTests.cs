@@ -7,10 +7,7 @@ namespace NetBannerNG.Tests
     public sealed class PipeMessageValidatorTests
     {
         [TestMethod]
-        public void IsValidInboundClientMessage_ReturnsFalse_ForNullMessage()
-        {
-            Assert.IsFalse(PipeMessageValidator.IsValidInboundClientMessage(null!));
-        }
+        public void IsValidInboundClientMessage_ReturnsFalse_ForNullMessage() => Assert.IsFalse(PipeMessageValidator.IsValidInboundClientMessage(null!));
 
         [TestMethod]
         public void IsValidInboundClientMessage_ReturnsFalse_ForWrongAction()

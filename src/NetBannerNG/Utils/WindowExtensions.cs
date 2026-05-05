@@ -8,28 +8,28 @@ namespace NetBannerNG.Utils
 {
     internal static class WindowExtensions
     {
-        internal static void DockTop(this Window window, FrameworkElement childElement = null, bool topMost = true)
+        internal static void DockTop(this Window window, FrameworkElement? childElement = null, bool topMost = true)
         {
             var border = (BorderBase)window;
             AppBarFunctions.SetAppBar(window, DockEdge.Top, border.AppBarMessageKey, childElement, topMost);
             border.IsDocked = true;
         }
 
-        internal static void DockBottom(this Window window, FrameworkElement childElement = null, bool topMost = true)
+        internal static void DockBottom(this Window window, FrameworkElement? childElement = null, bool topMost = true)
         {
             var border = (BorderBase)window;
             AppBarFunctions.SetAppBar(window, DockEdge.Bottom, border.AppBarMessageKey, childElement, topMost);
             border.IsDocked = true;
         }
 
-        internal static void DockLeft(this Window window, FrameworkElement childElement = null, bool topMost = true)
+        internal static void DockLeft(this Window window, FrameworkElement? childElement = null, bool topMost = true)
         {
             var border = (BorderBase)window;
             AppBarFunctions.SetAppBar(window, DockEdge.Left, border.AppBarMessageKey, childElement, topMost);
             border.IsDocked = true;
         }
 
-        internal static void DockRight(this Window window, FrameworkElement childElement = null, bool topMost = true)
+        internal static void DockRight(this Window window, FrameworkElement? childElement = null, bool topMost = true)
         {
             var border = (BorderBase)window;
             AppBarFunctions.SetAppBar(window, DockEdge.Right, border.AppBarMessageKey, childElement, topMost);
