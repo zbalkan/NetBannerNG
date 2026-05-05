@@ -26,6 +26,19 @@ It displays a persistent desktop classification banner and supports existing Net
 3. Confirm the NetBannerNG service is running.
 4. Log in as a user and verify the banner appears with expected values.
 
+## Behavior under fullscreen and mouse-over
+
+The expected UX is based on current implementation behavior:
+
+- **Normal windowed use:** banner/borders are top-most so classification markings remain visible.
+- **Fullscreen foreground window detected:** NetBannerNG sends its owned banner windows behind other windows (`Topmost=false`) to reduce interference with fullscreen apps.
+- **Leaving fullscreen:** NetBannerNG restores banner windows to top-most (`Topmost=true`).
+- **Mouse-over behavior:** there is **no hover-to-fade or hover-opacity mode** in current code; pointer movement does not change banner opacity.
+
+Notes:
+- Fullscreen detection is monitor/window bounds based, so edge cases may occur with borderless-windowed games/apps.
+- Multi-monitor behavior follows monitor events and refreshes border windows accordingly.
+
 ## Policy compatibility
 
 NetBannerNG reads NetBanner-compatible policy values from:
@@ -45,9 +58,12 @@ The installer places binaries under Program Files and installs/starts the NetBan
 ## Documentation
 
 - **User/Operator overview:** this `README.md`
-- **Developer + sysadmin internals:** `ARCHITECTURE.md`
+- **Architecture + internals:** `docs/ARCHITECTURE.md`
+- **Admin operations (install/remove/upgrade/rollback):** `docs/ADMIN_OPERATIONS.md`
+- **Feature parity matrix (NetBannerNG vs Microsoft NetBanner/SystemBanner):** `docs/FEATURE_PARITY_MATRIX.md`
+- **Detailed comparative gap analysis:** `docs/GAP_ANALYSIS_SystemBanner_vs_NetBannerNG.md`
 
 ## Project status
 
 - FPCON and INFOCON support added
-- Orignalk Netbanner GPO files added
+- Original NetBanner GPO files added
