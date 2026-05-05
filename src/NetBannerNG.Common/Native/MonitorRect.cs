@@ -36,8 +36,6 @@ namespace NetBannerNG.Common.Native
             return new Rect(new Point(mr.Left, mr.Top), new Point(mr.Right, mr.Bottom));
         }
 
-        public readonly Rect ToRect() => (Rect)this;
-
         private readonly string GetDebuggerDisplay() => ToString();
     }
 }

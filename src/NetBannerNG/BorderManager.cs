@@ -1,10 +1,11 @@
-﻿using NetBannerNG.Borders;
-using NetBannerNG.Common.AppBar;
-using NetBannerNG.Services;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using NetBannerNG.Borders;
+using NetBannerNG.Common.AppBar;
+using NetBannerNG.Common.Native;
+using NetBannerNG.Services;
 
 namespace NetBannerNG
 {
@@ -22,10 +23,9 @@ namespace NetBannerNG
 
         private static readonly Dictionary<string, MonitorBorderGroup> MonitorGroups = new(StringComparer.Ordinal);
         private static readonly object MonitorGroupsSync = new();
-        private static readonly List<Common.Native.Monitor> PreviousMonitors = new();
+        private static readonly List<Monitor> PreviousMonitors = new();
         private static bool _isInitiated;
         private static bool _cleanStart;
-
 
         private sealed class BorderLaunchEntry
 
@@ -38,7 +38,6 @@ namespace NetBannerNG
             internal int WindowOrder { get; set; }
         }
 
-
         private sealed class MonitorBorderGroup
         {
             private readonly bool _cleanStart;
@@ -46,7 +45,7 @@ namespace NetBannerNG
             private readonly List<BorderBase> _windows;
             private readonly GroupHealthPolicy _healthPolicy = new(disableThreshold: 3, disableDuration: TimeSpan.FromSeconds(30));
 
-            internal MonitorBorderGroup(Common.Native.Monitor monitor, bool cleanStart)
+            internal MonitorBorderGroup(Monitor monitor, bool cleanStart)
             {
                 Monitor = monitor;
                 _cleanStart = cleanStart;
@@ -54,7 +53,7 @@ namespace NetBannerNG
                 _windows = CreateWindows().ToList();
             }
 
-            internal Common.Native.Monitor Monitor { get; private set; }
+            internal Monitor Monitor { get; private set; }
 
             internal string GroupId => _monitorIdentity;
 
@@ -74,9 +73,9 @@ namespace NetBannerNG
                 }
             }
 
-            internal bool MatchesMonitor(Common.Native.Monitor monitor) => BuildMonitorIdentity(monitor) == GroupId;
+            internal bool MatchesMonitor(Monitor monitor) => BuildMonitorIdentity(monitor) == GroupId;
 
-            internal void SyncMonitor(Common.Native.Monitor monitor)
+            internal void SyncMonitor(Monitor monitor)
             {
                 if (!_healthPolicy.CanAttempt(DateTime.UtcNow))
                 {
@@ -95,6 +94,7 @@ namespace NetBannerNG
                             case Banner or BottomBar:
                                 window.Width = monitor.Bounds.Width;
                                 break;
+
                             case LeftBar or RightBar:
                                 window.Height = monitor.Bounds.Height;
                                 break;
@@ -200,7 +200,7 @@ namespace NetBannerNG
             {
                 yield return new Banner
                 {
-                    Owner = App.Current.MainWindow,
+                    Owner = System.Windows.Application.Current.MainWindow,
                     Top = Monitor.Bounds.Top,
                     Left = Monitor.Bounds.Left,
                     Width = Monitor.Bounds.Width,
@@ -215,7 +215,7 @@ namespace NetBannerNG
 
                 yield return new BottomBar
                 {
-                    Owner = App.Current.MainWindow,
+                    Owner = System.Windows.Application.Current.MainWindow,
                     Top = Monitor.Bounds.Top,
                     Left = Monitor.Bounds.Left,
                     Width = Monitor.Bounds.Width,
@@ -225,7 +225,7 @@ namespace NetBannerNG
 
                 yield return new LeftBar
                 {
-                    Owner = App.Current.MainWindow,
+                    Owner = System.Windows.Application.Current.MainWindow,
                     Top = Monitor.Bounds.Top,
                     Left = Monitor.Bounds.Left,
                     Height = Monitor.Bounds.Height,
@@ -235,7 +235,7 @@ namespace NetBannerNG
 
                 yield return new RightBar
                 {
-                    Owner = App.Current.MainWindow,
+                    Owner = System.Windows.Application.Current.MainWindow,
                     Top = Monitor.Bounds.Top,
                     Left = Monitor.Bounds.Left,
                     Height = Monitor.Bounds.Height,
@@ -246,7 +246,7 @@ namespace NetBannerNG
 
             private string BuildMessageKey(string borderType) => $"NetBannerNG-AppBar-{borderType}-{_monitorIdentity}";
 
-            private static string BuildMonitorIdentity(Common.Native.Monitor monitor)
+            private static string BuildMonitorIdentity(Monitor monitor)
             {
                 if (!string.IsNullOrWhiteSpace(monitor.Name))
                 {
@@ -257,12 +257,11 @@ namespace NetBannerNG
             }
         }
 
-
         internal static void Init(bool clean = true)
         {
             _cleanStart = clean;
-            App.Current.MainWindow = new Launcher();
-            App.Current.MainWindow.Show();
+            System.Windows.Application.Current.MainWindow = new Launcher();
+            System.Windows.Application.Current.MainWindow.Show();
         }
 
         internal static void InitiateAllBorders()
@@ -398,10 +397,10 @@ namespace NetBannerNG
         private static void ResetPreviousMonitors()
         {
             PreviousMonitors.Clear();
-            PreviousMonitors.AddRange(Common.Native.Monitor.AllMonitors);
+            PreviousMonitors.AddRange(Monitor.AllMonitors);
         }
 
-        private static void ReconcileMonitorGroups(IEnumerable<Common.Native.Monitor> monitors, bool clean)
+        private static void ReconcileMonitorGroups(IEnumerable<Monitor> monitors, bool clean)
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
@@ -467,7 +466,7 @@ namespace NetBannerNG
             }
         }
 
-        private static string BuildGroupId(Common.Native.Monitor monitor)
+        private static string BuildGroupId(Monitor monitor)
         {
             if (!string.IsNullOrWhiteSpace(monitor.Name))
             {

@@ -65,8 +65,8 @@ namespace NetBannerNG.Utils
             var windowBounds = GetWindowBounds(foregroundWindowHandle);
 
             var isFullScreen = IsFullScreen(foregroundWindowHandle);
-            var monitorBounds = Common.Native.Monitor.GetMonitorBounds(foregroundWindowHandle);
-            Debug.WriteLine($"Window handle: {foregroundWindowHandle} | Full screen: {isFullScreen} | Window Bounds: {(Rect)windowBounds} | Monitor bounds: {monitorBounds}");
+            var monitorBounds = Monitor.GetMonitorBounds(foregroundWindowHandle);
+            Debug.WriteLine($"Window handle: {foregroundWindowHandle} | Full screen: {isFullScreen} | Window Bounds: {windowBounds} | Monitor bounds: {monitorBounds}");
 
             if (isFullScreen)
             {
@@ -109,7 +109,7 @@ namespace NetBannerNG.Utils
         {
             // Determine if the window is fullscreen
             var windowBounds = GetWindowBounds(current);
-            var screenBounds = Common.Native.Monitor.GetMonitorBounds(current);
+            var screenBounds = Monitor.GetMonitorBounds(current);
             var union = Rect.Union(screenBounds, windowBounds);
             return windowBounds.Equals(union);
         }
@@ -146,7 +146,7 @@ namespace NetBannerNG.Utils
         private static Rect GetWindowBounds(IntPtr current)
         {
             _ = NativeMethods.GetWindowRect(current, out var appBounds);
-            return appBounds.ToRect();
+            return (Rect)(appBounds);
         }
     }
 }
