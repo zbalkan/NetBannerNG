@@ -1,7 +1,6 @@
-﻿using NetBannerNG.Borders;
+﻿using System.Diagnostics;
+using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
-using NetBannerNG.Utils;
-using System.Diagnostics;
 
 namespace NetBannerNG
 {
@@ -13,11 +12,11 @@ namespace NetBannerNG
 
         private sealed class BorderLaunchEntry
         {
-            internal required BorderBase Window { get; init; }
-            internal required bool IsPrimaryMonitor { get; init; }
-            internal required int MonitorY { get; init; }
-            internal required int MonitorX { get; init; }
-            internal required int WindowOrder { get; init; }
+            internal BorderBase Window { get; set; }
+            internal bool IsPrimaryMonitor { get; set; }
+            internal double MonitorY { get; set; }
+            internal double MonitorX { get; set; }
+            internal int WindowOrder { get; set; }
         }
 
         internal static void Init(bool clean = true)
