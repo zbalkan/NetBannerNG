@@ -46,7 +46,7 @@ namespace NetBannerNG.Common.Extensions
                 throw new ArgumentNullException(nameof(userIdentity));
             }
 
-            Console.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+            Debug.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
             var userToken = userIdentity.AccessToken.DangerousGetHandle();
 
             var path = psi.FileName;
@@ -63,7 +63,7 @@ namespace NetBannerNG.Common.Extensions
             sa.nLength = Marshal.SizeOf(sa);
             sa.lpSecurityDescriptor = IntPtr.Zero;
 
-            Console.WriteLine($"During impersonation: {userIdentity.Name}. ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+            Debug.WriteLine($"During impersonation: {userIdentity.Name}. ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
 
             if (!NativeMethods.CreateProcessAsUser(userToken, // user token
                 path, // executable path
@@ -78,11 +78,11 @@ namespace NetBannerNG.Common.Extensions
                 out _)) // receive process information in pi
             {
                 var error = Marshal.GetLastWin32Error();
-                Console.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
+                Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
                 _ = NativeMethods.CloseHandle(userToken);
                 return false;
             }
-            Console.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+            Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
             _ = NativeMethods.CloseHandle(userToken);
             return true;
         }
