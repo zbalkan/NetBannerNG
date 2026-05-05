@@ -13,7 +13,7 @@ namespace NetBannerNG.Borders
             InitializeComponent();
         }
 
-        internal override void Refresh(bool needsResize = false)
+        internal override void Render(bool needsResize = false)
         {
             ReadSettings();
             if (!needsResize)

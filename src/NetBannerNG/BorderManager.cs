@@ -99,7 +99,7 @@ namespace NetBannerNG
                                 window.Height = monitor.Bounds.Height;
                                 break;
                         }
-                        window.Refresh(true);
+                        window.Render(true);
                         _healthPolicy.RecordSuccess();
                     }
                     catch (Exception ex)

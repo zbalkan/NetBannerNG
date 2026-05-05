@@ -30,7 +30,7 @@ namespace NetBannerNG.Service
             {
                 try
                 {
-                    _ = Process.Start(psi);
+                    //_ = Process.Start(psi);
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
 
                 }
