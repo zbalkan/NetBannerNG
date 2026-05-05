@@ -26,7 +26,7 @@ namespace NetBannerNG.Service
         internal NamedPipeServer(int timeout = 10000)
         {
             _server = new SingleConnectionPipeServer<PipeMessage>(PipeName, new MessagePackFormatter());
-            _server.AllowUsersReadWrite();
+            ConfigurePipeSecurity(_server);
 
             _server.ClientConnected += OnClientConnected!;
             _server.ClientDisconnected += OnClientDisconnected!;
@@ -51,6 +51,12 @@ namespace NetBannerNG.Service
 
                     return Task.CompletedTask;
                 });
+        }
+
+
+        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server)
+        {
+            server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity());
         }
 
         public async ValueTask DisposeAsync()
@@ -136,7 +142,7 @@ namespace NetBannerNG.Service
                 return;
             }
 
-            if (!IsValidInboundMessage(args.Message))
+            if (!PipeMessageValidator.IsValidInboundClientMessage(args.Message))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejected);
                 DebugTrace($"InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length} checksum={ByteArrayToString(args.Message.Checksum)}");
@@ -154,22 +160,6 @@ namespace NetBannerNG.Service
                     Program.Log.LogWarning(EventLogCatalog.PipeUnknownActionType, args.Message.Action);
                     break;
             }
-        }
-
-        private static bool IsValidInboundMessage(PipeMessage message)
-        {
-            const int maxTextLength = 4096;
-            if (message.Action != ActionType.SendLog)
-            {
-                return false;
-            }
-
-            if (!PipeMessageChecksum.IsValid(message))
-            {
-                return false;
-            }
-
-            return !string.IsNullOrWhiteSpace(message.Text) && message.Text.Length <= maxTextLength;
         }
 
         [Conditional("DEBUG")]
