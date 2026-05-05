@@ -8,7 +8,7 @@ namespace NetBannerNG.Borders
         internal bool IsDocked { get; set; }
         internal string AppBarMessageKey { get; set; } = string.Empty;
 
-        internal abstract void Refresh(bool needsResize = false);
+        internal abstract void Render(bool needsResize = false);
 
         protected abstract void ReadSettings();
 
@@ -27,6 +27,6 @@ namespace NetBannerNG.Borders
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        internal void Window_Loaded(object sender, RoutedEventArgs e) => Refresh(true);
+        internal void Window_Loaded(object sender, RoutedEventArgs e) => Render(true);
     }
 }
