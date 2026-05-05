@@ -312,8 +312,10 @@ namespace NetBannerNG
         private static void ShowGroups()
         {
             List<BorderLaunchEntry> launchPlan;
+            Dictionary<string, MonitorBorderGroup> groupsById;
             lock (MonitorGroupsSync)
             {
+                groupsById = MonitorGroups.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
                 launchPlan = MonitorGroups.Values
                     .SelectMany(group => group.CreateLaunchEntries())
                     .OrderByDescending(entry => entry.IsPrimaryMonitor)
@@ -331,13 +333,7 @@ namespace NetBannerNG
             {
                 foreach (var launchEntry in launchPlan)
                 {
-                    MonitorBorderGroup? group;
-                    lock (MonitorGroupsSync)
-                    {
-                        _ = MonitorGroups.TryGetValue(launchEntry.GroupId, out group);
-                    }
-
-                    if (group == null)
+                    if (!groupsById.TryGetValue(launchEntry.GroupId, out var group))
                     {
                         continue;
                     }
@@ -365,6 +361,8 @@ namespace NetBannerNG
                 AppBarFunctions.EndBatch();
             }
 
+            Debug.WriteLine($"[RenderPerf] Final appbar dock completed at +{stopwatch.ElapsedMilliseconds}ms");
+
             List<MonitorBorderGroup> groupsForPostDock;
             lock (MonitorGroupsSync)
             {
@@ -375,8 +373,7 @@ namespace NetBannerNG
             {
                 group.ApplyPostDockVisualState();
             }
-
-            Debug.WriteLine($"[RenderPerf] Final appbar dock completed at +{stopwatch.ElapsedMilliseconds}ms");
+            Debug.WriteLine($"[RenderPerf] Post-dock visual state applied at +{stopwatch.ElapsedMilliseconds}ms");
             _cleanStart = true;
         }
 
