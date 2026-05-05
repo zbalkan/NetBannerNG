@@ -1,0 +1,94 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v4
+
+      - name: Restore packages
+        run: nuget restore src/NetBannerNG.sln
+
+      - name: Read version from csproj
+        id: version
+        shell: pwsh
+        run: |
+          $projectPath = 'src/NetBannerNG/NetBannerNG.csproj'
+          [xml]$projectXml = Get-Content $projectPath -Raw
+
+          $version = $projectXml.Project.PropertyGroup.Version
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Unable to read <Version> from $projectPath"
+          }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Validate release tag is new
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.version.outputs.tag }}'
+          $existingTag = git ls-remote --tags --refs origin "refs/tags/$tag"
+
+          if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
+            throw "Tag '$tag' already exists. Bump <Version> in src/NetBannerNG/NetBannerNG.csproj before releasing."
+          }
+
+      - name: Build solution (Release)
+        run: msbuild src/NetBannerNG.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Prepare Inno Setup input directory
+        shell: pwsh
+        run: |
+          New-Item -Path src/publish -ItemType Directory -Force | Out-Null
+          Copy-Item src/NetBannerNG/bin/Release/net481/* src/publish/ -Recurse -Force
+          Copy-Item src/NetBannerNG.Service/bin/Release/net481/* src/publish/ -Recurse -Force
+          Copy-Item 'src/Assets/DeltaZulu - dark.ico' 'src/publish/DeltaZulu - dark.ico' -Force
+
+      - name: Build installer with Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.6
+        with:
+          path: src/setup.iss
+
+      - name: Prepare release artifacts
+        id: artifacts
+        shell: pwsh
+        run: |
+          $installerPath = 'src/Output/netbannerng-setup.exe'
+
+          if (-not (Test-Path $installerPath)) {
+            throw "Installer not found at $installerPath"
+          }
+
+          $sha256 = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $shaPath = "$installerPath.sha256"
+          "${sha256} *netbannerng-setup.exe" | Set-Content -Path $shaPath -NoNewline
+
+          "installer_path=$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "sha_path=$shaPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: NetBannerNG v${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.artifacts.outputs.installer_path }}
+            ${{ steps.artifacts.outputs.sha_path }}
