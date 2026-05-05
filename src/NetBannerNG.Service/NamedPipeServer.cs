@@ -38,10 +38,14 @@ namespace NetBannerNG.Service
                 {
                     _ = task.ContinueWith(t =>
                       {
-                          Program.Log.LogInformation(
-                              t.IsFaulted
-                                  ? $"{context.PolicyKey} at {context.OperationKey}: execution timed out after {timespan.TotalSeconds} seconds, with: {t.Exception}."
-                                  : "Task completed.");
+                          if (t.IsFaulted)
+                          {
+                              Program.Log.LogInformation(EventLogCatalog.PipeTimeoutCallback, context.PolicyKey, context.OperationKey, timespan.TotalSeconds, t.Exception!);
+                          }
+                          else
+                          {
+                              Program.Log.LogInformation(EventLogCatalog.PipeTimeoutTaskCompleted);
+                          }
                       },
                       scheduler: _scheduler);
 
@@ -65,7 +69,7 @@ namespace NetBannerNG.Service
 
         private async void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-            Program.Log.LogInformation($"Client {args.Connection.PipeName} is now connected!");
+            Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
             Console.WriteLine($"Client {args.Connection.PipeName} is now connected!");
             DebugTrace($"ClientConnected pipe={args.Connection.PipeName}");
             Console.WriteLine("Checking child process owner.");
@@ -76,7 +80,7 @@ namespace NetBannerNG.Service
             }
             catch (Exception ex)
             {
-                Program.Log.LogWarning($"Failed to query active session admin token. Falling back to false. {ex.GetMessageStack()}");
+                Program.Log.LogWarning(EventLogCatalog.PipeSessionAdminQueryFailed, ex.GetMessageStack());
             }
             Console.WriteLine($"Child process owner has admin rights: {isAdmin}");
 
@@ -93,26 +97,26 @@ namespace NetBannerNG.Service
             }
             catch (IOException ex)
             {
-                Program.Log.LogWarning($"Client disconnected before bootstrap message could be sent. {ex.GetMessageStack()}");
+                Program.Log.LogWarning(EventLogCatalog.PipeBootstrapDisconnected, ex.GetMessageStack());
                 DebugTrace($"BootstrapSendFailed error={ex.Message}");
             }
             catch (InvalidOperationException ex)
             {
-                Program.Log.LogWarning($"Client is not connected while sending bootstrap message. {ex.GetMessageStack()}");
+                Program.Log.LogWarning(EventLogCatalog.PipeBootstrapClientNotConnected, ex.GetMessageStack());
                 DebugTrace($"BootstrapSendSkipped reason=ClientNotConnected error={ex.Message}");
             }
         }
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-            Program.Log.LogInformation($"Client {args.Connection.PipeName} disconnected");
-            Program.Log.LogInformation("Automatic child process restart on disconnect is disabled.");
+            Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
+            Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
             DebugTrace($"ClientDisconnected pipe={args.Connection.PipeName}");
         }
 
         private void OnExceptionOccurred(object o, ExceptionEventArgs args)
         {
-            Program.Log.LogError($"Exception occurred in pipe: {args.Exception.GetMessageStack()}");
+            Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, args.Exception.GetMessageStack());
             Console.WriteLine($"Exception occurred in pipe: {args.Exception.GetMessageStack()}");
         }
 
@@ -125,7 +129,7 @@ namespace NetBannerNG.Service
 
             if (!IsValidInboundMessage(args.Message))
             {
-                Program.Log.LogWarning("Rejected invalid inbound pipe message.");
+                Program.Log.LogWarning(EventLogCatalog.PipeInboundRejected);
                 DebugTrace($"InboundRejected action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0} checksum_len={args.Message.Checksum.Length} checksum={ByteArrayToString(args.Message.Checksum)}");
                 return;
             }
@@ -133,12 +137,12 @@ namespace NetBannerNG.Service
             switch (args.Message)
             {
                 case { Action: ActionType.SendLog }:
-                    Program.Log.LogError($"Event log from client {args.Connection.PipeName}:{Environment.NewLine}{args.Message.Text}");
+                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, args.Message.Text!);
                     DebugTrace($"InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
                     break;
 
                 default:
-                    Program.Log.LogWarning($"Unknown Action Type: {args.Message.Action}");
+                    Program.Log.LogWarning(EventLogCatalog.PipeUnknownActionType, args.Message.Action);
                     break;
             }
         }
