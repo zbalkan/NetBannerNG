@@ -86,11 +86,6 @@ namespace NetBannerNG.Common.AppBar
                 throw new ArgumentNullException(nameof(appbarWindow));
             }
 
-            if (childElement is null)
-            {
-                throw new ArgumentNullException(nameof(childElement));
-            }
-
             var barData = new APPBARDATA().FromWindow(appbarWindow, info.Edge);
 
             Debug.WriteLine($"Attempting to get work area of window {appbarWindow}.");

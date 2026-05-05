@@ -63,7 +63,7 @@ namespace NetBannerNG.Service
             {
                 await pipeServer.InitializeAsync().ConfigureAwait(false);
                 Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
-
+                ProcessHelper.KillAllChildProcess();
                 while (!_stopping)
                 {
                     MonitorChildProcess();
