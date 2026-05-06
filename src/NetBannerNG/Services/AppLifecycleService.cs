@@ -22,9 +22,9 @@ namespace NetBannerNG.Services
             }
         }
 
-        internal async Task<bool> InitializePipeClientAsync()
+        internal async Task<bool> InitializePipeClientAsync(string pipeName)
         {
-            Client = new NamedPipeClient();
+            Client = new NamedPipeClient(pipeName);
             return await Client.InitializeAsync();
         }
 

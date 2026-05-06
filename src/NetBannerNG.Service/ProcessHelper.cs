@@ -1,5 +1,7 @@
-﻿using NetBannerNG.Common.Extensions;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using NetBannerNG.Common;
+using NetBannerNG.Common.Extensions;
+using NetBannerNG.Common.NamedPipes;
 
 namespace NetBannerNG.Service
 {
@@ -10,6 +12,8 @@ namespace NetBannerNG.Service
         public static void InitiateChildProcess()
         {
             var psi = new ProcessStartInfo();
+            var sessionId = PrivilegeHelper.GetInteractiveSessionId();
+            var pipeName = PipeNaming.ForSession(sessionId);
             var path = GetChildProcessPath();
             if (!File.Exists(path))
             {
@@ -25,6 +29,7 @@ namespace NetBannerNG.Service
             }
 
             psi.FileName = path;
+            psi.Arguments = $"--pipe={pipeName}";
             Program.Log.LogInformation(EventLogCatalog.ProcessStarting, psi.FileName);
             if (Environment.UserInteractive)
             {
@@ -32,7 +37,6 @@ namespace NetBannerNG.Service
                 {
                     _ = Process.Start(psi);
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
-
                 }
                 catch (Exception ex)
                 {

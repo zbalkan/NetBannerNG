@@ -1,3 +1,9 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
 using H.Formatters;
 using H.Pipes;
 using H.Pipes.Args;
@@ -7,12 +13,6 @@ using Polly;
 using Polly.CircuitBreaker;
 using Polly.Timeout;
 using Polly.Wrap;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace NetBannerNG
 {
@@ -29,7 +29,6 @@ namespace NetBannerNG
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     public class NamedPipeClient : IAsyncDisposable
     {
-        private const string PipeName = "netbannerng-pipe";
         private const int MaxMessageTextLength = 4096;
 
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
@@ -37,9 +36,9 @@ namespace NetBannerNG
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private static readonly Random _random = new Random();
 
-        public NamedPipeClient(int timeout = 10000)
+        public NamedPipeClient(string pipeName, int timeout = 10000)
         {
-            _client = new SingleConnectionPipeClient<PipeMessage>(PipeName, formatter: new MessagePackFormatter());
+            _client = new SingleConnectionPipeClient<PipeMessage>(pipeName, formatter: new MessagePackFormatter());
 
             _client.MessageReceived += OnMessageReceived!;
             _client.Disconnected += OnDisconnected!;
@@ -56,8 +55,7 @@ namespace NetBannerNG
                 .WaitAndRetryAsync(
                     retryCount: 5,
                     sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + _random.Next(25, 150)),
-                    onRetry: (exception, delay, attempt, _) =>
-                    {
+                    onRetry: (exception, delay, attempt, _) => {
                         DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}");
                     });
 
@@ -112,8 +110,7 @@ namespace NetBannerNG
 
             try
             {
-                await ExecuteWithResilience(async cancellationToken =>
-                {
+                await ExecuteWithResilience(async cancellationToken => {
                     var outboundMessage = new PipeMessage
                     {
                         Action = ActionType.SendLog,

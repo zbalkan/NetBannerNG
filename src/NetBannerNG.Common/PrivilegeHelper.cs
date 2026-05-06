@@ -94,12 +94,24 @@ namespace NetBannerNG.Common
                 sid.IsWellKnown(WellKnownSidType.AccountAdministratorSid)));
         }
 
-        private static uint GetActiveSessionId()
+        private static uint GetActiveSessionId() => GetInteractiveSessionId();
+
+        [CLSCompliant(false)]
+        public static uint GetInteractiveSessionId()
         {
             var id = NativeMethods.WTSGetActiveConsoleSessionId();
-            return id is 0xFFFFFFFF or 0
-                ? throw new InvalidOperationException("No session attached to the physical console.")
-                : id;
+            if (id != 0xFFFFFFFF && id != 0)
+            {
+                return id;
+            }
+
+            var current = (uint)Process.GetCurrentProcess().SessionId;
+            if (current != 0)
+            {
+                return current;
+            }
+
+            throw new InvalidOperationException("No interactive session detected.");
         }
     }
 }

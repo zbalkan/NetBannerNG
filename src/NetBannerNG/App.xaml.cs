@@ -1,11 +1,13 @@
-using NetBannerNG.Common.Extensions;
-using NetBannerNG.Services;
-using NetBannerNG.Utils;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using NetBannerNG.Common.Extensions;
+using NetBannerNG.Common.NamedPipes;
+using NetBannerNG.Services;
+using NetBannerNG.Utils;
 
 [assembly: CLSCompliant(true)]
 
@@ -53,8 +55,10 @@ namespace NetBannerNG
                 //If no debugger is attached and the argument --debug was passed launch the debugger
                 AppLifecycleService.TryLaunchDebugger(e?.Args ?? Array.Empty<string>());
 
+                var pipeName = ResolvePipeName(e?.Args ?? Array.Empty<string>());
+
                 // TODO: Make timeout configurable
-                var result = await _lifecycleService.InitializePipeClientAsync();
+                var result = await _lifecycleService.InitializePipeClientAsync(pipeName);
                 if (!result)
                 {
                     ShutDownGracefully();
@@ -70,6 +74,17 @@ namespace NetBannerNG
                 await Dump(ex);
                 ShutDownGracefully();
             }
+        }
+
+        private static string ResolvePipeName(string[] args)
+        {
+            var pipeArg = args.FirstOrDefault(a => a.StartsWith("--pipe=", StringComparison.OrdinalIgnoreCase));
+            if (pipeArg != null && PipeNaming.TryParsePipeName(pipeArg.Substring("--pipe=".Length), out var fromArg))
+            {
+                return fromArg;
+            }
+
+            return PipeNaming.ForSession((uint)Process.GetCurrentProcess().SessionId);
         }
 
         private static async Task Dump(Exception ex) => await Task.Run(() => {
