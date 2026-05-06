@@ -5,7 +5,6 @@
     xmlns:borders="clr-namespace:NetBannerNG.Borders"
     Title="Banner"
     Closing="BorderBase_Closing"
-    Loaded="Window_Loaded"
     MouseDoubleClick="Window_MouseDoubleClick"
     ResizeMode="NoResize"
     ScrollViewer.CanContentScroll="False"

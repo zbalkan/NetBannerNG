@@ -1,5 +1,6 @@
 ﻿using NetBannerNG.Common.Native;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -18,9 +19,36 @@ namespace NetBannerNG.Common.AppBar
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
 
-        public static void BeginBatch() { }
+        private static int _batchDepth;
+        private static long _suppressPosChangedUntilTicksUtc;
+        private static long _posChangedReceived;
+        private static long _posChangedSkippedBatch;
+        private static long _posChangedSkippedSettle;
+        private static long _posChangedSkippedDebounce;
+        private static long _posChangedHandled;
 
-        public static void EndBatch() { }
+
+        public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
+
+        public static void EndBatch()
+        {
+            var depth = Interlocked.Decrement(ref _batchDepth);
+            if (depth < 0)
+            {
+                Interlocked.Exchange(ref _batchDepth, 0);
+                depth = 0;
+            }
+
+            if (depth == 0)
+            {
+                var settleUntil = DateTime.UtcNow.AddMilliseconds(800).Ticks;
+                Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
+            }
+        }
+
+        private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
+
+        private static bool IsInPostBatchSettleWindow() => DateTime.UtcNow.Ticks < Interlocked.Read(ref _suppressPosChangedUntilTicksUtc);
 
         public static void SetAppBar(Window appbarWindow, DockEdge edge, string messageKey, FrameworkElement? childElement = null, bool topMost = true)
         {
@@ -41,7 +69,6 @@ namespace NetBannerNG.Common.AppBar
                 Debug.Unindent();
             }
 
-            var dockTimer = Stopwatch.StartNew();
             var info = appbarWindow.GetRegisterInfo().DockWithChild(edge, childElement, messageKey);
             var appBarData = new APPBARDATA().WithWindow(appbarWindow);
 
@@ -70,7 +97,6 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.StyleForDocking(topMost);
 
             AbSetPos(info, appbarWindow, childElement);
-            Debug.WriteLine($"[RenderPerf] Dock {appbarWindow.GetType().Name} ({edge}) completed in {dockTimer.ElapsedMilliseconds}ms");
         }
 
         // Why twice?
@@ -90,13 +116,15 @@ namespace NetBannerNG.Common.AppBar
 
             Debug.WriteLine($"Attempting to get work area of window {appbarWindow}.");
 
-            var dockedSize = barData
-                // Transform window size from wpf units (1/96 ") to real pixels, for win32 usage
-                // Even if the documentation says SystemParameters.PrimaryScreen{Width, Height} return values in "pixels", they return wpf units instead.
-                .CalculateDockedSize(CalculateActualSize(appbarWindow, childElement), WorkAreaAsPixel(appbarWindow, GetActualWorkArea(info)))
-                .SendNewPositionToShell()
-                // transform back to wpf units, for wpf window resizing in DoResize.
-                .AsWpfUnits(appbarWindow);
+            var sizeInPixels = CalculateActualSize(appbarWindow, childElement);
+
+            var workAreaInPixels = WorkAreaAsPixel(appbarWindow, GetActualWorkArea(info));
+
+            barData = barData.CalculateDockedSize(sizeInPixels, workAreaInPixels);
+
+            barData = barData.SendNewPositionToShell();
+
+            var dockedSize = barData.AsWpfUnits(appbarWindow);
 
             info.DockedSize = dockedSize;
 
@@ -110,6 +138,14 @@ namespace NetBannerNG.Common.AppBar
 
         private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect)
         {
+            if (IsBatchActive)
+            {
+                info.PendingResizeOperation?.Abort();
+                info.PendingResizeOperation = null;
+                DoResize(appbarWindow, rect);
+                return;
+            }
+
             info.PendingResizeOperation?.Abort();
             info.PendingResizeOperation = appbarWindow.Dispatcher.BeginInvoke(
                 // Loaded runs after initial layout/measure has completed for this dispatcher turn,
@@ -203,16 +239,32 @@ namespace NetBannerNG.Common.AppBar
                 {
                     return IntPtr.Zero;
                 }
-                const long debounceWindowTicks = TimeSpan.TicksPerMillisecond * 50;
+
+                Interlocked.Increment(ref _posChangedReceived);
+                if (IsBatchActive)
+                {
+                    Interlocked.Increment(ref _posChangedSkippedBatch);
+                    return IntPtr.Zero;
+                }
+
+                if (IsInPostBatchSettleWindow())
+                {
+                    Interlocked.Increment(ref _posChangedSkippedSettle);
+                    return IntPtr.Zero;
+                }
+
+                const long debounceWindowTicks = TimeSpan.TicksPerMillisecond * 120;
                 var nowTicks = DateTime.UtcNow.Ticks;
                 var previousTicks = Interlocked.Read(ref LastPosChangedHandledAtTicks);
                 if (nowTicks - previousTicks < debounceWindowTicks)
                 {
+                    Interlocked.Increment(ref _posChangedSkippedDebounce);
                     return IntPtr.Zero;
                 }
 
                 // Fix: Use a ref field, not a property or indexer
                 Interlocked.Exchange(ref LastPosChangedHandledAtTicks, nowTicks);
+                _ = Interlocked.Increment(ref _posChangedHandled);
                 IsHandled = true;
                 AbSetPos(this, Window, ChildElement);
                 handled = true; // This is set but never used
@@ -320,6 +372,7 @@ namespace NetBannerNG.Common.AppBar
         private static APPBARDATA SendNewPositionToShell(this APPBARDATA barData)
         {
             _ = SHAppBarMessage((int)AbMsg.AbmQuerypos, ref barData);
+
             _ = SHAppBarMessage((int)AbMsg.AbmSetpos, ref barData);
             return barData;
         }
