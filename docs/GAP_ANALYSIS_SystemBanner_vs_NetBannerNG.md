@@ -15,7 +15,7 @@ Because direct git clone/raw fetch from this environment is blocked, SystemBanne
 ## Executive summary
 
 - **NetBannerNG** is a **multi-project** architecture with explicit separation between UI app, Windows Service host, and common library. It appears designed for operational robustness (service-managed lifecycle, named-pipe communication, shared contracts/helpers).
-- **SystemBanner** appears to be a **single-application-centric** implementation (Windows Forms app) with deployment scripts/MSI and GPO templates, emphasizing practical install/admin usability.
+- **SystemBanner** appears to be a **single-application-centric** implementation (desktop app) with deployment scripts/MSI and GPO templates, emphasizing practical install/admin usability.
 - Both tools target the same core mission: persistent classification banners and GPO-based control on Windows endpoints.
 - The largest delta is **architectural layering and runtime control model** (service + IPC in NetBannerNG vs app + startup registry pattern in SystemBanner), while the largest functional overlap is **classification messaging, custom colors, and multi-monitor AppBar behavior**.
 
@@ -36,7 +36,7 @@ Because direct git clone/raw fetch from this environment is blocked, SystemBanne
   - border management
 
 ### SystemBanner
-- README states it is a C# .NET Framework 4.7.2 **Windows Forms** application.
+- README for SystemBanner describes a C# .NET Framework 4.7.2 desktop application (historically characterized as WinForms in earlier notes).
 - Repository shape suggests simpler composition (main app under `Code/SystemBanner`, install/remove scripts, MSI, GPO templates).
 - README indicates startup behavior through registry entries and app-level runtime handling for monitor changes/fullscreen opacity behavior.
 
@@ -54,7 +54,7 @@ Because direct git clone/raw fetch from this environment is blocked, SystemBanne
 - Enables comprehensive Roslyn analysis modes (`AnalysisMode=All`, `AnalysisModeSecurity=All`) across projects.
 
 ### SystemBanner
-- README states .NET Framework 4.7.2 base and WinForms.
+- README indicates a .NET Framework 4.7.2 base; UI stack details should be verified against the upstream project before asserting WinForms explicitly.
 - Dependency granularity is not fully visible from this environment, but operational dependencies include registry/GPO/AppBar Win32 behavior.
 
 ### Gap interpretation
