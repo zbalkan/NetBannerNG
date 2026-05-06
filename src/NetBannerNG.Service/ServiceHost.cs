@@ -1,4 +1,5 @@
-﻿using System.ServiceProcess;
+using System.ServiceProcess;
+using NetBannerNG.Common;
 
 namespace NetBannerNG.Service
 {
@@ -56,7 +57,8 @@ namespace NetBannerNG.Service
 
         private static async Task InitializeServiceThreadAsync()
         {
-            pipeServer = new NamedPipeServer();
+            var sessionId = PrivilegeHelper.GetInteractiveSessionId();
+            pipeServer = new NamedPipeServer(sessionId);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
 
             await using (pipeServer)

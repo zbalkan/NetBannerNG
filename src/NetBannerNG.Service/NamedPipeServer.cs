@@ -1,4 +1,6 @@
-﻿using H.Formatters;
+﻿using System.Diagnostics;
+using System.Text;
+using H.Formatters;
 using H.Pipes;
 using H.Pipes.AccessControl;
 using H.Pipes.Args;
@@ -7,8 +9,6 @@ using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
 using Polly;
 using Polly.Timeout;
-using System.Diagnostics;
-using System.Text;
 
 namespace NetBannerNG.Service
 {
@@ -18,14 +18,14 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
-        private const string PipeName = "netbannerng-pipe";
         private static SingleConnectionPipeServer<PipeMessage>? _server;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
-        internal NamedPipeServer(int timeout = 10000)
+        internal NamedPipeServer(uint sessionId, int timeout = 10000)
         {
-            _server = new SingleConnectionPipeServer<PipeMessage>(PipeName, new MessagePackFormatter());
+            var pipeName = PipeNaming.ForSession(sessionId);
+            _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
             ConfigurePipeSecurity(_server);
 
             _server.ClientConnected += OnClientConnected!;
@@ -34,25 +34,22 @@ namespace NetBannerNG.Service
             _server.ExceptionOccurred += OnExceptionOccurred!;
 
             _timeoutPolicy = Policy
-                .TimeoutAsync(TimeSpan.FromMilliseconds(timeout), (context, timespan, task) =>
-                {
-                    _ = task.ContinueWith(t =>
-                      {
-                          if (t.IsFaulted)
-                          {
-                              Program.Log.LogInformation(EventLogCatalog.PipeTimeoutCallback, context.PolicyKey, context.OperationKey, timespan.TotalSeconds, t.Exception!);
-                          }
-                          else
-                          {
-                              Program.Log.LogInformation(EventLogCatalog.PipeTimeoutTaskCompleted);
-                          }
-                      },
+                .TimeoutAsync(TimeSpan.FromMilliseconds(timeout), (context, timespan, task) => {
+                    _ = task.ContinueWith(t => {
+                        if (t.IsFaulted)
+                        {
+                            Program.Log.LogInformation(EventLogCatalog.PipeTimeoutCallback, context.PolicyKey, context.OperationKey, timespan.TotalSeconds, t.Exception!);
+                        }
+                        else
+                        {
+                            Program.Log.LogInformation(EventLogCatalog.PipeTimeoutTaskCompleted);
+                        }
+                    },
                       scheduler: _scheduler);
 
                     return Task.CompletedTask;
                 });
         }
-
 
         private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server) => server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity());
 
