@@ -360,3 +360,5 @@ launchsettings.json
 *.InstallLog
 
 .sarif
+/installer/generated
+/installer/installer-output
