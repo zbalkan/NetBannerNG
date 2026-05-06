@@ -25,60 +25,94 @@ jobs:
       - name: Restore packages
         run: nuget restore src/NetBannerNG.sln
 
-      - name: Read version from csproj
-        id: version
+      - name: Build solution (Release)
+        run: msbuild src/NetBannerNG.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Read release metadata from generated Inno include
+        id: metadata
         shell: pwsh
         run: |
-          $projectPath = 'src/NetBannerNG/NetBannerNG.csproj'
-          [xml]$projectXml = Get-Content $projectPath -Raw
+          $buildInfoPath = 'installer/generated/NetBannerNG.BuildInfo.issinc'
 
-          $version = $projectXml.Project.PropertyGroup.Version
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            throw "Unable to read <Version> from $projectPath"
+          if (-not (Test-Path $buildInfoPath)) {
+            throw "Generated Inno build info file not found at '$buildInfoPath'. Ensure the NetBannerNG.csproj GenerateInnoBuildInfo target ran during build."
           }
 
+          $content = Get-Content $buildInfoPath -Raw
+
+          function Read-InnoDefine {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$Name
+            )
+
+            $pattern = "(?m)^#define\s+$([regex]::Escape($Name))\s+`"(?<value>.*)`"\s*$"
+            $match = [regex]::Match($content, $pattern)
+
+            if (-not $match.Success) {
+              throw "Unable to read Inno define '$Name' from '$buildInfoPath'."
+            }
+
+            return $match.Groups['value'].Value
+          }
+
+          $appName = Read-InnoDefine 'MyAppName'
+          $version = Read-InnoDefine 'MyAppVersion'
+
+          if ([string]::IsNullOrWhiteSpace($appName)) {
+            throw "MyAppName is empty in '$buildInfoPath'."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "MyAppVersion is empty in '$buildInfoPath'."
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Installer version '$version' is not a 3-part version. Expected format: major.minor.patch."
+          }
+
+          $tag = "v$version"
+
+          "app_name=$appName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "tag=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "App name: $appName"
+          Write-Host "Version: $version"
+          Write-Host "Tag: $tag"
 
       - name: Validate release tag is new
         shell: pwsh
         run: |
-          $tag = '${{ steps.version.outputs.tag }}'
+          $tag = '${{ steps.metadata.outputs.tag }}'
           $existingTag = git ls-remote --tags --refs origin "refs/tags/$tag"
 
           if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
             throw "Tag '$tag' already exists. Bump <Version> in src/NetBannerNG/NetBannerNG.csproj before releasing."
           }
 
-      - name: Build solution (Release)
-        run: msbuild src/NetBannerNG.sln /p:Configuration=Release /p:Platform="Any CPU" /m
-
-      - name: Prepare Inno Setup input directory
-        shell: pwsh
-        run: |
-          New-Item -Path src/publish -ItemType Directory -Force | Out-Null
-          Copy-Item src/NetBannerNG/bin/Release/net481/* src/publish/ -Recurse -Force
-          Copy-Item src/NetBannerNG.Service/bin/Release/net481/* src/publish/ -Recurse -Force
-          Copy-Item 'src/Assets/DeltaZulu - dark.ico' 'src/publish/DeltaZulu - dark.ico' -Force
-
       - name: Build installer with Inno Setup
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.6
         with:
-          path: src/setup.iss
+          path: installer/NetBannerNG.iss
 
       - name: Prepare release artifacts
         id: artifacts
         shell: pwsh
         run: |
-          $installerPath = 'src/Output/netbannerng-setup.exe'
+          $appName = '${{ steps.metadata.outputs.app_name }}'
+          $version = '${{ steps.metadata.outputs.version }}'
+          $installerPath = "installer/installer-output/$appName-$version-Setup.exe"
 
           if (-not (Test-Path $installerPath)) {
-            throw "Installer not found at $installerPath"
+            throw "Installer not found at '$installerPath'. Check OutputDir and OutputBaseFilename in installer/NetBannerNG.iss."
           }
 
           $sha256 = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
           $shaPath = "$installerPath.sha256"
-          "${sha256} *netbannerng-setup.exe" | Set-Content -Path $shaPath -NoNewline
+          $installerFileName = Split-Path $installerPath -Leaf
+
+          "${sha256} *${installerFileName}" | Set-Content -Path $shaPath -NoNewline
 
           "installer_path=$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "sha_path=$shaPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -86,8 +120,8 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: NetBannerNG v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.metadata.outputs.tag }}
+          name: ${{ steps.metadata.outputs.app_name }} v${{ steps.metadata.outputs.version }}
           generate_release_notes: true
           files: |
             ${{ steps.artifacts.outputs.installer_path }}
