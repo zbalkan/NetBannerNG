@@ -3,23 +3,10 @@
     <PropertyGroup>
         <TargetFramework>net481</TargetFramework>
         <IsPackable>false</IsPackable>
-
-        <!-- Optional but valid if your code already uses nullable annotations -->
         <Nullable>enable</Nullable>
-
-        <!-- Avoid implicit usings for .NET Framework test projects unless you need them -->
         <ImplicitUsings>false</ImplicitUsings>
-
-        <!-- Optional: use only if your compiler/VS version supports it -->
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
-
-    <!-- Add this only if linked files use WPF types such as System.Windows.Media.Color -->
-    <!--
-  <PropertyGroup>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
-  -->
 
     <ItemGroup>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />

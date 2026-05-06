@@ -6,7 +6,7 @@
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<!--<ApplicationManifest>app.manifest</ApplicationManifest>-->
+		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AnalysisMode>All</AnalysisMode>
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
 	</PropertyGroup>
@@ -22,11 +22,4 @@
 	<ItemGroup>
 		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
 	</ItemGroup>
-
-	<ProjectExtensions>
-		<VisualStudio>
-			<UserProperties Viade-Afterburner-Debug="DisposeMonitoring=True|DeadlockDetection=True|DeadlockPrediction=True|ThreadsMap=True" />
-		</VisualStudio>
-	</ProjectExtensions>
-
 </Project>
