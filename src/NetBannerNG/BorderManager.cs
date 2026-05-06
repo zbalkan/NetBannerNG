@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
@@ -115,6 +116,7 @@ namespace NetBannerNG
                 {
                     if (!window.IsVisible)
                     {
+                        window.Render();
                         window.Show();
                     }
                 }
@@ -164,6 +166,8 @@ namespace NetBannerNG
                 {
                     if (!window.IsVisible)
                     {
+                        window.Render();
+
                         window.Show();
                     }
 
@@ -223,12 +227,15 @@ namespace NetBannerNG
                     IsDocked = !_cleanStart
                 };
 
+                var initialVerticalTop = Monitor.Bounds.Top + Settings.Instance.BannerSize;
+                var initialVerticalHeight = Math.Max(1, Monitor.Bounds.Height - Settings.Instance.BannerSize - Settings.Instance.BorderSize);
+
                 yield return new LeftBar
                 {
                     Owner = System.Windows.Application.Current.MainWindow,
-                    Top = Monitor.Bounds.Top,
+                    Top = initialVerticalTop,
                     Left = Monitor.Bounds.Left,
-                    Height = Monitor.Bounds.Height,
+                    Height = initialVerticalHeight,
                     AppBarMessageKey = BuildMessageKey("Left"),
                     IsDocked = !_cleanStart
                 };
@@ -236,9 +243,9 @@ namespace NetBannerNG
                 yield return new RightBar
                 {
                     Owner = System.Windows.Application.Current.MainWindow,
-                    Top = Monitor.Bounds.Top,
+                    Top = initialVerticalTop,
                     Left = Monitor.Bounds.Left,
-                    Height = Monitor.Bounds.Height,
+                    Height = initialVerticalHeight,
                     AppBarMessageKey = BuildMessageKey("Right"),
                     IsDocked = !_cleanStart
                 };
@@ -337,6 +344,7 @@ namespace NetBannerNG
                     {
                         continue;
                     }
+
                     Exception? error = null;
                     if (launchEntry.Window == null || !group.TryShowWindow(launchEntry.Window, out error))
                     {
@@ -344,11 +352,18 @@ namespace NetBannerNG
                         {
                             Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry.Window!.GetType().Name} failed: {error}");
                         }
+                    }
+                }
+
+                foreach (var launchEntry in launchPlan)
+                {
+                    if (launchEntry.GroupId == null || launchEntry.Window == null || !groupsById.ContainsKey(launchEntry.GroupId) || !launchEntry.Window.IsVisible)
+                    {
                         continue;
                     }
 
+                    launchEntry.Window.Render(true);
                     var shownAtMs = stopwatch.ElapsedMilliseconds;
-                    Debug.WriteLine($"[RenderPerf] Show {launchEntry.Window.GetType().Name} at +{shownAtMs}ms");
                     if (firstBannerShownAtMs < 0 && launchEntry.Window is Banner)
                     {
                         firstBannerShownAtMs = shownAtMs;
@@ -361,8 +376,6 @@ namespace NetBannerNG
                 AppBarFunctions.EndBatch();
             }
 
-            Debug.WriteLine($"[RenderPerf] Final appbar dock completed at +{stopwatch.ElapsedMilliseconds}ms");
-
             List<MonitorBorderGroup> groupsForPostDock;
             lock (MonitorGroupsSync)
             {
@@ -373,7 +386,6 @@ namespace NetBannerNG
             {
                 group.ApplyPostDockVisualState();
             }
-            Debug.WriteLine($"[RenderPerf] Post-dock visual state applied at +{stopwatch.ElapsedMilliseconds}ms");
             _cleanStart = true;
         }
 

@@ -23,11 +23,6 @@ namespace NetBannerNG.Borders
                 return;
             }
 
-            if (IsDocked)
-            {
-                this.Undock();
-            }
-
             this.DockRight();
         }
 

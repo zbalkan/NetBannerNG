@@ -21,11 +21,6 @@ namespace NetBannerNG.Borders
                 return;
             }
 
-            if (IsDocked)
-            {
-                this.Undock();
-            }
-
             this.DockTop(Grid);
         }
 
