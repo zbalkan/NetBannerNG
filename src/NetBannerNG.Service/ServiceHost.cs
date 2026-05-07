@@ -9,6 +9,7 @@ namespace NetBannerNG.Service
     {
         private static Thread? _serviceThread;
         private static bool _stopping;
+        private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(5);
         private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
         internal static NamedPipeServer? pipeServer;
 
@@ -82,14 +83,23 @@ namespace NetBannerNG.Service
             }
 
             var now = DateTime.UtcNow;
-            if ((now - _lastWatchdogRestartAttemptUtc) < TimeSpan.FromSeconds(5))
+            if (!ShouldAttemptRestart(now))
             {
                 return;
             }
-
-            _lastWatchdogRestartAttemptUtc = now;
             Program.Log.LogWarning(EventLogCatalog.ChildRestartByWatchdog);
             ProcessHelper.InitiateChildProcess();
+        }
+
+        private static bool ShouldAttemptRestart(DateTime now)
+        {
+            if ((now - _lastWatchdogRestartAttemptUtc) < WatchdogRestartThrottle)
+            {
+                return false;
+            }
+
+            _lastWatchdogRestartAttemptUtc = now;
+            return true;
         }
     }
 }

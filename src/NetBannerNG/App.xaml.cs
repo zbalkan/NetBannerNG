@@ -52,16 +52,13 @@ namespace NetBannerNG
                     return;
                 }
 
-                //If no debugger is attached and the argument --debug was passed launch the debugger
-                AppLifecycleService.TryLaunchDebugger(e?.Args ?? Array.Empty<string>());
+                var args = e?.Args ?? Array.Empty<string>();
 
-                var pipeName = ResolvePipeName(e?.Args ?? Array.Empty<string>());
+                // If no debugger is attached and the argument --debug was passed, launch the debugger.
+                AppLifecycleService.TryLaunchDebugger(args);
 
-                // TODO: Make timeout configurable
-                var result = await _lifecycleService.InitializePipeClientAsync(pipeName);
-                if (!result)
+                if (!await TryInitializePipeClientAsync(args))
                 {
-                    ShutDownGracefully();
                     return;
                 }
 
@@ -76,6 +73,19 @@ namespace NetBannerNG
             }
         }
 
+        private async Task<bool> TryInitializePipeClientAsync(string[] args)
+        {
+            var pipeName = ResolvePipeName(args);
+            var initialized = await _lifecycleService.InitializePipeClientAsync(pipeName);
+            if (initialized)
+            {
+                return true;
+            }
+
+            ShutDownGracefully();
+            return false;
+        }
+
         private static string ResolvePipeName(string[] args)
         {
             var pipeArg = args.FirstOrDefault(a => a.StartsWith("--pipe=", StringComparison.OrdinalIgnoreCase));
@@ -87,32 +97,45 @@ namespace NetBannerNG
             return PipeNaming.ForSession((uint)Process.GetCurrentProcess().SessionId);
         }
 
-        private static async Task Dump(Exception ex) => await Task.Run(() => {
+        private static Task Dump(Exception ex)
+        {
             var messageStack = ex.GetMessageStack();
             var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-dump-{Guid.NewGuid()}");
             File.WriteAllText(path, messageStack);
             Debug.WriteLine($"Dump file is saved to path: {path}");
             Debug.WriteLine(messageStack);
-        });
+            return Task.CompletedTask;
+        }
 
-        private void Application_Exit(object sender, ExitEventArgs e)
+        private static bool TryBeginShutdown()
         {
             if (_isClosing)
             {
+                return false;
+            }
+
+            _isClosing = true;
+            return true;
+        }
+
+        private void Application_Exit(object sender, ExitEventArgs e)
+        {
+            if (!TryBeginShutdown())
+            {
                 return;
             }
-            _isClosing = true;
+
             ShutDownGracefully();
         }
 
         private void Application_SessionEnding(object sender, SessionEndingCancelEventArgs e)
         {
-            if (_isClosing)
+            if (!TryBeginShutdown())
             {
                 return;
             }
+
             e.Cancel = true;
-            _isClosing = true;
             ShutDownGracefully();
             e.Cancel = false;
         }

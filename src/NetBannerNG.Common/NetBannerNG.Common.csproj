@@ -14,7 +14,7 @@
 		<PackageReference Include="MessagePack" Version="3.1.4">
 			<TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
-		<PackageReference Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Reference Include="PresentationCore" />

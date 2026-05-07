@@ -88,18 +88,7 @@ namespace NetBannerNG
                 {
                     try
                     {
-                        window.Top = monitor.Bounds.Top;
-                        window.Left = monitor.Bounds.Left;
-                        switch (window)
-                        {
-                            case Banner or BottomBar:
-                                window.Width = monitor.Bounds.Width;
-                                break;
-
-                            case LeftBar or RightBar:
-                                window.Height = monitor.Bounds.Height;
-                                break;
-                        }
+                        ApplyMonitorBounds(window, monitor);
                         window.Render(true);
                         _healthPolicy.RecordSuccess();
                     }
@@ -114,11 +103,7 @@ namespace NetBannerNG
             {
                 foreach (var window in _windows)
                 {
-                    if (!window.IsVisible)
-                    {
-                        window.Render();
-                        window.Show();
-                    }
+                    ShowWindowIfNeeded(window);
                 }
             }
 
@@ -164,13 +149,7 @@ namespace NetBannerNG
 
                 try
                 {
-                    if (!window.IsVisible)
-                    {
-                        window.Render();
-
-                        window.Show();
-                    }
-
+                    ShowWindowIfNeeded(window);
                     _healthPolicy.RecordSuccess();
                     return true;
                 }
@@ -179,6 +158,35 @@ namespace NetBannerNG
                     MarkFailure("Show", window.GetType().Name, ex);
                     error = ex;
                     return false;
+                }
+            }
+
+
+            private static void ShowWindowIfNeeded(BorderBase window)
+            {
+                if (window.IsVisible)
+                {
+                    return;
+                }
+
+                window.Render();
+                window.Show();
+            }
+
+            private static void ApplyMonitorBounds(BorderBase window, Monitor monitor)
+            {
+                window.Top = monitor.Bounds.Top;
+                window.Left = monitor.Bounds.Left;
+
+                switch (window)
+                {
+                    case Banner or BottomBar:
+                        window.Width = monitor.Bounds.Width;
+                        break;
+
+                    case LeftBar or RightBar:
+                        window.Height = monitor.Bounds.Height;
+                        break;
                 }
             }
 
@@ -298,11 +306,9 @@ namespace NetBannerNG
 
         internal static void CloseAllBorders()
         {
-            List<MonitorBorderGroup> groupsToClose;
+            var groupsToClose = SnapshotMonitorGroups(clear: true);
             lock (MonitorGroupsSync)
             {
-                groupsToClose = MonitorGroups.Values.ToList();
-                MonitorGroups.Clear();
                 _isInitiated = false;
             }
 
@@ -340,7 +346,7 @@ namespace NetBannerNG
             {
                 foreach (var launchEntry in launchPlan)
                 {
-                    if (launchEntry.GroupId == null || !groupsById.TryGetValue(launchEntry.GroupId, out var group))
+                    if (!TryGetLaunchGroup(launchEntry, groupsById, out var group))
                     {
                         continue;
                     }
@@ -357,7 +363,7 @@ namespace NetBannerNG
 
                 foreach (var launchEntry in launchPlan)
                 {
-                    if (launchEntry.GroupId == null || launchEntry.Window == null || !groupsById.ContainsKey(launchEntry.GroupId) || !launchEntry.Window.IsVisible)
+                    if (!TryGetLaunchGroup(launchEntry, groupsById, out _) || launchEntry.Window == null || !launchEntry.Window.IsVisible)
                     {
                         continue;
                     }
@@ -376,13 +382,7 @@ namespace NetBannerNG
                 AppBarFunctions.EndBatch();
             }
 
-            List<MonitorBorderGroup> groupsForPostDock;
-            lock (MonitorGroupsSync)
-            {
-                groupsForPostDock = MonitorGroups.Values.ToList();
-            }
-
-            foreach (var group in groupsForPostDock)
+            foreach (var group in SnapshotMonitorGroups())
             {
                 group.ApplyPostDockVisualState();
             }
@@ -391,13 +391,7 @@ namespace NetBannerNG
 
         private static void SetTopMost(bool topMost)
         {
-            List<MonitorBorderGroup> groupsToUpdate;
-            lock (MonitorGroupsSync)
-            {
-                groupsToUpdate = MonitorGroups.Values.ToList();
-            }
-
-            foreach (var group in groupsToUpdate)
+            foreach (var group in SnapshotMonitorGroups())
             {
                 group.SetTopMost(topMost);
             }
@@ -434,7 +428,7 @@ namespace NetBannerNG
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[EVT:{EventIds.GroupRemoveFailure}][MonitorGroup][Remove][{group.GroupId}] failed: {ex}");
+                    LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", group.GroupId, ex);
                 }
             }
 
@@ -455,7 +449,7 @@ namespace NetBannerNG
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[EVT:{EventIds.GroupUpdateFailure}][MonitorGroup][Update][{existingGroup.GroupId}] failed: {ex}");
+                        LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
                     }
                     continue;
                 }
@@ -470,8 +464,31 @@ namespace NetBannerNG
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[EVT:{EventIds.GroupAddFailure}][MonitorGroup][Add][{groupId}] failed: {ex}");
+                    LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
                 }
+            }
+        }
+
+        private static void LogMonitorGroupFailure(int eventId, string stage, string groupId, Exception ex) =>
+            Debug.WriteLine($"[EVT:{eventId}][MonitorGroup][{stage}][{groupId}] failed: {ex}");
+
+        private static bool TryGetLaunchGroup(BorderLaunchEntry launchEntry, IDictionary<string, MonitorBorderGroup> groupsById, out MonitorBorderGroup group)
+        {
+            group = null!;
+            return launchEntry.GroupId != null && groupsById.TryGetValue(launchEntry.GroupId, out group);
+        }
+
+        private static List<MonitorBorderGroup> SnapshotMonitorGroups(bool clear = false)
+        {
+            lock (MonitorGroupsSync)
+            {
+                var groups = MonitorGroups.Values.ToList();
+                if (clear)
+                {
+                    MonitorGroups.Clear();
+                }
+
+                return groups;
             }
         }
 
