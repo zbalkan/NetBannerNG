@@ -11,6 +11,8 @@ namespace NetBannerNG.Borders
         internal Banner()
         {
             InitializeComponent();
+            Settings.Instance.Refresh();
+            DataContext = Settings.Instance;
         }
 
         internal override void Render(bool needsResize = false)
@@ -21,21 +23,17 @@ namespace NetBannerNG.Borders
                 return;
             }
 
-            this.DockTop(Grid);
+            Height = Settings.Instance.BannerSize;
+            this.DockTop(RootGrid);
         }
 
         protected override void ReadSettings()
         {
-            LbClassification.Content = Settings.Instance.Classification;
-            LbClassification.Foreground = Settings.Instance.CustomForeColor;
-
-            LbHostInformation.Content = Settings.Instance.HostInformation;
-            LbHostInformation.Foreground = Settings.Instance.CustomForeColor;
+            Settings.Instance.Refresh();
+            DataContext = Settings.Instance;
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
-            Background = Settings.Instance.CustomBackgroundColor;
-            FontSize = Settings.Instance.FontSize;
         }
 
         private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();
