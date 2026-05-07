@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Windows.Media;
 using Microsoft.Win32;
 using NetBannerNG.Utils;
@@ -69,21 +68,7 @@ namespace NetBannerNG
         private static string BuildConditionMetadata(int infoCon, int fpCon, int cpCon)
         {
             var values = new List<string>();
-            if (infoCon > 0)
-            {
-                values.Add($"INFOCON {infoCon}");
-            }
-
-            if (fpCon > 0)
-            {
-                values.Add($"FPCON {fpCon}");
-            }
-
-            if (cpCon > 0)
-            {
-                values.Add($"CPCON {cpCon}");
-            }
-
+            AppendConditionValues(values, infoCon, fpCon, cpCon);
             return string.Join(" | ", values);
         }
 
@@ -95,20 +80,7 @@ namespace NetBannerNG
                 values.Add(customDisplayText.Trim());
             }
 
-            if (infoCon > 0)
-            {
-                values.Add($"INFOCON {infoCon}");
-            }
-
-            if (fpCon > 0)
-            {
-                values.Add($"FPCON {fpCon}");
-            }
-
-            if (cpCon > 0)
-            {
-                values.Add($"CPCON {cpCon}");
-            }
+            AppendConditionValues(values, infoCon, fpCon, cpCon);
 
             if (!string.IsNullOrWhiteSpace(caveats))
             {
@@ -196,7 +168,7 @@ namespace NetBannerNG
             var localDefaults = LoadOrCreateLocalSettings(localKey);
             using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
 
-            if (policyKey == null || !ManagedPolicyKeys.Any(key => policyKey.GetValue(key) != null))
+            if (!HasManagedPolicyValues(policyKey))
             {
                 return localDefaults;
             }
@@ -231,6 +203,45 @@ namespace NetBannerNG
             };
         }
         private static string MapClassification(int value) => value switch { 1 => "UNCLASSIFIED", 2 => "SECRET", 3 => "TOP SECRET", 4 => "SCI", _ => "PUBLIC" };
+
+        private static bool HasManagedPolicyValues(RegistryKey? policyKey)
+        {
+            if (policyKey == null)
+            {
+                return false;
+            }
+
+            foreach (var key in ManagedPolicyKeys)
+            {
+                if (policyKey.GetValue(key) != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static void AppendConditionValues(List<string> values, int infoCon, int fpCon, int cpCon)
+        {
+            foreach (var condition in new[]
+                     {
+                         (Label: "INFOCON", Level: infoCon),
+                         (Label: "FPCON", Level: fpCon),
+                         (Label: "CPCON", Level: cpCon)
+                     })
+            {
+                AddConditionIfEnabled(values, condition.Label, condition.Level);
+            }
+        }
+
+        private static void AddConditionIfEnabled(List<string> values, string label, int level)
+        {
+            if (level > 0)
+            {
+                values.Add($"{label} {level}");
+            }
+        }
 
         private static string NormalizeColorValue(string raw, Func<int, string> intMapper)
                     => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)

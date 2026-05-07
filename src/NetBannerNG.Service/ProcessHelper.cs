@@ -11,25 +11,14 @@ namespace NetBannerNG.Service
 
         public static void InitiateChildProcess()
         {
-            var psi = new ProcessStartInfo();
             var sessionId = PrivilegeHelper.GetInteractiveSessionId();
             var pipeName = PipeNaming.ForSession(sessionId);
-            var path = GetChildProcessPath();
-            if (!File.Exists(path))
+            if (!TryResolveValidatedChildProcessPath(out var path))
             {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"File not found: {path}");
                 return;
             }
 
-            path = Path.GetFullPath(path);
-            if (!path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-            {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Invalid executable path: {path}");
-                return;
-            }
-
-            psi.FileName = path;
-            psi.Arguments = $"--pipe={pipeName}";
+            var psi = BuildChildProcessStartInfo(path, pipeName);
             Program.Log.LogInformation(EventLogCatalog.ProcessStarting, psi.FileName);
             if (Environment.UserInteractive)
             {
@@ -51,17 +40,51 @@ namespace NetBannerNG.Service
             }
         }
 
+        public static void KillAllChildProcess()
+        {
+            foreach (var process in GetChildProcesses())
+            {
+                process.Kill();
+            }
+        }
+
+        public static bool IsChildProcessRunning() => GetChildProcesses().Any();
+
+        private static ProcessStartInfo BuildChildProcessStartInfo(string path, string pipeName) =>
+            new()
+            {
+                FileName = path,
+                Arguments = $"--pipe={pipeName}"
+            };
+
+        private static bool TryResolveValidatedChildProcessPath(out string validatedPath)
+        {
+            validatedPath = GetChildProcessPath();
+            if (!File.Exists(validatedPath))
+            {
+                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"File not found: {validatedPath}");
+                return false;
+            }
+
+            validatedPath = Path.GetFullPath(validatedPath);
+            if (!validatedPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            {
+                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Invalid executable path: {validatedPath}");
+                return false;
+            }
+
+            return true;
+        }
+
         private static string GetChildProcessPath()
         {
 #if DEBUG
-            return Path.Combine(new DirectoryInfo(path: AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, @"NetBannerNG\bin\Debug\net481\NetBannerNG.exe");            //psi.Arguments = "--debug";
+            return Path.Combine(new DirectoryInfo(path: AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName, @"NetBannerNG\bin\Debug\net481\NetBannerNG.exe");
 #else
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");
 #endif
         }
 
-        public static void KillAllChildProcess() => Process.GetProcesses().Where(p => p.ProcessName == ChildProcessName).ToList().ForEach(p => p.Kill());
-
-        public static bool IsChildProcessRunning() => Process.GetProcessesByName(ChildProcessName).Any();
+        private static IEnumerable<Process> GetChildProcesses() => Process.GetProcessesByName(ChildProcessName);
     }
 }
