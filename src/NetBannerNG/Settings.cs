@@ -1,71 +1,336 @@
-﻿using NetBannerNG.Utils;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Windows.Media;
+using Microsoft.Win32;
+using NetBannerNG.Utils;
 
 namespace NetBannerNG
 {
     internal sealed class Settings
     {
-        private static readonly BrushConverter BrushConverter = new();
-        #region General Settings
-
-        internal string? Classification { get; set; }
-
-        internal SolidColorBrush? CustomBackgroundColor { get; set; }
-
-        internal SolidColorBrush? CustomForeColor { get; set; }
-        internal int FontSize { get; set; }
-
-        internal int BannerSize { get; set; }
-
-        internal int Heartbeat { get; set; }
-
-        internal bool DisableBorders { get; set; }
-
-        #endregion General Settings
-
-        internal string? HostInformation { get; set; }
-
-        internal int BorderSize => Math.Max(MinimumBorderSize, (int)(BannerSize * BorderBannerRatio));
-
-        internal bool NeedsResize => _needsResize;
-        internal static Settings Instance => Lazy.Value;
-
-        private static readonly Lazy<Settings> Lazy = new(() => new Settings());
-        private SettingsHelper.SettingsSnapshot? _currentSettings;
-        private bool _needsResize;
+        private const double BorderBannerRatio = 0.15;
+        private const int DefaultBannerSize = 28;
+        private const int DefaultClassificationValue = 1;
+        private const int DefaultFontSize = 9;
+        private const int DefaultHeartbeat = 20;
+        private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
-        private const double BorderBannerRatio = 0.25;
+        private const string PolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
+        private static readonly BrushConverter BrushConverter = new();
+        private static readonly Lazy<Settings> Lazy = new(() => new Settings());
 
+        private static readonly string[] ManagedPolicyKeys =
+                {
+            "Classification", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
+            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders",
+        };
+
+        private SettingsSnapshot? _currentSettings;
+        private bool _needsResize;
         private Settings()
         {
             Refresh();
         }
 
+        public int BannerSize { get; private set; }
+        public string CaveatsText { get; private set; } = string.Empty;
+        public string? Classification { get; private set; }
+        public string ConditionMetadata { get; private set; } = string.Empty;
+        public SolidColorBrush? CustomBackgroundColor { get; private set; }
+        public SolidColorBrush? CustomForeColor { get; private set; }
+        public bool DisableBorders { get; private set; }
+        public int FontSize { get; private set; }
+        public int Heartbeat { get; private set; }
+        public string? HostInformation { get; private set; }
+        internal static Settings Instance => Lazy.Value;
+        internal int BorderSize => Math.Max(MinimumBorderSize, (int)(BannerSize * BorderBannerRatio));
+        internal bool NeedsResize => _needsResize;
         internal void Refresh()
         {
-            var newSettings = SettingsHelper.LoadSettings();
-            _needsResize = _currentSettings == null ||
-                           newSettings.DisableBorders != _currentSettings.DisableBorders ||
-                           newSettings.BannerSize != _currentSettings.BannerSize ||
-                           newSettings.FontSize != _currentSettings.FontSize;
+            var newSettings = LoadSettings();
+            _needsResize = _currentSettings == null || newSettings.DisableBorders != _currentSettings.DisableBorders || newSettings.BannerSize != _currentSettings.BannerSize || newSettings.FontSize != _currentSettings.FontSize;
 
-            Classification = newSettings.Classification!;
-            CustomBackgroundColor = ParseBrush(newSettings.CustomBackgroundColor!);
+            Classification = (newSettings.Classification ?? string.Empty).ToUpperInvariant();
+            CustomBackgroundColor = ParseBackgroundBrush(newSettings.CustomBackgroundColor!);
+            CustomForeColor = ParseForegroundBrush(newSettings.CustomForeColor!);
             FontSize = newSettings.FontSize;
-            CustomForeColor = ParseBrush(newSettings.CustomForeColor!);
             BannerSize = newSettings.BannerSize;
             Heartbeat = newSettings.Heartbeat;
             DisableBorders = newSettings.DisableBorders;
+            CaveatsText = newSettings.Caveats ?? string.Empty;
+            ConditionMetadata = BuildConditionMetadata(newSettings.InfoCon, newSettings.FpCon, newSettings.CpCon);
+            HostInformation = GatherHostInfo();
 
             _currentSettings = newSettings;
-
-            HostInformation = GatherHostInfo();
         }
 
-        private static SolidColorBrush ParseBrush(string name)
-            => (SolidColorBrush)BrushConverter.ConvertFromInvariantString(name);
+        private static string BuildConditionMetadata(int infoCon, int fpCon, int cpCon)
+        {
+            var values = new List<string>();
+            if (infoCon > 0)
+            {
+                values.Add($"INFOCON {infoCon}");
+            }
 
-        private static string GatherHostInfo() => $"{Environment.MachineName} | {Environment.UserName} | {Environment.OSVersion} | {NetworkHelper.GetPhysicalIPAddress()}";
+            if (fpCon > 0)
+            {
+                values.Add($"FPCON {fpCon}");
+            }
+
+            if (cpCon > 0)
+            {
+                values.Add($"CPCON {cpCon}");
+            }
+
+            return string.Join(" | ", values);
+        }
+
+        private static string ComposeClassificationText(string classification, string customDisplayText, int infoCon, int fpCon, int cpCon, string caveats)
+        {
+            var values = new List<string> { classification };
+            if (!string.IsNullOrWhiteSpace(customDisplayText))
+            {
+                values.Add(customDisplayText.Trim());
+            }
+
+            if (infoCon > 0)
+            {
+                values.Add($"INFOCON {infoCon}");
+            }
+
+            if (fpCon > 0)
+            {
+                values.Add($"FPCON {fpCon}");
+            }
+
+            if (cpCon > 0)
+            {
+                values.Add($"CPCON {cpCon}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(caveats))
+            {
+                values.Add(caveats.Trim());
+            }
+
+            return string.Join(" | ", values);
+        }
+
+        private static string GatherHostInfo() => $"{Environment.MachineName} | {Environment.UserName} | {NetworkHelper.GetPhysicalIPAddress()}";
+
+        private static bool GetBool(RegistryKey key, string name, bool defaultValue)
+        {
+            var value = key?.GetValue(name);
+            return value == null ? defaultValue : Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+        }
+
+        private static int GetInt(RegistryKey key, string name, int defaultValue)
+        {
+            var value = key?.GetValue(name);
+            return value == null ? defaultValue : Convert.ToInt32(value, CultureInfo.InvariantCulture);
+        }
+
+        private static bool GetOrCreateBool(RegistryKey key, string name, bool defaultValue)
+        {
+            var value = key.GetValue(name);
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
+            }
+
+            key.SetValue(name, defaultValue ? 1 : 0, RegistryValueKind.DWord);
+            return defaultValue;
+        }
+
+        private static int GetOrCreateInt(RegistryKey key, string name, int defaultValue)
+        {
+            var value = key.GetValue(name);
+            if (value != null)
+            {
+                return Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
+
+            key.SetValue(name, defaultValue, RegistryValueKind.DWord);
+            return defaultValue;
+        }
+
+        private static string GetOrCreateString(RegistryKey key, string name, string defaultValue)
+        {
+            var value = key.GetValue(name)?.ToString();
+            if (!string.IsNullOrEmpty(value))
+            {
+                return value!;
+            }
+
+            key.SetValue(name, defaultValue, RegistryValueKind.String);
+            return defaultValue;
+        }
+
+        private static string GetString(RegistryKey key, string name, string defaultValue) => key?.GetValue(name)?.ToString() ?? defaultValue;
+
+        private static SettingsSnapshot LoadOrCreateLocalSettings(RegistryKey localKey) => new()
+        {
+            Classification = GetOrCreateString(localKey, "Classification", MapClassification(DefaultClassificationValue)),
+            Caveats = string.Empty,
+            InfoCon = 0,
+            FpCon = 0,
+            CpCon = 0,
+            CustomBackgroundColor = NormalizeColorValue(
+                GetOrCreateString(localKey, "CustomBackgroundColor", "#007A33"),
+                ToBackgroundHex),
+            CustomForeColor = NormalizeColorValue(
+                GetOrCreateString(localKey, "CustomForeColor", "#FFFFFF"),
+                ToForegroundHex),
+            FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
+            BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
+            Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
+            DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
+        };
+
+        private static SettingsSnapshot LoadSettings()
+        {
+            using var localMachineKey = OpenLocalMachineKey();
+            using var localKey = OpenLocalSettingsKey(localMachineKey);
+            var localDefaults = LoadOrCreateLocalSettings(localKey);
+            using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
+
+            if (policyKey == null || !ManagedPolicyKeys.Any(key => policyKey.GetValue(key) != null))
+            {
+                return localDefaults;
+            }
+
+            var defaultClassification = ParseClassification(localDefaults.Classification ?? MapClassification(DefaultClassificationValue));
+            var classification = GetInt(policyKey, "Classification", defaultClassification);
+            var customSettings = GetInt(policyKey, "CustomSettings", 0) == 1;
+            var caveatsEnabled = GetInt(policyKey, "CaveatsEnabled", 0) == 1;
+            var displayText = customSettings ? GetString(policyKey, "CustomDisplayText", string.Empty) : string.Empty;
+            var infocon = GetInt(policyKey, "InfoCon", 0);
+            var fpcon = GetInt(policyKey, "FpCon", 0);
+            var cpcon = GetInt(policyKey, "CpCon", 0);
+            var caveats = caveatsEnabled ? GetString(policyKey, "Caveats", string.Empty) : string.Empty;
+            var classificationText = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, cpcon, caveats);
+
+            var policyBackground = GetInt(policyKey, "CustomBackgroundColor", (int)CustomBackgroundColors.Green);
+            var policyForeground = GetInt(policyKey, "CustomForeColor", (int)CustomForeColors.White);
+
+            return new SettingsSnapshot
+            {
+                Classification = classificationText,
+                Caveats = caveats,
+                InfoCon = infocon,
+                FpCon = fpcon,
+                CpCon = cpcon,
+                CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveNatoBackground(classificationText),
+                CustomForeColor = customSettings ? ToForegroundHex(policyForeground) : localDefaults.CustomForeColor,
+                FontSize = GetInt(policyKey, "FontSize", localDefaults.FontSize),
+                BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
+                Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
+                DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
+            };
+        }
+        private static string MapClassification(int value) => value switch { 1 => "UNCLASSIFIED", 2 => "SECRET", 3 => "TOP SECRET", 4 => "SCI", _ => "PUBLIC" };
+
+        private static string NormalizeColorValue(string raw, Func<int, string> intMapper)
+                    => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+                ? intMapper(number)
+                : raw;
+        private static RegistryKey OpenLocalMachineKey()
+        {
+            var view = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Default;
+            return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+        }
+
+        private static RegistryKey OpenLocalSettingsKey(RegistryKey localMachineKey)
+            => localMachineKey.CreateSubKey(LocalRegistryPath, true) ?? throw new InvalidOperationException($@"Unable to open or create HKLM\{LocalRegistryPath}");
+
+        private static SolidColorBrush ParseBackgroundBrush(string value) => ParseBrushWithFallback(value, ToBackgroundHex((int)CustomBackgroundColors.Green), ToBackgroundHex);
+
+        private static SolidColorBrush ParseBrushWithFallback(string value, string fallbackHex, Func<int, string> fromInt)
+        {
+            if (TryParseBrush(value, out var brush))
+            {
+                return brush;
+            }
+
+            if (int.TryParse(value, out var colorInt) && TryParseBrush(fromInt(colorInt), out brush))
+            {
+                return brush;
+            }
+
+            return (SolidColorBrush)BrushConverter.ConvertFromInvariantString(fallbackHex);
+        }
+
+        private static int ParseClassification(string classification) => classification.Trim().ToUpperInvariant() switch { "UNCLASSIFIED" => 1, "SECRET" => 2, "TOP SECRET" => 3, "SCI" => 4, _ => DefaultClassificationValue };
+
+        private static SolidColorBrush ParseForegroundBrush(string value) => ParseBrushWithFallback(value, ToForegroundHex((int)CustomForeColors.White), ToForegroundHex);
+
+        private static string ResolveNatoBackground(string classificationText)
+        {
+            var t = classificationText.ToUpperInvariant();
+            if (t.Contains("COSMIC TOP SECRET"))
+            {
+                return "#F7EA48";
+            }
+
+            if (t.Contains("SECRET"))
+            {
+                return "#C8102E";
+            }
+
+            if (t.Contains("CONFIDENTIAL"))
+            {
+                return "#0033A0";
+            }
+
+            if (t.Contains("RESTRICTED"))
+            {
+                return "#FF671F";
+            }
+
+            return "#007A33";
+        }
+
+        private static string ToBackgroundHex(int value) => value switch
+        {
+            1 => "#007A33",
+            2 => "#0033A0",
+            3 => "#C8102E",
+            4 => "#F7EA48",
+            5 => "#FFFFFF",
+            6 => "#000000",
+            7 => "#8B4513",
+            8 => "#800080",
+            9 => "#FF671F",
+            _ => "#007A33",
+        };
+
+        private static string ToForegroundHex(int value) => value switch
+        {
+            1 => "#000000",
+            2 => "#FFFFFF",
+            3 => "#C8102E",
+            _ => "#FFFFFF",
+        };
+        private static bool TryParseBrush(string value, out SolidColorBrush brush)
+        {
+            try { brush = (SolidColorBrush)BrushConverter.ConvertFromInvariantString(value); return true; }
+            catch (FormatException) { brush = new SolidColorBrush(); return false; }
+        }
+        internal sealed class SettingsSnapshot
+        {
+            internal int BannerSize { get; set; }
+            internal string? Caveats { get; set; }
+            internal string? Classification { get; set; }
+            internal int CpCon { get; set; }
+            internal string? CustomBackgroundColor { get; set; }
+            internal string? CustomForeColor { get; set; }
+            internal bool DisableBorders { get; set; }
+            internal int FontSize { get; set; }
+            internal int FpCon { get; set; }
+            internal int Heartbeat { get; set; }
+            internal int InfoCon { get; set; }
+        }
     }
 }
