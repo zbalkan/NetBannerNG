@@ -44,7 +44,14 @@ namespace NetBannerNG.Service
         {
             foreach (var process in GetChildProcesses())
             {
-                process.Kill();
+                try
+                {
+                    process.Kill();
+                }
+                catch (Exception ex)
+                {
+                    Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
+                }
             }
         }
 
@@ -85,6 +92,30 @@ namespace NetBannerNG.Service
 #endif
         }
 
-        private static IEnumerable<Process> GetChildProcesses() => Process.GetProcessesByName(ChildProcessName);
+        private static IEnumerable<Process> GetChildProcesses()
+        {
+            var expectedPath = Path.GetFullPath(GetChildProcessPath());
+            var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
+            return Process.GetProcessesByName(ChildProcessName)
+                .Where(process => IsExpectedChildProcess(process, expectedPath, interactiveSessionId));
+        }
+
+        private static bool IsExpectedChildProcess(Process process, string expectedPath, int interactiveSessionId)
+        {
+            try
+            {
+                if (process.SessionId != interactiveSessionId)
+                {
+                    return false;
+                }
+
+                var candidatePath = Path.GetFullPath(process.MainModule?.FileName ?? string.Empty);
+                return candidatePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }
