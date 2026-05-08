@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Threading;
 
 namespace NetBannerNG.Common.Native
 {
@@ -11,15 +12,20 @@ namespace NetBannerNG.Common.Native
     {
         // ReSharper disable once InconsistentNaming
         private const int DACL_SECURITY_INFORMATION = 0x00000004;
+        private const string SingleInstanceMutexName = @"Local\NetBannerNG.Singleton";
 
         private static bool _isProtected;
+        private static Mutex? _singleInstanceMutex;
 
         public static bool EnsureSingleInstance()
         {
-            var process = Process.GetCurrentProcess();
-            var count = Process.GetProcesses().Count(p => p.ProcessName == process.ProcessName);
+            if (_singleInstanceMutex != null)
+            {
+                return true;
+            }
 
-            return count <= 1;
+            _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out var createdNew);
+            return createdNew;
         }
 
         public static bool EnsureParentIsService()

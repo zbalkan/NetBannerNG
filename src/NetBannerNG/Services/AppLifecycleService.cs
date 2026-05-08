@@ -17,10 +17,12 @@ namespace NetBannerNG.Services
 
         internal static void TryLaunchDebugger(string[] args)
         {
+#if DEBUG
             if (args.Length == 1 && args[0] == "--debug" && !Debugger.IsAttached)
             {
                 _ = Debugger.Launch();
             }
+#endif
         }
 
         internal async Task<bool> InitializePipeClientAsync(string pipeName)
