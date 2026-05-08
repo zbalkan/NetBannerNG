@@ -67,11 +67,25 @@ namespace NetBannerNG.Common.Native
             // Read the DACL
             var dacl = GetProcessSecurityDescriptor(hProcess);
 
-            // Modify Users ACE
-            var denyUsers = new CommonAce(AceFlags.None, AceQualifier.AccessAllowed,
-                (int)ProcessAccessRights.PROCESS_ALL_ACCESS, new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null),
-                false, null);
-            dacl.DiscretionaryAcl?.InsertAce(0, denyUsers);
+            // Remove the deny-all ACE that Protect() adds for Builtin Users.
+            var builtInUsers = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            if (dacl.DiscretionaryAcl != null)
+            {
+                for (var i = dacl.DiscretionaryAcl.Count - 1; i >= 0; i--)
+                {
+                    if (dacl.DiscretionaryAcl[i] is not CommonAce ace)
+                    {
+                        continue;
+                    }
+
+                    if (ace.AceQualifier == AceQualifier.AccessDenied &&
+                        ace.SecurityIdentifier == builtInUsers &&
+                        ace.AccessMask == (int)ProcessAccessRights.PROCESS_ALL_ACCESS)
+                    {
+                        dacl.DiscretionaryAcl.RemoveAce(i);
+                    }
+                }
+            }
 
             // Save the DACL
             SetProcessSecurityDescriptor(hProcess, dacl);

@@ -34,7 +34,7 @@ namespace NetBannerNG
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
-        private static readonly Random _random = new Random();
+        private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId)));
 
         public NamedPipeClient(string pipeName, int timeout = 10000)
         {
@@ -54,7 +54,7 @@ namespace NetBannerNG
                 .Or<IOException>()
                 .WaitAndRetryAsync(
                     retryCount: 5,
-                    sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + _random.Next(25, 150)),
+                    sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + (ThreadRandom.Value?.Next(25, 150) ?? 100)),
                     onRetry: (exception, delay, attempt, _) => {
                         DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}");
                     });
@@ -81,9 +81,9 @@ namespace NetBannerNG
 
                 result = true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Debug.WriteLine("Task cancelled after timeout.");
+                DebugTrace($"InitializeFailed reason={ex.GetType().Name} message={ex.Message}");
                 await _client.DisposeAsync();
                 result = false;
             }

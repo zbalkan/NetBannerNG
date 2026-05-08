@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -62,9 +63,34 @@ namespace NetBannerNG.Services
                 return;
             }
 
-            File.Delete(TmpFilePath);
+            try
+            {
+                File.Delete(TmpFilePath);
+            }
+            catch (IOException)
+            {
+                // Best-effort cleanup; startup path tolerates the marker.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort cleanup; startup path tolerates the marker.
+            }
         }
 
-        private static void PinClearStart() => File.WriteAllText(TmpFilePath, "1");
+        private static void PinClearStart()
+        {
+            try
+            {
+                File.WriteAllText(TmpFilePath, "1");
+            }
+            catch (IOException)
+            {
+                // Best-effort marker; runtime should continue even if temp storage is unavailable.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Best-effort marker; runtime should continue even if temp storage is unavailable.
+            }
+        }
     }
 }
