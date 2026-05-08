@@ -30,6 +30,7 @@ namespace NetBannerNG.Utils
             }
 
             _ = NativeMethods.UnhookWinEvent(_hookId);
+            _hookId = default;
         }
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
