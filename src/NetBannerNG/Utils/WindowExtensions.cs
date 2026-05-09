@@ -10,39 +10,36 @@ namespace NetBannerNG.Utils
 {
     internal static class WindowExtensions
     {
-        internal static void DockTop(this Window window, FrameworkElement? childElement = null, bool topMost = true)
+        internal static void DockTop(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
         {
-            var border = (BorderBase)window;
-            AppBarFunctions.SetAppBar(window, DockEdge.Top, border.AppBarMessageKey, childElement, topMost);
-            border.IsDocked = true;
+            Dock(border, DockEdge.Top, childElement, topMost);
         }
 
-        internal static void DockBottom(this Window window, FrameworkElement? childElement = null, bool topMost = true)
+        internal static void DockBottom(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
         {
-            var border = (BorderBase)window;
-            AppBarFunctions.SetAppBar(window, DockEdge.Bottom, border.AppBarMessageKey, childElement, topMost);
-            border.IsDocked = true;
+            Dock(border, DockEdge.Bottom, childElement, topMost);
         }
 
-        internal static void DockLeft(this Window window, FrameworkElement? childElement = null, bool topMost = true)
+        internal static void DockLeft(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
         {
-            var border = (BorderBase)window;
-            AppBarFunctions.SetAppBar(window, DockEdge.Left, border.AppBarMessageKey, childElement, topMost);
-            border.IsDocked = true;
+            Dock(border, DockEdge.Left, childElement, topMost);
         }
 
-        internal static void DockRight(this Window window, FrameworkElement? childElement = null, bool topMost = true)
+        internal static void DockRight(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
         {
-            var border = (BorderBase)window;
-            AppBarFunctions.SetAppBar(window, DockEdge.Right, border.AppBarMessageKey, childElement, topMost);
-            border.IsDocked = true;
+            Dock(border, DockEdge.Right, childElement, topMost);
         }
 
-        internal static void Undock(this Window window)
+        internal static void Undock(this BorderBase border)
         {
-            var border = (BorderBase)window;
-            AppBarFunctions.SetAppBar(window, DockEdge.None, border.AppBarMessageKey);
+            AppBarFunctions.SetAppBar(border, DockEdge.None, border.AppBarMessageKey);
             border.IsDocked = false;
+        }
+
+        private static void Dock(BorderBase border, DockEdge edge, FrameworkElement? childElement, bool topMost)
+        {
+            AppBarFunctions.SetAppBar(border, edge, border.AppBarMessageKey, childElement, topMost);
+            border.IsDocked = true;
         }
 
         internal static Common.Native.Monitor GetMonitor(this Window window)

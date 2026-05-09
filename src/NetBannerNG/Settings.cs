@@ -224,15 +224,9 @@ namespace NetBannerNG
 
         private static void AppendConditionValues(List<string> values, int infoCon, int fpCon, int cpCon)
         {
-            foreach (var condition in new[]
-                     {
-                         (Label: "INFOCON", Level: infoCon),
-                         (Label: "FPCON", Level: fpCon),
-                         (Label: "CPCON", Level: cpCon)
-                     })
-            {
-                AddConditionIfEnabled(values, condition.Label, condition.Level);
-            }
+            AddConditionIfEnabled(values, "INFOCON", infoCon);
+            AddConditionIfEnabled(values, "FPCON", fpCon);
+            AddConditionIfEnabled(values, "CPCON", cpCon);
         }
 
         private static void AddConditionIfEnabled(List<string> values, string label, int level)
