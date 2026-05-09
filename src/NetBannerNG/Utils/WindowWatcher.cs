@@ -12,6 +12,7 @@ namespace NetBannerNG.Utils
     {
         private const int EventSystemForeground = 0x0003;
         private const int ObjectIdWindow = 0;
+        private static readonly TimeSpan ForegroundDispatchDebounce = TimeSpan.FromMilliseconds(125);
 
         private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
         private static IntPtr DesktopHandle => NativeMethods.GetDesktopWindow(); //Window handle for the desktop
@@ -19,6 +20,9 @@ namespace NetBannerNG.Utils
         private static IntPtr TaskbarHandle => NativeMethods.FindWindow("Shell_TrayWnd", null!);
         private static IntPtr _previousForegroundWindowHandle;
         private static IntPtr _hookId;
+        private static DateTime _lastDispatchUtc = DateTime.MinValue;
+        private static Action? _pendingDispatchAction;
+        private static DispatcherTimer? _debounceTimer;
 
         internal static void Watch() => _hookId = SetHook(ForegroundWindowHook);
 
@@ -71,14 +75,14 @@ namespace NetBannerNG.Utils
 
             if (isFullScreen)
             {
-                Dispatch(BorderManager.SendBottom);
+                DispatchCoalesced(BorderManager.SendBottom);
                 //var newBounds = GetModifiedFullscreenBound(foregroundWindowHandle);
                 //ResizeForegroundWindow(foregroundWindowHandle, newBounds);
                 //BorderManager.InitiateAllBorders(true, true);
             }
             else
             {
-                Dispatch(BorderManager.SendTop);
+                DispatchCoalesced(BorderManager.SendTop);
             }
         }
 
@@ -142,7 +146,50 @@ namespace NetBannerNG.Utils
         //        NativeMethods.SetWindowPosFlags.Undefined);
         //}
 
-        private static void Dispatch(Action action) => _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+        private static void DispatchCoalesced(Action action)
+        {
+            var now = DateTime.UtcNow;
+            var elapsed = now - _lastDispatchUtc;
+            if (elapsed >= ForegroundDispatchDebounce)
+            {
+                _lastDispatchUtc = now;
+                _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+                return;
+            }
+
+            _pendingDispatchAction = action;
+            var remaining = ForegroundDispatchDebounce - elapsed;
+            StartOrResetDebounceTimer(remaining);
+        }
+
+        private static void StartOrResetDebounceTimer(TimeSpan dueIn)
+        {
+            _debounceTimer ??= new DispatcherTimer(DispatcherPriority.Background, Application.Current.Dispatcher);
+            _debounceTimer.Stop();
+            _debounceTimer.Interval = dueIn;
+            _debounceTimer.Tick -= OnDebounceTick;
+            _debounceTimer.Tick += OnDebounceTick;
+            _debounceTimer.Start();
+        }
+
+        private static void OnDebounceTick(object? sender, EventArgs e)
+        {
+            if (_debounceTimer != null)
+            {
+                _debounceTimer.Stop();
+                _debounceTimer.Tick -= OnDebounceTick;
+            }
+
+            var action = _pendingDispatchAction;
+            _pendingDispatchAction = null;
+            if (action == null)
+            {
+                return;
+            }
+
+            _lastDispatchUtc = DateTime.UtcNow;
+            _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+        }
 
         private static Rect GetWindowBounds(IntPtr current)
         {
