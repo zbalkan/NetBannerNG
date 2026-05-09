@@ -75,16 +75,23 @@ namespace NetBannerNG.Common.Extensions
                 IntPtr.Zero, // environment variables
                 dir, // current directory of the new process
                 ref si, // startup info
-                out _)) // receive process information in pi
+                out var processInformation)) // receive process information in pi
             {
                 var error = Marshal.GetLastWin32Error();
                 Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
-                _ = NativeMethods.CloseHandle(userToken);
                 return false;
             }
-            Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
-            _ = NativeMethods.CloseHandle(userToken);
-            return true;
+
+            try
+            {
+                Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+                return true;
+            }
+            finally
+            {
+                _ = NativeMethods.CloseHandle(processInformation.hThread);
+                _ = NativeMethods.CloseHandle(processInformation.hProcess);
+            }
         }
     }
 }

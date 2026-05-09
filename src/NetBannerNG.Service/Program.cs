@@ -25,7 +25,9 @@ namespace NetBannerNG.Service
                 return;
             }
 
+#if DEBUG
             AppDomain.CurrentDomain.FirstChanceException += (sender, eventArgs) => CurrentDomain_FirstChanceException(sender, eventArgs);
+#endif
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
             StartLogger();
