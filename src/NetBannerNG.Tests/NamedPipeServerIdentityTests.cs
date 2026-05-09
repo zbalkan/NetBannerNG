@@ -9,12 +9,7 @@ namespace NetBannerNG.Tests
     {
         private sealed class SidConnection
         {
-            public SecurityIdentifier UserSid { get; set; } = null!;
-        }
-
-        private sealed class SidTextConnection
-        {
-            public string UserSid { get; set; } = string.Empty;
+            public object UserSid { get; set; } = null!;
         }
 
         [TestMethod]
@@ -45,7 +40,7 @@ namespace NetBannerNG.Tests
         public void TryAuthorizeClientIdentity_ReturnsTrue_ForMatchingSidText()
         {
             var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
-            var connection = new SidTextConnection { UserSid = sid.Value };
+            var connection = new SidConnection { UserSid = sid.Value };
 
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid, out _);
 

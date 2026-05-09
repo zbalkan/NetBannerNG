@@ -43,22 +43,14 @@ namespace NetBannerNG.Tests
             Assert.IsFalse(authorized);
         }
 
-        [TestMethod]
-        public void IsAuthorizedClientConnection_ReturnsFalse_WhenPipeNameIsNull()
+        [DataTestMethod]
+        [DataRow(null)]
+        [DataRow("")]
+        public void IsAuthorizedClientConnection_ReturnsFalse_WhenPipeNameMissing(string? pipeName)
         {
             const uint expectedSessionId = 3;
 
-            var authorized = NamedPipeServer.IsAuthorizedClientConnection(expectedSessionId, null, activeSessionId: expectedSessionId);
-
-            Assert.IsFalse(authorized);
-        }
-
-        [TestMethod]
-        public void IsAuthorizedClientConnection_ReturnsFalse_WhenPipeNameIsEmpty()
-        {
-            const uint expectedSessionId = 3;
-
-            var authorized = NamedPipeServer.IsAuthorizedClientConnection(expectedSessionId, string.Empty, activeSessionId: expectedSessionId);
+            var authorized = NamedPipeServer.IsAuthorizedClientConnection(expectedSessionId, pipeName, activeSessionId: expectedSessionId);
 
             Assert.IsFalse(authorized);
         }
