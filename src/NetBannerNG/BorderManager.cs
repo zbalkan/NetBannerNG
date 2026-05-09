@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
+using System.Windows;
 using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
@@ -10,7 +10,7 @@ using NetBannerNG.Services;
 
 namespace NetBannerNG
 {
-    internal static class BorderManager
+    public static class BorderManager
     {
         private static class EventIds
         {
@@ -27,6 +27,7 @@ namespace NetBannerNG
         private static readonly List<Monitor> PreviousMonitors = new();
         private static bool _isInitiated;
         private static bool _cleanStart;
+        private static volatile bool _shutdownInProgress;
 
         private sealed class BorderLaunchEntry
 
@@ -261,15 +262,7 @@ namespace NetBannerNG
 
             private string BuildMessageKey(string borderType) => $"NetBannerNG-AppBar-{borderType}-{_monitorIdentity}";
 
-            private static string BuildMonitorIdentity(Monitor monitor)
-            {
-                if (!string.IsNullOrWhiteSpace(monitor.Name))
-                {
-                    return $"{monitor.Name}{monitor.Handle}";
-                }
-
-                return $"{monitor.Bounds.X},{monitor.Bounds.Y},{monitor.Bounds.Width},{monitor.Bounds.Height}";
-            }
+            private static string BuildMonitorIdentity(Monitor monitor) => BuildGroupId(monitor.Name, monitor.Bounds);
         }
 
         internal static void Init(bool clean = true)
@@ -287,22 +280,29 @@ namespace NetBannerNG
             }
 
             ResetPreviousMonitors();
-            ReconcileMonitorGroups(PreviousMonitors, _cleanStart);
-            ShowGroups();
+            var groupsToShow = ReconcileMonitorGroups(PreviousMonitors, _cleanStart);
+            ShowGroups(groupsToShow);
             _isInitiated = true;
             _cleanStart = true;
         }
 
         internal static void Refresh()
         {
+            if (_shutdownInProgress)
+            {
+                return;
+            }
+
             ResetPreviousMonitors();
-            ReconcileMonitorGroups(PreviousMonitors, clean: false);
-            ShowGroups();
+            var groupsToShow = ReconcileMonitorGroups(PreviousMonitors, clean: false);
+            ShowGroups(groupsToShow);
             lock (MonitorGroupsSync)
             {
                 _isInitiated = MonitorGroups.Count > 0;
             }
         }
+
+        internal static void BeginShutdown() => _shutdownInProgress = true;
 
         internal static void CloseAllBorders()
         {
@@ -322,70 +322,62 @@ namespace NetBannerNG
 
         internal static void SendBottom() => SetTopMost(false);
 
-        private static void ShowGroups()
+        private static void ShowGroups(IEnumerable<MonitorBorderGroup> groups)
         {
-            List<BorderLaunchEntry> launchPlan;
-            Dictionary<string, MonitorBorderGroup> groupsById;
-            lock (MonitorGroupsSync)
-            {
-                groupsById = MonitorGroups.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.Ordinal);
-                launchPlan = MonitorGroups.Values
-                    .SelectMany(group => group.CreateLaunchEntries())
-                    .OrderByDescending(entry => entry.IsPrimaryMonitor)
-                    .ThenBy(entry => entry.MonitorY)
-                    .ThenBy(entry => entry.MonitorX)
-                    .ThenBy(entry => entry.WindowOrder)
-                    .ToList();
-            }
+            var orderedGroups = groups
+                .OrderByDescending(group => group.Monitor.IsPrimary)
+                .ThenBy(group => group.Monitor.Bounds.Y)
+                .ThenBy(group => group.Monitor.Bounds.X)
+                .ToList();
 
             var stopwatch = Stopwatch.StartNew();
             long firstBannerShownAtMs = -1;
 
-            AppBarFunctions.BeginBatch();
-            try
+            foreach (var group in orderedGroups)
             {
-                foreach (var launchEntry in launchPlan)
+                var launchEntries = group.CreateLaunchEntries()
+                    .OrderBy(entry => entry.WindowOrder)
+                    .ToList();
+
+                AppBarFunctions.BeginBatch();
+                try
                 {
-                    if (!TryGetLaunchGroup(launchEntry, groupsById, out var group))
+                    foreach (var launchEntry in launchEntries)
                     {
-                        continue;
+                        Exception? error = null;
+                        if (launchEntry.Window == null || !group.TryShowWindow(launchEntry.Window, out error))
+                        {
+                            if (error != null)
+                            {
+                                Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry!.Window!.GetType().Name} failed: {error}");
+                            }
+                        }
                     }
 
-                    Exception? error = null;
-                    if (launchEntry.Window == null || !group.TryShowWindow(launchEntry.Window, out error))
+                    foreach (var launchEntry in launchEntries)
                     {
-                        if (error != null)
+                        if (launchEntry.Window == null || !launchEntry.Window.IsVisible)
                         {
-                            Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry.Window!.GetType().Name} failed: {error}");
+                            continue;
+                        }
+
+                        launchEntry.Window.Render(true);
+                        var shownAtMs = stopwatch.ElapsedMilliseconds;
+                        if (firstBannerShownAtMs < 0 && launchEntry.Window is Banner)
+                        {
+                            firstBannerShownAtMs = shownAtMs;
+                            Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
                         }
                     }
                 }
-
-                foreach (var launchEntry in launchPlan)
+                finally
                 {
-                    if (!TryGetLaunchGroup(launchEntry, groupsById, out _) || launchEntry.Window == null || !launchEntry.Window.IsVisible)
-                    {
-                        continue;
-                    }
-
-                    launchEntry.Window.Render(true);
-                    var shownAtMs = stopwatch.ElapsedMilliseconds;
-                    if (firstBannerShownAtMs < 0 && launchEntry.Window is Banner)
-                    {
-                        firstBannerShownAtMs = shownAtMs;
-                        Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
-                    }
+                    AppBarFunctions.EndBatch();
                 }
-            }
-            finally
-            {
-                AppBarFunctions.EndBatch();
-            }
 
-            foreach (var group in SnapshotMonitorGroups())
-            {
                 group.ApplyPostDockVisualState();
             }
+
             _cleanStart = true;
         }
 
@@ -403,12 +395,13 @@ namespace NetBannerNG
             PreviousMonitors.AddRange(Monitor.AllMonitors);
         }
 
-        private static void ReconcileMonitorGroups(IEnumerable<Monitor> monitors, bool clean)
+        private static List<MonitorBorderGroup> ReconcileMonitorGroups(IEnumerable<Monitor> monitors, bool clean)
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
                 .Select(BuildGroupId)
                 .ToHashSet(StringComparer.Ordinal);
+            var groupsToShow = new List<MonitorBorderGroup>();
 
             List<MonitorBorderGroup> groupsToRemove;
             lock (MonitorGroupsSync)
@@ -445,7 +438,10 @@ namespace NetBannerNG
                 {
                     try
                     {
-                        existingGroup.SyncMonitor(monitor);
+                        if (HasMonitorLayoutChanged(existingGroup.Monitor, monitor))
+                        {
+                            existingGroup.SyncMonitor(monitor);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -460,6 +456,7 @@ namespace NetBannerNG
                     lock (MonitorGroupsSync)
                     {
                         MonitorGroups[groupId] = createdGroup;
+                        groupsToShow.Add(createdGroup);
                     }
                 }
                 catch (Exception ex)
@@ -467,16 +464,20 @@ namespace NetBannerNG
                     LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
                 }
             }
+
+            return groupsToShow;
         }
+
+        public static bool HasMonitorLayoutChanged(Monitor previous, Monitor next) =>
+            HasMonitorLayoutChanged(previous.Bounds, previous.WorkingArea, previous.IsPrimary, next.Bounds, next.WorkingArea, next.IsPrimary);
+
+        public static bool HasMonitorLayoutChanged(Rect previousBounds, Rect previousWorkingArea, bool previousIsPrimary, Rect nextBounds, Rect nextWorkingArea, bool nextIsPrimary) =>
+            previousBounds != nextBounds ||
+            previousWorkingArea != nextWorkingArea ||
+            previousIsPrimary != nextIsPrimary;
 
         private static void LogMonitorGroupFailure(int eventId, string stage, string groupId, Exception ex) =>
             Debug.WriteLine($"[EVT:{eventId}][MonitorGroup][{stage}][{groupId}] failed: {ex}");
-
-        private static bool TryGetLaunchGroup(BorderLaunchEntry launchEntry, IDictionary<string, MonitorBorderGroup> groupsById, out MonitorBorderGroup group)
-        {
-            group = null!;
-            return launchEntry.GroupId != null && groupsById.TryGetValue(launchEntry.GroupId, out group);
-        }
 
         private static List<MonitorBorderGroup> SnapshotMonitorGroups(bool clear = false)
         {
@@ -492,14 +493,16 @@ namespace NetBannerNG
             }
         }
 
-        private static string BuildGroupId(Monitor monitor)
+        public static string BuildGroupId(Monitor monitor) => BuildGroupId(monitor.Name, monitor.Bounds);
+
+        public static string BuildGroupId(string monitorName, Rect bounds)
         {
-            if (!string.IsNullOrWhiteSpace(monitor.Name))
+            if (!string.IsNullOrWhiteSpace(monitorName))
             {
-                return $"{monitor.Name}{monitor.Handle}";
+                return monitorName;
             }
 
-            return $"{monitor.Bounds.X},{monitor.Bounds.Y},{monitor.Bounds.Width},{monitor.Bounds.Height}";
+            return $"{bounds.X},{bounds.Y},{bounds.Width},{bounds.Height}";
         }
     }
 }
