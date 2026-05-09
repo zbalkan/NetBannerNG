@@ -13,6 +13,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition WatchdogStateTransition = new(2005, "Watchdog state transition {0} -> {1}. Reason={2}");
         public static readonly EventDefinition WatchdogBackoffScheduled = new(2006, "Watchdog backoff scheduled. Reason={0}, Failures={1}, DelaySeconds={2:F2}, TotalFailedLaunches={3}");
         public static readonly EventDefinition WatchdogHealthCounters = new(2007, "Watchdog health counters. ConnectionChurn={0}, FailedLaunches={1}, DeniedClients={2}");
+        public static readonly EventDefinition WatchdogLoopOverrun = new(2008, "Watchdog loop overrun detected. DurationMs={0:F2}");
 
         public static readonly EventDefinition PipeTimeoutCallback = new(3000, "{0} at {1}: execution timed out after {2} seconds, with: {3}.");
         public static readonly EventDefinition PipeTimeoutTaskCompleted = new(3001, "Task completed.");
