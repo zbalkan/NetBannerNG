@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Management;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
@@ -8,7 +9,13 @@ namespace NetBannerNG.Service
     public static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
-        private static readonly Dictionary<int, DateTime> LaunchedProcesses = new();
+        private sealed class LaunchedProcessInfo
+        {
+            public DateTime StartTimeUtc { get; set; }
+            public string PipeName { get; set; } = string.Empty;
+        }
+
+        private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
         private static readonly object LaunchSync = new();
 
         public static bool InitiateChildProcess()
@@ -29,7 +36,7 @@ namespace NetBannerNG.Service
                     var process = Process.Start(psi);
                     if (process != null)
                     {
-                        TrackLaunchedProcess(process);
+                        TrackLaunchedProcess(process, pipeName);
                     }
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
                     return true;
@@ -48,14 +55,9 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates);
+            TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName);
             Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
             return true;
-        }
-
-        public static bool TryInitiateChildProcess()
-        {
-            return InitiateChildProcess();
         }
 
         public static void KillAllChildProcess()
@@ -136,8 +138,23 @@ namespace NetBannerNG.Service
 
                 lock (LaunchSync)
                 {
-                    return LaunchedProcesses.TryGetValue(process.Id, out var launchedAtUtc)
-                        && SafeGetStartTimeUtc(process) == launchedAtUtc;
+                    if (!LaunchedProcesses.TryGetValue(process.Id, out var launchInfo))
+                    {
+                        return false;
+                    }
+
+                    if (SafeGetStartTimeUtc(process) != launchInfo.StartTimeUtc)
+                    {
+                        return false;
+                    }
+
+                    var commandLine = TryGetCommandLine(process.Id);
+                    if (string.IsNullOrWhiteSpace(commandLine))
+                    {
+                        return false;
+                    }
+
+                    return HasExpectedPipeArgument(commandLine, launchInfo.PipeName);
                 }
             }
             catch (Exception ex)
@@ -147,11 +164,15 @@ namespace NetBannerNG.Service
             }
         }
 
-        private static void TrackLaunchedProcess(Process process)
+        private static void TrackLaunchedProcess(Process process, string pipeName)
         {
             lock (LaunchSync)
             {
-                LaunchedProcesses[process.Id] = SafeGetStartTimeUtc(process);
+                LaunchedProcesses[process.Id] = new LaunchedProcessInfo
+                {
+                    StartTimeUtc = SafeGetStartTimeUtc(process),
+                    PipeName = pipeName
+                };
             }
         }
 
@@ -163,11 +184,11 @@ namespace NetBannerNG.Service
                 .ToHashSet();
         }
 
-        private static void TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates)
+        private static void TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
         {
             foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId && !existingCandidates.Contains(p.Id)))
             {
-                TrackLaunchedProcess(process);
+                TrackLaunchedProcess(process, pipeName);
             }
         }
 
@@ -189,6 +210,34 @@ namespace NetBannerNG.Service
             {
                 return DateTime.MinValue;
             }
+        }
+
+        private static string? TryGetCommandLine(int processId)
+        {
+            try
+            {
+                using var searcher = new ManagementObjectSearcher($"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
+                foreach (var process in searcher.Get().Cast<ManagementObject>())
+                {
+                    return process["CommandLine"] as string;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+
+            return null;
+        }
+
+        internal static bool HasExpectedPipeArgument(string? commandLine, string expectedPipeName)
+        {
+            if (string.IsNullOrWhiteSpace(commandLine) || string.IsNullOrWhiteSpace(expectedPipeName))
+            {
+                return false;
+            }
+
+            return commandLine.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

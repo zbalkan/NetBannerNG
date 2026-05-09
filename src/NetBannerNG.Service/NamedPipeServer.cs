@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
-using System.Text;
-using System.Security.Principal;
 using System.Reflection;
-using System.Threading;
+using System.Security.Principal;
+using System.Text;
 using H.Formatters;
 using H.Pipes;
 using H.Pipes.AccessControl;
@@ -27,6 +26,7 @@ namespace NetBannerNG.Service
         {
             public string PipeName { get; set; } = string.Empty;
             public string? UserName { get; set; }
+            public object? Connection { get; set; }
         }
         private AuthorizedClientContext? _authorizedClient;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
@@ -174,6 +174,11 @@ namespace NetBannerNG.Service
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
                 return;
             }
+            if (!IsAuthorizedConnectionInstance(authorizedClient.Connection, args.Connection))
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
+                return;
+            }
 
             if (args.Message == null)
             {
@@ -235,7 +240,8 @@ namespace NetBannerNG.Service
             authorizedClient = new AuthorizedClientContext
             {
                 PipeName = connectedPipeName ?? string.Empty,
-                UserName = connectionUserName
+                UserName = connectionUserName,
+                Connection = connection
             };
             return true;
         }
@@ -284,5 +290,7 @@ namespace NetBannerNG.Service
 
             return false;
         }
+
+        internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
     }
 }

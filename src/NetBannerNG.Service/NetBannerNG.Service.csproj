@@ -22,4 +22,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="System.Management" />
+	</ItemGroup>
 </Project>
