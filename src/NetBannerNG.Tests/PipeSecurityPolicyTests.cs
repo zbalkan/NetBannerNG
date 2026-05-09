@@ -11,21 +11,45 @@ namespace NetBannerNG.Tests
     public sealed class PipeSecurityPolicyTests
     {
         [TestMethod]
-        public void CreateDefaultServerSecurity_IncludesAuthenticatedUsersReadWriteAllowRule()
+        public void CreateDefaultServerSecurity_IncludesLocalSystemAndAdministratorsAllowRules()
         {
             var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
             var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
                 .Cast<PipeAccessRule>()
                 .ToList();
 
-            var authenticatedUsersSid = new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null);
+            var localSystemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            AssertAllowRule(rules, localSystemSid, PipeAccessRights.FullControl, "Local System");
+
+            var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            AssertAllowRule(rules, adminsSid, PipeAccessRights.ReadWrite, "Builtin Administrators");
+        }
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_AddsInteractiveUserWhenProvided()
+        {
+            var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity(sid);
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            AssertAllowRule(rules, sid, PipeAccessRights.ReadWrite, "interactive user SID");
+        }
+
+        private static void AssertAllowRule(
+            System.Collections.Generic.IEnumerable<PipeAccessRule> rules,
+            SecurityIdentifier sid,
+            PipeAccessRights expectedRights,
+            string principalLabel)
+        {
             var rule = rules.FirstOrDefault(r =>
-                r.IdentityReference.Value == authenticatedUsersSid.Value &&
+                r.IdentityReference.Value == sid.Value &&
                 r.AccessControlType == AccessControlType.Allow);
 
-            Assert.IsNotNull(rule, "Expected explicit allow rule for Authenticated Users.");
-            Assert.IsTrue((rule.PipeAccessRights & PipeAccessRights.ReadWrite) == PipeAccessRights.ReadWrite,
-                "Expected Authenticated Users to have ReadWrite access.");
+            Assert.IsNotNull(rule, $"Expected explicit allow rule for {principalLabel}.");
+            Assert.IsTrue((rule.PipeAccessRights & expectedRights) == expectedRights,
+                $"Expected {principalLabel} to have {expectedRights} access.");
         }
     }
 }
