@@ -23,8 +23,12 @@ namespace NetBannerNG.Service
     {
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
-        private volatile bool _clientAuthorized;
-        private string? _authorizedPipeName;
+        private sealed class AuthorizedClientContext
+        {
+            public string PipeName { get; set; } = string.Empty;
+            public string? UserName { get; set; }
+        }
+        private AuthorizedClientContext? _authorizedClient;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
@@ -90,15 +94,14 @@ namespace NetBannerNG.Service
 
         private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {
-            _clientAuthorized = IsAuthorizedClientConnection(args.Connection.PipeName, args.Connection);
-            if (!_clientAuthorized)
+            if (!TryBuildAuthorizedClient(args.Connection.PipeName, args.Connection, out var authorizedClient))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedClient();
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
                 return;
             }
-            _authorizedPipeName = args.Connection.PipeName;
+            _authorizedClient = authorizedClient;
 
             Program.Log.LogInformation(EventLogCatalog.PipeClientAuthorizationAccepted, _sessionId, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
@@ -145,8 +148,7 @@ namespace NetBannerNG.Service
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-            _clientAuthorized = false;
-            _authorizedPipeName = null;
+            _authorizedClient = null;
             ServiceHost.ReportConnectionChurn();
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
@@ -161,12 +163,13 @@ namespace NetBannerNG.Service
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
-            if (!_clientAuthorized)
+            var authorizedClient = _authorizedClient;
+            if (authorizedClient == null)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
                 return;
             }
-            if (!string.Equals(_authorizedPipeName, args.Connection.PipeName, StringComparison.Ordinal))
+            if (!string.Equals(authorizedClient.PipeName, args.Connection.PipeName, StringComparison.Ordinal))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
                 return;
@@ -209,8 +212,9 @@ namespace NetBannerNG.Service
             return hex.ToString();
         }
 
-        private bool IsAuthorizedClientConnection(string? connectedPipeName, object connection)
+        private bool TryBuildAuthorizedClient(string? connectedPipeName, object connection, out AuthorizedClientContext authorizedClient)
         {
+            authorizedClient = null!;
             var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
             if (!IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId))
             {
@@ -223,7 +227,17 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            return TryAuthorizeClientIdentity(connection, activeUserSid);
+            if (!TryAuthorizeClientIdentity(connection, activeUserSid, out var connectionUserName))
+            {
+                return false;
+            }
+
+            authorizedClient = new AuthorizedClientContext
+            {
+                PipeName = connectedPipeName ?? string.Empty,
+                UserName = connectionUserName
+            };
+            return true;
         }
 
         internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
@@ -237,8 +251,9 @@ namespace NetBannerNG.Service
             return activeSessionId == expectedSessionId;
         }
 
-        private static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid)
+        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, out string? connectionUserName)
         {
+            connectionUserName = null;
             var connectionType = connection.GetType();
             var userSidProperty = connectionType.GetProperty("UserSid", BindingFlags.Instance | BindingFlags.Public);
             if (userSidProperty?.GetValue(connection) is SecurityIdentifier sidValue)
@@ -253,7 +268,7 @@ namespace NetBannerNG.Service
 
             var userNameProperty = connectionType.GetProperty("UserName", BindingFlags.Instance | BindingFlags.Public)
                 ?? connectionType.GetProperty("ImpersonationUserName", BindingFlags.Instance | BindingFlags.Public);
-            var connectionUserName = userNameProperty?.GetValue(connection) as string;
+            connectionUserName = userNameProperty?.GetValue(connection) as string;
             if (!string.IsNullOrWhiteSpace(connectionUserName))
             {
                 try

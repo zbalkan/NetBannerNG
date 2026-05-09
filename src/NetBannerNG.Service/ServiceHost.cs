@@ -17,7 +17,6 @@ namespace NetBannerNG.Service
         }
 
         private static Thread? _serviceThread;
-        private static volatile bool _stopping;
         private static readonly CancellationTokenSource ServiceStopCts = new();
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
@@ -59,7 +58,6 @@ namespace NetBannerNG.Service
         {
             Program.Log.LogInformation(EventLogCatalog.ServiceAbortRequested);
             ProcessHelper.KillAllChildProcess();
-            _stopping = true;
             if (!ServiceStopCts.IsCancellationRequested)
             {
                 ServiceStopCts.Cancel();
@@ -91,10 +89,16 @@ namespace NetBannerNG.Service
                 await pipeServer.InitializeAsync().ConfigureAwait(false);
                 Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
                 ProcessHelper.KillAllChildProcess();
-                while (!_stopping && !ServiceStopCts.IsCancellationRequested)
+                while (!ServiceStopCts.IsCancellationRequested)
                 {
+                    var loopStart = DateTime.UtcNow;
                     await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
                     MonitorChildProcess();
+                    var loopDuration = DateTime.UtcNow - loopStart;
+                    if (loopDuration > TimeSpan.FromMilliseconds(500))
+                    {
+                        Program.Log.LogWarning(EventLogCatalog.WatchdogLoopOverrun, loopDuration.TotalMilliseconds);
+                    }
                     var jitterMs = (int)(DateTime.UtcNow.Ticks % 35);
                     try
                     {

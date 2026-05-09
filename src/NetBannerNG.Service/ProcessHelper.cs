@@ -8,7 +8,7 @@ namespace NetBannerNG.Service
     public static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
-        private static readonly HashSet<int> LaunchedProcessIds = new();
+        private static readonly Dictionary<int, DateTime> LaunchedProcesses = new();
         private static readonly object LaunchSync = new();
 
         public static bool InitiateChildProcess()
@@ -41,13 +41,14 @@ namespace NetBannerNG.Service
                 }
             }
 
+            var existingCandidates = CaptureCandidateProcessIds((int)sessionId);
             if (!psi.RunAsActiveUser())
             {
                 Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Failed to start {psi.FileName}", new Exception("Failed to run as active user."));
                 return false;
             }
 
-            TrackLaunchedProcessesBySession((int)sessionId);
+            TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates);
             Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
             return true;
         }
@@ -135,7 +136,8 @@ namespace NetBannerNG.Service
 
                 lock (LaunchSync)
                 {
-                    return LaunchedProcessIds.Contains(process.Id);
+                    return LaunchedProcesses.TryGetValue(process.Id, out var launchedAtUtc)
+                        && SafeGetStartTimeUtc(process) == launchedAtUtc;
                 }
             }
             catch (Exception ex)
@@ -149,13 +151,21 @@ namespace NetBannerNG.Service
         {
             lock (LaunchSync)
             {
-                LaunchedProcessIds.Add(process.Id);
+                LaunchedProcesses[process.Id] = SafeGetStartTimeUtc(process);
             }
         }
 
-        private static void TrackLaunchedProcessesBySession(int interactiveSessionId)
+        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId)
         {
-            foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId))
+            return Process.GetProcessesByName(ChildProcessName)
+                .Where(p => p.SessionId == interactiveSessionId)
+                .Select(p => p.Id)
+                .ToHashSet();
+        }
+
+        private static void TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates)
+        {
+            foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId && !existingCandidates.Contains(p.Id)))
             {
                 TrackLaunchedProcess(process);
             }
@@ -165,7 +175,19 @@ namespace NetBannerNG.Service
         {
             lock (LaunchSync)
             {
-                LaunchedProcessIds.Remove(processId);
+                LaunchedProcesses.Remove(processId);
+            }
+        }
+
+        private static DateTime SafeGetStartTimeUtc(Process process)
+        {
+            try
+            {
+                return process.StartTime.ToUniversalTime();
+            }
+            catch
+            {
+                return DateTime.MinValue;
             }
         }
     }
