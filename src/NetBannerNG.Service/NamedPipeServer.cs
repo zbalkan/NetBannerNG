@@ -177,7 +177,8 @@ namespace NetBannerNG.Service
             switch (args.Message)
             {
                 case { Action: ActionType.SendLog }:
-                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, args.Message.Text!);
+                    var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(args.Message.Text);
+                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, sanitizedText);
                     Debug.WriteLine($"[PipeServer]  InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
                     break;
 
