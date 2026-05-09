@@ -30,7 +30,7 @@ It displays a persistent desktop classification banner and supports existing Net
 
 - `src/NetBannerNG`: WPF desktop UI application that renders the classification banner and optional borders.
 - `src/NetBannerNG.Common`: Shared class library for interop, appbar helpers, IPC contracts, and utilities.
-- `src/NetBannerNG.Service`: Executable service host for Windows Service runtime (also supports interactive debug mode).
+- `src/NetBannerNG.Service`: Executable service host for Windows Service runtime (interactive mode is Debug-build only with `--debug`).
 - `src/NetBannerNG.Tests`: MSTest project for automated tests.
 
 ## Build from source
