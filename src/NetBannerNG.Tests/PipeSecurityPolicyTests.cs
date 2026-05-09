@@ -37,6 +37,33 @@ namespace NetBannerNG.Tests
             AssertAllowRule(rules, sid, PipeAccessRights.ReadWrite, "interactive user SID");
         }
 
+        [TestMethod]
+        public void CreateDefaultServerSecurity_DoesNotGrantEveryoneOrAnonymousAccess()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var everyoneSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+            var anonymousSid = new SecurityIdentifier(WellKnownSidType.AnonymousSid, null);
+
+            AssertNoAllowRule(rules, everyoneSid, "Everyone");
+            AssertNoAllowRule(rules, anonymousSid, "Anonymous");
+        }
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_DoesNotGrantBuiltinUsersByDefault()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var usersSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            AssertNoAllowRule(rules, usersSid, "Builtin Users");
+        }
+
         private static void AssertAllowRule(
             System.Collections.Generic.IEnumerable<PipeAccessRule> rules,
             SecurityIdentifier sid,
@@ -50,6 +77,18 @@ namespace NetBannerNG.Tests
             Assert.IsNotNull(rule, $"Expected explicit allow rule for {principalLabel}.");
             Assert.IsTrue((rule.PipeAccessRights & expectedRights) == expectedRights,
                 $"Expected {principalLabel} to have {expectedRights} access.");
+        }
+
+        private static void AssertNoAllowRule(
+            System.Collections.Generic.IEnumerable<PipeAccessRule> rules,
+            SecurityIdentifier sid,
+            string principalLabel)
+        {
+            var hasAllowRule = rules.Any(r =>
+                r.IdentityReference.Value == sid.Value &&
+                r.AccessControlType == AccessControlType.Allow);
+
+            Assert.IsFalse(hasAllowRule, $"Did not expect allow rule for {principalLabel}.");
         }
     }
 }
