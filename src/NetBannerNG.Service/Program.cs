@@ -10,7 +10,7 @@ namespace NetBannerNG.Service
 {
     /// <summary>
     ///     Windows service application to provision the NetBannerNG.
-    ///     The application is designed to work as both service and console application.
+    ///     The application runs as a Windows service; interactive hosting is available only in Debug builds.
     /// </summary>
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     public static class Program
@@ -36,16 +36,25 @@ namespace NetBannerNG.Service
                 Log.LogInformation(EventLogCatalog.ServiceStartedService);
                 using var serviceHost = new ServiceHost();
                 ServiceBase.Run(serviceHost);
+                return;
             }
-            else
+
+#if DEBUG
+            if (!args.Contains("--debug", StringComparer.OrdinalIgnoreCase))
             {
-                Log.LogInformation(EventLogCatalog.ServiceStartedInteractive);
-                PrintConsoleHeader();
-                ServiceHost.Run(args);
-                Console.WriteLine("Interactive debug mode: service host is running. Press Enter to stop.");
-                Console.ReadLine();
-                ServiceHost.Abort();
+                Console.WriteLine("Interactive mode is only available with --debug.");
+                return;
             }
+
+            Log.LogInformation(EventLogCatalog.ServiceStartedInteractive);
+            PrintConsoleHeader();
+            ServiceHost.Run(args);
+            Console.WriteLine("Interactive debug mode: service host is running. Press Enter to stop.");
+            Console.ReadLine();
+            ServiceHost.Abort();
+#else
+            Console.WriteLine("Interactive mode is unavailable in Release builds. Run as a Windows service.");
+#endif
         }
 
         private static void CurrentDomain_FirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
@@ -81,12 +90,16 @@ namespace NetBannerNG.Service
                 return true;
             }
 
+#if DEBUG
             var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "--debug"
             };
 
             return args.All(allowed.Contains);
+#else
+            return false;
+#endif
         }
 
         private static void Dump(Exception e)

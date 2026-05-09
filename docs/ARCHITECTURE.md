@@ -8,7 +8,7 @@ This document is for developers and system administrators.
   WPF desktop app (`net481`) that renders the banner and optional borders.
 
 - `src/NetBannerNG.Service`  
-  Windows Service (`net481`) that hosts service-side control logic. Can run in interactive mode for debugging.
+  Windows Service (`net481`) that hosts service-side control logic. Interactive hosting is only available in Debug builds for local debugging.
 
 - `src/NetBannerNG.Common`  
   Shared primitives: appbar helpers, native interop, named pipe contracts, process/security helpers.
@@ -70,11 +70,11 @@ dotnet restore NetBannerNG.sln
 dotnet build NetBannerNG.sln -c Release
 ```
 
-## Service debug mode
+## Service debug mode (Debug builds only)
 
 `NetBannerNG.Service` validates startup args and currently allows:
 
-- `--debug`
+- `--debug` (accepted only in Debug builds)
 
 Interactive debug run example:
 
@@ -83,7 +83,9 @@ cd src/NetBannerNG.Service/bin/Debug/net481
 NetBannerNG.Service.exe --debug
 ```
 
-In interactive mode, unhandled exception details are dumped to `%TEMP%`.
+In interactive debug mode, unhandled exception details are dumped to `%TEMP%`.
+
+In Release builds, interactive hosting is disabled and the executable only runs in Windows Service context.
 
 ## Installer behavior
 
