@@ -28,6 +28,7 @@ namespace NetBannerNG
 
         private SettingsSnapshot? _currentSettings;
         private bool _needsResize;
+
         private Settings()
         {
             Refresh();
@@ -46,6 +47,7 @@ namespace NetBannerNG
         internal static Settings Instance => Lazy.Value;
         internal int BorderSize => Math.Max(MinimumBorderSize, (int)(BannerSize * BorderBannerRatio));
         internal bool NeedsResize => _needsResize;
+
         internal void Refresh()
         {
             var newSettings = LoadSettings();
@@ -202,6 +204,7 @@ namespace NetBannerNG
                 DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
             };
         }
+
         private static string MapClassification(int value) => value switch { 1 => "UNCLASSIFIED", 2 => "SECRET", 3 => "TOP SECRET", 4 => "SCI", _ => "PUBLIC" };
 
         private static bool HasManagedPolicyValues(RegistryKey? policyKey)
@@ -241,6 +244,7 @@ namespace NetBannerNG
                     => int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
                 ? intMapper(number)
                 : raw;
+
         private static RegistryKey OpenLocalMachineKey()
         {
             var view = Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Default;
@@ -318,11 +322,13 @@ namespace NetBannerNG
             3 => "#C8102E",
             _ => "#FFFFFF",
         };
+
         private static bool TryParseBrush(string value, out SolidColorBrush brush)
         {
             try { brush = (SolidColorBrush)BrushConverter.ConvertFromInvariantString(value); return true; }
             catch (FormatException) { brush = new SolidColorBrush(); return false; }
         }
+
         internal sealed class SettingsSnapshot
         {
             internal int BannerSize { get; set; }

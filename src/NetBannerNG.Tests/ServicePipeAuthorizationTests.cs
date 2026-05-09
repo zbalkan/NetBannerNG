@@ -1,8 +1,8 @@
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Common.NamedPipes;
 using NetBannerNG.Service;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace NetBannerNG.Tests
 {
@@ -43,7 +43,7 @@ namespace NetBannerNG.Tests
             Assert.IsFalse(authorized);
         }
 
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(null)]
         [DataRow("")]
         public void IsAuthorizedClientConnection_ReturnsFalse_WhenPipeNameMissing(string? pipeName)
@@ -79,8 +79,7 @@ namespace NetBannerNG.Tests
             const uint sessionId = 12;
             var pipeName = PipeNaming.ForSession(sessionId);
 
-            var tasks = Enumerable.Range(0, 2000).Select(i => Task.Run(() =>
-            {
+            var tasks = Enumerable.Range(0, 2000).Select(i => Task.Run(() => {
                 var isEven = i % 2 == 0;
                 return isEven
                     ? NamedPipeServer.IsAuthorizedClientConnection(sessionId, pipeName, sessionId)

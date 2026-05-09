@@ -1,10 +1,9 @@
-﻿using NetBannerNG.Common.Native;
-using System.Diagnostics;
-using System.Globalization;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
+using NetBannerNG.Common.Native;
 using static NetBannerNG.Common.Native.NativeMethods;
 
 namespace NetBannerNG.Common.AppBar
@@ -26,7 +25,6 @@ namespace NetBannerNG.Common.AppBar
         private static long _posChangedSkippedSettle;
         private static long _posChangedSkippedDebounce;
         private static long _posChangedHandled;
-
 
         public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
 
@@ -156,6 +154,7 @@ namespace NetBannerNG.Common.AppBar
                 appbarWindow,
                 rect);
         }
+
         private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement) => childElement != null ?
                 WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(childElement.ActualWidth, childElement.ActualHeight))

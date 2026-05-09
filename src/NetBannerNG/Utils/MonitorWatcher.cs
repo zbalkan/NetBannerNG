@@ -1,7 +1,7 @@
-using Microsoft.Win32;
 using System;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Win32;
 
 namespace NetBannerNG.Utils
 {
