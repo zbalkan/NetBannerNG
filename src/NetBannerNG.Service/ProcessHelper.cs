@@ -8,6 +8,8 @@ namespace NetBannerNG.Service
     public static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
+        private static readonly HashSet<int> LaunchedProcessIds = new();
+        private static readonly object LaunchSync = new();
 
         public static bool InitiateChildProcess()
         {
@@ -24,7 +26,11 @@ namespace NetBannerNG.Service
             {
                 try
                 {
-                    _ = Process.Start(psi);
+                    var process = Process.Start(psi);
+                    if (process != null)
+                    {
+                        TrackLaunchedProcess(process);
+                    }
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
                     return true;
                 }
@@ -41,6 +47,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
+            TrackLaunchedProcessesBySession((int)sessionId);
             Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
             return true;
         }
@@ -57,6 +64,7 @@ namespace NetBannerNG.Service
                 try
                 {
                     process.Kill();
+                    UntrackLaunchedProcess(process.Id);
                 }
                 catch (Exception ex)
                 {
@@ -120,11 +128,44 @@ namespace NetBannerNG.Service
                 }
 
                 var candidatePath = Path.GetFullPath(process.MainModule?.FileName ?? string.Empty);
-                return candidatePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase);
+                if (!candidatePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                lock (LaunchSync)
+                {
+                    return LaunchedProcessIds.Contains(process.Id);
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Program.Log.LogInformation(EventLogCatalog.ProcessFailedToKill, process.Id, $"Identity check failed: {ex.GetType().Name}");
                 return false;
+            }
+        }
+
+        private static void TrackLaunchedProcess(Process process)
+        {
+            lock (LaunchSync)
+            {
+                LaunchedProcessIds.Add(process.Id);
+            }
+        }
+
+        private static void TrackLaunchedProcessesBySession(int interactiveSessionId)
+        {
+            foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId))
+            {
+                TrackLaunchedProcess(process);
+            }
+        }
+
+        private static void UntrackLaunchedProcess(int processId)
+        {
+            lock (LaunchSync)
+            {
+                LaunchedProcessIds.Remove(processId);
             }
         }
     }

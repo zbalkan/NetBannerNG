@@ -17,7 +17,8 @@ namespace NetBannerNG.Service
         }
 
         private static Thread? _serviceThread;
-        private static bool _stopping;
+        private static volatile bool _stopping;
+        private static readonly CancellationTokenSource ServiceStopCts = new();
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
         private static readonly Random BackoffJitter = new();
@@ -59,6 +60,10 @@ namespace NetBannerNG.Service
             Program.Log.LogInformation(EventLogCatalog.ServiceAbortRequested);
             ProcessHelper.KillAllChildProcess();
             _stopping = true;
+            if (!ServiceStopCts.IsCancellationRequested)
+            {
+                ServiceStopCts.Cancel();
+            }
         }
 
         private static void InitializeServiceThread()
@@ -86,11 +91,19 @@ namespace NetBannerNG.Service
                 await pipeServer.InitializeAsync().ConfigureAwait(false);
                 Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
                 ProcessHelper.KillAllChildProcess();
-                while (!_stopping)
+                while (!_stopping && !ServiceStopCts.IsCancellationRequested)
                 {
                     await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
                     MonitorChildProcess();
-                    await Task.Delay(100).ConfigureAwait(false);
+                    var jitterMs = (int)(DateTime.UtcNow.Ticks % 35);
+                    try
+                    {
+                        await Task.Delay(250 + jitterMs, ServiceStopCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        break;
+                    }
                 }
             }
         }
@@ -105,6 +118,7 @@ namespace NetBannerNG.Service
 
             Program.Log.LogInformation(EventLogCatalog.SessionChangedReinitializingPipe, _currentSessionId, latestSessionId);
             _currentSessionId = latestSessionId;
+            PrivilegeHelper.ResetSessionOwnerAdminCache();
             TransitionState(_watchdogState, WatchdogState.NoSession, "SessionChanged");
 
             if (pipeServer != null)

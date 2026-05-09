@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using NetBannerNG.Common.Extensions;
@@ -19,13 +20,24 @@ namespace NetBannerNG
     public partial class App : Application
     {
         private static bool _isClosing;
+        private static int _shutdownStarted;
         private readonly AppLifecycleService _lifecycleService = new();
 
-        internal static async void ShutDownGracefully()
+        internal static void ShutDownGracefully()
         {
+            _ = ShutDownGracefullyAsync();
+        }
+
+        internal static async Task ShutDownGracefullyAsync()
+        {
+            if (Interlocked.Exchange(ref _shutdownStarted, 1) == 1)
+            {
+                return;
+            }
+
             if (Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
             {
-                _ = dispatcher.BeginInvoke(ShutDownGracefully);
+                _ = dispatcher.BeginInvoke(new Func<Task>(ShutDownGracefullyAsync));
                 return;
             }
 

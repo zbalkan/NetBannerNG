@@ -24,6 +24,7 @@ namespace NetBannerNG.Service
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
         private volatile bool _clientAuthorized;
+        private string? _authorizedPipeName;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
@@ -97,6 +98,7 @@ namespace NetBannerNG.Service
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
                 return;
             }
+            _authorizedPipeName = args.Connection.PipeName;
 
             Program.Log.LogInformation(EventLogCatalog.PipeClientAuthorizationAccepted, _sessionId, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
@@ -144,6 +146,7 @@ namespace NetBannerNG.Service
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             _clientAuthorized = false;
+            _authorizedPipeName = null;
             ServiceHost.ReportConnectionChurn();
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
@@ -159,6 +162,11 @@ namespace NetBannerNG.Service
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
             if (!_clientAuthorized)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
+                return;
+            }
+            if (!string.Equals(_authorizedPipeName, args.Connection.PipeName, StringComparison.Ordinal))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
                 return;

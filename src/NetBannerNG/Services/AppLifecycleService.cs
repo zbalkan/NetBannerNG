@@ -9,7 +9,7 @@ namespace NetBannerNG.Services
 {
     internal sealed class AppLifecycleService
     {
-        private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, "netbannerng-pipe.tmp");
+        private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
         internal NamedPipeClient? Client { get; private set; }
 

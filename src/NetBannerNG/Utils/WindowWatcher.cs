@@ -21,7 +21,8 @@ namespace NetBannerNG.Utils
         private static IntPtr _previousForegroundWindowHandle;
         private static IntPtr _hookId;
         private static DateTime _lastDispatchUtc = DateTime.MinValue;
-        private static Action? _pendingDispatchAction;
+        private static bool _pendingSendTop;
+        private static bool _pendingSendBottom;
         private static DispatcherTimer? _debounceTimer;
 
         internal static void Watch() => _hookId = SetHook(ForegroundWindowHook);
@@ -75,14 +76,14 @@ namespace NetBannerNG.Utils
 
             if (isFullScreen)
             {
-                DispatchCoalesced(BorderManager.SendBottom);
+                DispatchCoalesced(sendBottom: true);
                 //var newBounds = GetModifiedFullscreenBound(foregroundWindowHandle);
                 //ResizeForegroundWindow(foregroundWindowHandle, newBounds);
                 //BorderManager.InitiateAllBorders(true, true);
             }
             else
             {
-                DispatchCoalesced(BorderManager.SendTop);
+                DispatchCoalesced(sendBottom: false);
             }
         }
 
@@ -115,8 +116,11 @@ namespace NetBannerNG.Utils
             // Determine if the window is fullscreen
             var windowBounds = GetWindowBounds(current);
             var screenBounds = Monitor.GetMonitorBounds(current);
-            var union = Rect.Union(screenBounds, windowBounds);
-            return windowBounds.Equals(union);
+            const double tolerance = 2.0;
+            return Math.Abs(windowBounds.Left - screenBounds.Left) <= tolerance
+                   && Math.Abs(windowBounds.Top - screenBounds.Top) <= tolerance
+                   && Math.Abs(windowBounds.Right - screenBounds.Right) <= tolerance
+                   && Math.Abs(windowBounds.Bottom - screenBounds.Bottom) <= tolerance;
         }
 
         //private static MonitorRect GetModifiedFullscreenBound(IntPtr currentMonitorHandle)
@@ -146,18 +150,19 @@ namespace NetBannerNG.Utils
         //        NativeMethods.SetWindowPosFlags.Undefined);
         //}
 
-        private static void DispatchCoalesced(Action action)
+        private static void DispatchCoalesced(bool sendBottom)
         {
             var now = DateTime.UtcNow;
             var elapsed = now - _lastDispatchUtc;
             if (elapsed >= ForegroundDispatchDebounce)
             {
                 _lastDispatchUtc = now;
-                _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+                _ = Application.Current.Dispatcher.BeginInvoke(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop, DispatcherPriority.Background);
                 return;
             }
 
-            _pendingDispatchAction = action;
+            _pendingSendBottom |= sendBottom;
+            _pendingSendTop |= !sendBottom;
             var remaining = ForegroundDispatchDebounce - elapsed;
             StartOrResetDebounceTimer(remaining);
         }
@@ -180,15 +185,24 @@ namespace NetBannerNG.Utils
                 _debounceTimer.Tick -= OnDebounceTick;
             }
 
-            var action = _pendingDispatchAction;
-            _pendingDispatchAction = null;
-            if (action == null)
+            var dispatchBottom = _pendingSendBottom;
+            var dispatchTop = _pendingSendTop;
+            _pendingSendBottom = false;
+            _pendingSendTop = false;
+            if (!dispatchBottom && !dispatchTop)
             {
                 return;
             }
 
             _lastDispatchUtc = DateTime.UtcNow;
-            _ = Application.Current.Dispatcher.BeginInvoke(action, DispatcherPriority.Background);
+            if (dispatchBottom)
+            {
+                _ = Application.Current.Dispatcher.BeginInvoke(BorderManager.SendBottom, DispatcherPriority.Background);
+            }
+            if (dispatchTop)
+            {
+                _ = Application.Current.Dispatcher.BeginInvoke(BorderManager.SendTop, DispatcherPriority.Background);
+            }
         }
 
         private static Rect GetWindowBounds(IntPtr current)

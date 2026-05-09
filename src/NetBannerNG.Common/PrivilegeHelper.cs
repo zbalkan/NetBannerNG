@@ -9,6 +9,7 @@ namespace NetBannerNG.Common
     {
         private static bool? _isCurrentUserAdmin;
         private static bool? _isSessionOwnerAdmin;
+        private static uint? _cachedSessionId;
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public static bool IsCurrentUserAdmin {
@@ -27,6 +28,13 @@ namespace NetBannerNG.Common
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public static bool IsSessionOwnerAdmin {
             get {
+                var activeSessionId = GetInteractiveSessionId();
+                if (_cachedSessionId != activeSessionId)
+                {
+                    _isSessionOwnerAdmin = null;
+                    _cachedSessionId = activeSessionId;
+                }
+
                 if (_isSessionOwnerAdmin.HasValue)
                 {
                     return _isSessionOwnerAdmin.Value;
@@ -109,6 +117,12 @@ namespace NetBannerNG.Common
         }
 
         private static uint GetActiveSessionId() => GetInteractiveSessionId();
+
+        public static void ResetSessionOwnerAdminCache()
+        {
+            _isSessionOwnerAdmin = null;
+            _cachedSessionId = null;
+        }
 
         [CLSCompliant(false)]
         public static uint GetInteractiveSessionId()
