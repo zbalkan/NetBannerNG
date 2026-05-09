@@ -12,6 +12,7 @@ namespace NetBannerNG.Service
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(5);
         private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
         internal static NamedPipeServer? pipeServer;
+        private static uint _currentSessionId;
 
         public ServiceHost()
         {
@@ -58,8 +59,8 @@ namespace NetBannerNG.Service
 
         private static async Task InitializeServiceThreadAsync()
         {
-            var sessionId = PrivilegeHelper.GetInteractiveSessionId();
-            pipeServer = new NamedPipeServer(sessionId);
+            _currentSessionId = PrivilegeHelper.GetInteractiveSessionId();
+            pipeServer = new NamedPipeServer(_currentSessionId);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
 
             await using (pipeServer)
@@ -69,11 +70,37 @@ namespace NetBannerNG.Service
                 ProcessHelper.KillAllChildProcess();
                 while (!_stopping)
                 {
+                    await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
                     MonitorChildProcess();
                     await Task.Delay(100).ConfigureAwait(false);
                 }
             }
         }
+
+        private static async Task ReconcileSessionPipeServerAsync()
+        {
+            var latestSessionId = PrivilegeHelper.GetInteractiveSessionId();
+            if (!HasSessionChanged(_currentSessionId, latestSessionId))
+            {
+                return;
+            }
+
+            Program.Log.LogInformation(EventLogCatalog.SessionChangedReinitializingPipe, _currentSessionId, latestSessionId);
+            _currentSessionId = latestSessionId;
+
+            if (pipeServer != null)
+            {
+                await pipeServer.DisposeAsync().ConfigureAwait(false);
+            }
+
+            pipeServer = new NamedPipeServer(_currentSessionId);
+            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
+            await pipeServer.InitializeAsync().ConfigureAwait(false);
+            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
+            ProcessHelper.KillAllChildProcess();
+        }
+
+        internal static bool HasSessionChanged(uint currentSessionId, uint latestSessionId) => currentSessionId != latestSessionId;
 
         private static void MonitorChildProcess()
         {

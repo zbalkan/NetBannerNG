@@ -18,12 +18,15 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
-        private static SingleConnectionPipeServer<PipeMessage>? _server;
+        private readonly SingleConnectionPipeServer<PipeMessage> _server;
+        private readonly uint _sessionId;
+        private volatile bool _clientAuthorized;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
         internal NamedPipeServer(uint sessionId, int timeout = 10000)
         {
+            _sessionId = sessionId;
             var pipeName = PipeNaming.ForSession(sessionId);
             _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
             ConfigurePipeSecurity(_server);
@@ -59,13 +62,13 @@ namespace NetBannerNG.Service
 
         public async ValueTask DisposeAsync()
         {
-            await _server!.DisposeAsync().ConfigureAwait(false);
+            await _server.DisposeAsync().ConfigureAwait(false);
             GC.SuppressFinalize(this);
         }
 
         internal async Task InitializeAsync()
         {
-            await _server?.StartAsync()!;
+            await _server.StartAsync().ConfigureAwait(false);
             Debug.WriteLine($"Created pipe: {_server.PipeName}");
         }
 
@@ -73,6 +76,15 @@ namespace NetBannerNG.Service
 
         private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {
+            _clientAuthorized = IsAuthorizedClientConnection(args.Connection.PipeName);
+            if (!_clientAuthorized)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, args.Connection.PipeName);
+                Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
+                return;
+            }
+
+            Program.Log.LogInformation(EventLogCatalog.PipeClientAuthorizationAccepted, _sessionId, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
             Debug.WriteLine($"Client {args.Connection.PipeName} is now connected!");
             Debug.WriteLine($"[PipeServer]  ClientConnected pipe={args.Connection.PipeName}");
@@ -117,6 +129,7 @@ namespace NetBannerNG.Service
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
+            _clientAuthorized = false;
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
             Debug.WriteLine($"[PipeServer]  ClientDisconnected pipe={args.Connection.PipeName}");
@@ -130,6 +143,12 @@ namespace NetBannerNG.Service
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
+            if (!_clientAuthorized)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
+                return;
+            }
+
             if (args.Message == null)
             {
                 return;
@@ -164,6 +183,23 @@ namespace NetBannerNG.Service
             }
 
             return hex.ToString();
+        }
+
+        private bool IsAuthorizedClientConnection(string? connectedPipeName)
+        {
+            var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
+            return IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId);
+        }
+
+        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
+        {
+            var expectedPipeName = PipeNaming.ForSession(expectedSessionId);
+            if (!string.Equals(expectedPipeName, connectedPipeName, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return activeSessionId == expectedSessionId;
         }
     }
 }
