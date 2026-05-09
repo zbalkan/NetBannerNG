@@ -4,6 +4,16 @@ NetBannerNG is an open-source alternative to Microsoft NetBanner for Windows end
 
 It displays a persistent desktop classification banner and supports existing NetBanner Group Policy settings so organizations can migrate with minimal policy changes.
 
+## Background (Microsoft NetBanner and USAF)
+
+Microsoft NetBanner appears to have been distributed as a U.S. government/USAF-oriented desktop classification banner utility for Windows endpoints. Public traces include:
+
+- Historic Microsoft Q&A references discussing NetBanner versioning/support.
+- File metadata listings for `netbanner.exe` showing product attribution as **Microsoft NetBanner**.
+- Community deployment artifacts (for example, infrastructure automation formulas) that reference installing Microsoft NetBanner in enterprise environments.
+
+NetBannerNG is intended as an open-source, modernized replacement that preserves policy compatibility where practical while making behavior and operations transparent.
+
 ## Features
 
 - NetBanner policy compatibility
@@ -65,7 +75,7 @@ The repository includes policy templates in `GPO/`.
 
 An installer script is included at:
 
-- `src/setup.iss`
+- `installer/setup.iss`
 
 The installer places binaries under Program Files and installs/starts the NetBannerNG Windows service.
 
