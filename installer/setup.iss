@@ -24,7 +24,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
 DisableProgramGroupPage=yes
-UninstallDisplayIcon={app}\UI\{#MyUiExeName}
+UninstallDisplayIcon={app}\{#MyUiExeName}
 
 CloseApplications=yes
 RestartApplications=no
@@ -39,8 +39,6 @@ Name: "desktopicon"; \
     Flags: unchecked
 
 [Dirs]
-Name: "{app}\UI"
-Name: "{app}\Service"
 Name: "{commonappdata}\{#MyProgramDataDir}"; Permissions: users-modify
 Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
 
@@ -48,21 +46,21 @@ Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
 ; WPF UI output.
 ; SDK-style net481 project output.
 Source: "..\src\NetBannerNG\bin\Release\net481\*"; \
-    DestDir: "{app}\UI"; \
+    DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Watchdog service output.
 ; SDK-style net481 project output.
 Source: "..\src\NetBannerNG.Service\bin\Release\net481\*"; \
-    DestDir: "{app}\Service"; \
+    DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; \
-    Filename: "{app}\UI\{#MyUiExeName}"
+    Filename: "{app}\{#MyUiExeName}"
 
 Name: "{autodesktop}\{#MyAppName}"; \
-    Filename: "{app}\UI\{#MyUiExeName}"; \
+    Filename: "{app}\{#MyUiExeName}"; \
     Tasks: desktopicon
 
 [Registry]
@@ -92,7 +90,7 @@ Root: HKLM; \
 ; - create/configure after install
 ; - start after install
 
-Filename: "{app}\UI\{#MyUiExeName}"; \
+Filename: "{app}\{#MyUiExeName}"; \
     Description: "Launch {#MyAppName}"; \
     Flags: nowait postinstall skipifsilent
 
@@ -245,7 +243,7 @@ procedure InstallOrUpdateService();
 var
   ServiceBinaryPath: string;
 begin
-  ServiceBinaryPath := ExpandConstant('{app}\Service\{#MyServiceExeName}');
+  ServiceBinaryPath := ExpandConstant('{app}\{#MyServiceExeName}');
 
   if not ServiceExists('{#MyServiceName}') then
   begin
