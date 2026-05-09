@@ -19,8 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Assets", "Assets", "{55F150C5-202D-4E41-AD4A-9C187DD76B50}"
 	ProjectSection(SolutionItems) = preProject
-		Assets\colorpicker1.png = Assets\colorpicker1.png
-		Assets\colorpicker2.png = Assets\colorpicker2.png
 		Assets\DeltaZulu - dark.ico = Assets\DeltaZulu - dark.ico
 	EndProjectSection
 EndProject
