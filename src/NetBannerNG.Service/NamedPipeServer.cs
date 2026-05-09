@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using System.Security.Principal;
+using System.Reflection;
+using System.Threading;
 using H.Formatters;
 using H.Pipes;
 using H.Pipes.AccessControl;
@@ -72,11 +75,21 @@ namespace NetBannerNG.Service
             Debug.WriteLine($"Created pipe: {_server.PipeName}");
         }
 
-        private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args) => _ = OnClientConnectedAsync(args);
+        private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
+        {
+            var connectionTask = OnClientConnectedAsync(args);
+            _ = connectionTask.ContinueWith(task =>
+                {
+                    Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, task.Exception?.GetMessageStack() ?? "Unknown async connection error");
+                },
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted,
+                _scheduler);
+        }
 
         private async Task OnClientConnectedAsync(ConnectionEventArgs<PipeMessage> args)
         {
-            _clientAuthorized = IsAuthorizedClientConnection(args.Connection.PipeName);
+            _clientAuthorized = IsAuthorizedClientConnection(args.Connection.PipeName, args.Connection);
             if (!_clientAuthorized)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, args.Connection.PipeName);
@@ -185,10 +198,21 @@ namespace NetBannerNG.Service
             return hex.ToString();
         }
 
-        private bool IsAuthorizedClientConnection(string? connectedPipeName)
+        private bool IsAuthorizedClientConnection(string? connectedPipeName, object connection)
         {
             var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
-            return IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId);
+            if (!IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId))
+            {
+                return false;
+            }
+
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, connectedPipeName);
+                return false;
+            }
+
+            return TryAuthorizeClientIdentity(connection, activeUserSid);
         }
 
         internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
@@ -200,6 +224,39 @@ namespace NetBannerNG.Service
             }
 
             return activeSessionId == expectedSessionId;
+        }
+
+        private static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid)
+        {
+            var connectionType = connection.GetType();
+            var userSidProperty = connectionType.GetProperty("UserSid", BindingFlags.Instance | BindingFlags.Public);
+            if (userSidProperty?.GetValue(connection) is SecurityIdentifier sidValue)
+            {
+                return sidValue == activeUserSid;
+            }
+
+            if (userSidProperty?.GetValue(connection) is string sidText && !string.IsNullOrWhiteSpace(sidText))
+            {
+                return string.Equals(sidText, activeUserSid.Value, StringComparison.OrdinalIgnoreCase);
+            }
+
+            var userNameProperty = connectionType.GetProperty("UserName", BindingFlags.Instance | BindingFlags.Public)
+                ?? connectionType.GetProperty("ImpersonationUserName", BindingFlags.Instance | BindingFlags.Public);
+            var connectionUserName = userNameProperty?.GetValue(connection) as string;
+            if (!string.IsNullOrWhiteSpace(connectionUserName))
+            {
+                try
+                {
+                    var expectedAccount = activeUserSid.Translate(typeof(NTAccount)).Value;
+                    return string.Equals(connectionUserName, expectedAccount, StringComparison.OrdinalIgnoreCase);
+                }
+                catch (IdentityNotMappedException)
+                {
+                    return false;
+                }
+            }
+
+            return false;
         }
     }
 }
