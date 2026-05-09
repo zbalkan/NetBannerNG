@@ -12,10 +12,8 @@ namespace NetBannerNG.Utils
         private static WindowsIdentity? _currentUser;
         internal static WindowsIdentity CurrentUser => _currentUser ??= ProcessHelper.Owner(Process.GetCurrentProcess());
 
-        internal static string UserProfilePath
-        {
-            get
-            {
+        internal static string UserProfilePath {
+            get {
                 var userSid = CurrentUser.User?.ToString();
                 if (!string.IsNullOrWhiteSpace(userSid))
                 {

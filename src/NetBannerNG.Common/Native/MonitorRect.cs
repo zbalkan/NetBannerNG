@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
-using System;
 
 namespace NetBannerNG.Common.Native
 {
@@ -65,18 +64,19 @@ namespace NetBannerNG.Common.Native
             return mr.ToWpfRect();
         }
 
-        public readonly override string ToString() => $"{Left},{Top},{Right},{Bottom}";
+        public override readonly string ToString() => $"{Left},{Top},{Right},{Bottom}";
 
         public readonly bool Equals(MonitorRect other) => Left == other.Left
                 && Top == other.Top
                 && Right == other.Right
                 && Bottom == other.Bottom;
 
-        public readonly override bool Equals(object obj) => obj is MonitorRect other && Equals(other);
+        public override readonly bool Equals(object obj) => obj is MonitorRect other && Equals(other);
 
-        public readonly override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+        public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
 
         public static bool operator ==(MonitorRect left, MonitorRect right) => left.Equals(right);
+
         public static bool operator !=(MonitorRect left, MonitorRect right) => !left.Equals(right);
 
         private readonly string GetDebuggerDisplay() => $"{Left},{Top},{Right},{Bottom} ({Width}x{Height})";

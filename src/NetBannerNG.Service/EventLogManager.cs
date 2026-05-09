@@ -104,8 +104,7 @@ namespace NetBannerNG.Service
                 return;
             }
 
-            Task.Run(() =>
-            {
+            Task.Run(() => {
                 try
                 {
                     RegisterSource();
@@ -172,7 +171,6 @@ namespace NetBannerNG.Service
                 Interlocked.Decrement(ref _pendingCount);
             }
         }
-
 
         private static bool TryWriteEntry(PendingEntry entry)
         {

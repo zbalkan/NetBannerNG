@@ -1,9 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetBannerNG.Common.NamedPipes;
 using System.IO.Pipes;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetBannerNG.Common.NamedPipes;
 
 namespace NetBannerNG.Tests
 {

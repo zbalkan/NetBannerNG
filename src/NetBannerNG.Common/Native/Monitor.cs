@@ -33,10 +33,8 @@ namespace NetBannerNG.Common.Native
             Debug.WriteLine(ToString());
         }
 
-        public static IEnumerable<Monitor> AllMonitors
-        {
-            get
-            {
+        public static IEnumerable<Monitor> AllMonitors {
+            get {
                 var closure = new MonitorEnumCallback();
                 var proc = new MonitorEnumProc(closure.Callback);
                 _ = NativeMethods.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);

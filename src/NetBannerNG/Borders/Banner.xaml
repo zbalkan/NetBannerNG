@@ -133,7 +133,6 @@
                 Text="{Binding Metadata}"
                 TextAlignment="Right"
                 TextTrimming="CharacterEllipsis" />
-
         </Grid>
     </Border>
 </borders:BorderBase>

@@ -1,5 +1,5 @@
-﻿using NetBannerNG.Utils;
-using System.Windows.Input;
+﻿using System.Windows.Input;
+using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
 {

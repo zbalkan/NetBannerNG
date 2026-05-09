@@ -9,6 +9,7 @@ namespace NetBannerNG.Service
     public static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
+
         private sealed class LaunchedProcessInfo
         {
             public DateTime StartTimeUtc { get; set; }
@@ -104,6 +105,7 @@ namespace NetBannerNG.Service
             return true;
         }
 
+#pragma warning disable IDE0022 // Use expression body for method
         private static string GetChildProcessPath()
         {
 #if DEBUG
@@ -112,6 +114,7 @@ namespace NetBannerNG.Service
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");
 #endif
         }
+#pragma warning restore IDE0022 // Use expression body for method
 
         private static IEnumerable<Process> GetChildProcesses()
         {
@@ -176,13 +179,10 @@ namespace NetBannerNG.Service
             }
         }
 
-        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId)
-        {
-            return Process.GetProcessesByName(ChildProcessName)
+        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId) => Process.GetProcessesByName(ChildProcessName)
                 .Where(p => p.SessionId == interactiveSessionId)
                 .Select(p => p.Id)
                 .ToHashSet();
-        }
 
         private static void TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
         {
@@ -237,7 +237,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            return commandLine.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
+            return commandLine!.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
         }
     }
 }

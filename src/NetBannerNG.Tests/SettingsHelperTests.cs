@@ -1,6 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Reflection;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetBannerNG.Tests
 {
@@ -61,6 +61,5 @@ namespace NetBannerNG.Tests
             return (T)(methodInfo.Invoke(null, args)
                 ?? throw new InvalidOperationException($"Method {method} returned null."));
         }
-
     }
 }

@@ -22,12 +22,14 @@ namespace NetBannerNG.Service
     {
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
+
         private sealed class AuthorizedClientContext
         {
             public string PipeName { get; set; } = string.Empty;
             public string? UserName { get; set; }
             public object? Connection { get; set; }
         }
+
         private AuthorizedClientContext? _authorizedClient;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
@@ -83,10 +85,9 @@ namespace NetBannerNG.Service
         private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             var connectionTask = OnClientConnectedAsync(args);
-            _ = connectionTask.ContinueWith(task =>
-                {
-                    Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, task.Exception?.GetMessageStack() ?? "Unknown async connection error");
-                },
+            _ = connectionTask.ContinueWith(task => {
+                Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, task.Exception?.GetMessageStack() ?? "Unknown async connection error");
+            },
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted,
                 _scheduler);
@@ -219,7 +220,12 @@ namespace NetBannerNG.Service
 
         private bool TryBuildAuthorizedClient(string? connectedPipeName, object connection, out AuthorizedClientContext authorizedClient)
         {
+
             authorizedClient = null!;
+            if (string.IsNullOrWhiteSpace(connectedPipeName))
+            {
+                return false;
+            }
             var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
             if (!IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId))
             {
@@ -228,7 +234,7 @@ namespace NetBannerNG.Service
 
             if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null)
             {
-                Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, connectedPipeName);
+                Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, connectedPipeName!);
                 return false;
             }
 

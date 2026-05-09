@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
-using System.Threading;
 
 namespace NetBannerNG.Common.Native
 {
@@ -12,6 +11,7 @@ namespace NetBannerNG.Common.Native
     {
         // ReSharper disable once InconsistentNaming
         private const int DACL_SECURITY_INFORMATION = 0x00000004;
+
         private const string SingleInstanceMutexName = @"Local\NetBannerNG.Singleton";
 
         private static bool _isProtected;

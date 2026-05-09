@@ -1,8 +1,8 @@
-﻿using NetBannerNG.Common.Extensions;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
+using NetBannerNG.Common.Extensions;
 
 [assembly: CLSCompliant(true)]
 

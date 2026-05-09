@@ -162,7 +162,6 @@ namespace NetBannerNG
                 }
             }
 
-
             private static void ShowWindowIfNeeded(BorderBase window)
             {
                 if (window.IsVisible)

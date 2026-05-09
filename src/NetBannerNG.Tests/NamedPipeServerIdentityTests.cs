@@ -1,6 +1,6 @@
+using System.Security.Principal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Service;
-using System.Security.Principal;
 
 namespace NetBannerNG.Tests
 {
