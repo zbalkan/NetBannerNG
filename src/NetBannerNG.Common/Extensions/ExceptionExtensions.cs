@@ -19,7 +19,7 @@ namespace NetBannerNG.Common.Extensions
 
                 if (exception.InnerException != default)
                 {
-                    var furtherMessages = exception.InnerException.GetMessageStack();
+                    var furtherMessages = exception.InnerException.GetMessageStack(separator);
 
                     if (!string.IsNullOrWhiteSpace(furtherMessages))
                     {
