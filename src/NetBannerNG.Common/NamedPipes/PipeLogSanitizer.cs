@@ -11,7 +11,7 @@ namespace NetBannerNG.Common.NamedPipes
                 return string.Empty;
             }
 
-            var sb = new StringBuilder(input.Length);
+            var sb = new StringBuilder(input!.Length);
             foreach (var c in input)
             {
                 if (char.IsControl(c))

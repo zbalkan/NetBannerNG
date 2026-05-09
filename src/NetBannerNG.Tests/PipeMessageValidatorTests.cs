@@ -1,7 +1,8 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetBannerNG.Common.NamedPipes;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetBannerNG.Common.NamedPipes;
 
 namespace NetBannerNG.Tests
 {
@@ -65,8 +66,7 @@ namespace NetBannerNG.Tests
         [TestMethod]
         public async Task IsValidInboundClientMessage_RemainsStableUnderConcurrentValidAndInvalidTraffic()
         {
-            var tasks = Enumerable.Range(0, 1000).Select(i => Task.Run(() =>
-            {
+            var tasks = Enumerable.Range(0, 1000).Select(i => Task.Run(() => {
                 var valid = Build(ActionType.SendLog, $"valid-{i}");
                 var invalid = Build(ActionType.SendLog, $"invalid-{i}");
                 invalid.Text = new string('x', PipeMessageValidator.MaxLogTextLength + 1);
@@ -79,6 +79,21 @@ namespace NetBannerNG.Tests
 
             var results = await Task.WhenAll(tasks);
             Assert.IsTrue(results.All(r => r));
+        }
+
+        [TestMethod]
+        public void IsValidInboundClientMessage_ReturnsFalse_ForForgedMessageBodyAfterChecksumIssued()
+        {
+            var message = Build(ActionType.SendLog, "safe");
+            message.Text = "tampered";
+            Assert.IsFalse(PipeMessageValidator.IsValidInboundClientMessage(message));
+        }
+
+        [TestMethod]
+        public void PipeMessage_ChecksumSetter_RejectsMissingChecksum()
+        {
+            var message = new PipeMessage { Action = ActionType.SendLog, Text = "abc" };
+            Assert.Throws<ArgumentException>(() => message.Checksum = null!);
         }
 
         private static PipeMessage Build(ActionType action, string text)

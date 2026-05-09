@@ -93,6 +93,7 @@ namespace NetBannerNG.Service
             if (!_clientAuthorized)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, args.Connection.PipeName);
+                ServiceHost.ReportDeniedClient();
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
                 return;
             }
@@ -143,6 +144,7 @@ namespace NetBannerNG.Service
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             _clientAuthorized = false;
+            ServiceHost.ReportConnectionChurn();
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
             Debug.WriteLine($"[PipeServer]  ClientDisconnected pipe={args.Connection.PipeName}");

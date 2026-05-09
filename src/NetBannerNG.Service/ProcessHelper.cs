@@ -9,13 +9,13 @@ namespace NetBannerNG.Service
     {
         private const string ChildProcessName = "NetBannerNG";
 
-        public static void InitiateChildProcess()
+        public static bool InitiateChildProcess()
         {
             var sessionId = PrivilegeHelper.GetInteractiveSessionId();
             var pipeName = PipeNaming.ForSession(sessionId);
             if (!TryResolveValidatedChildProcessPath(out var path))
             {
-                return;
+                return false;
             }
 
             var psi = BuildChildProcessStartInfo(path, pipeName);
@@ -26,18 +26,28 @@ namespace NetBannerNG.Service
                 {
                     _ = Process.Start(psi);
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
+                    return true;
                 }
                 catch (Exception ex)
                 {
                     Program.Log.LogError(EventLogCatalog.ProcessStartFailed, psi.FileName, ex);
+                    return false;
                 }
-                return;
             }
 
             if (!psi.RunAsActiveUser())
             {
                 Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Failed to start {psi.FileName}", new Exception("Failed to run as active user."));
+                return false;
             }
+
+            Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
+            return true;
+        }
+
+        public static bool TryInitiateChildProcess()
+        {
+            return InitiateChildProcess();
         }
 
         public static void KillAllChildProcess()

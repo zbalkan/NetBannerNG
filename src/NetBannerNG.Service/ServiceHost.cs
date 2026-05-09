@@ -7,10 +7,27 @@ namespace NetBannerNG.Service
     /// ref: https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/
     internal class ServiceHost : ServiceBase
     {
+        internal enum WatchdogState
+        {
+            NoSession,
+            PipeReady,
+            Launching,
+            Running,
+            Backoff
+        }
+
         private static Thread? _serviceThread;
         private static bool _stopping;
-        private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
+        private static readonly Random BackoffJitter = new();
         private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
+        private static DateTime _nextRestartEligibleUtc = DateTime.MinValue;
+        private static int _consecutiveLaunchFailures;
+        private static long _connectionChurnCount;
+        private static long _failedLaunchCount;
+        private static long _deniedClientCount;
+        private static WatchdogState _watchdogState = WatchdogState.NoSession;
         internal static NamedPipeServer? pipeServer;
         private static uint _currentSessionId;
 
@@ -62,6 +79,7 @@ namespace NetBannerNG.Service
             _currentSessionId = PrivilegeHelper.GetInteractiveSessionId();
             pipeServer = new NamedPipeServer(_currentSessionId);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
+            TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "InitialPipeCreated");
 
             await using (pipeServer)
             {
@@ -87,6 +105,7 @@ namespace NetBannerNG.Service
 
             Program.Log.LogInformation(EventLogCatalog.SessionChangedReinitializingPipe, _currentSessionId, latestSessionId);
             _currentSessionId = latestSessionId;
+            TransitionState(_watchdogState, WatchdogState.NoSession, "SessionChanged");
 
             if (pipeServer != null)
             {
@@ -97,6 +116,7 @@ namespace NetBannerNG.Service
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
             await pipeServer.InitializeAsync().ConfigureAwait(false);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
+            TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "SessionPipeReinitialized");
             ProcessHelper.KillAllChildProcess();
         }
 
@@ -106,20 +126,50 @@ namespace NetBannerNG.Service
         {
             if (ProcessHelper.IsChildProcessRunning())
             {
+                _consecutiveLaunchFailures = 0;
+                _nextRestartEligibleUtc = DateTime.MinValue;
+                if (_watchdogState != WatchdogState.Running)
+                {
+                    TransitionState(_watchdogState, WatchdogState.Running, "ChildProcessDetected");
+                }
                 return;
             }
 
             var now = DateTime.UtcNow;
             if (!ShouldAttemptRestart(now))
             {
+                if (_watchdogState != WatchdogState.Backoff)
+                {
+                    TransitionState(_watchdogState, WatchdogState.Backoff, "BackoffWindowActive");
+                }
                 return;
             }
+            TransitionState(_watchdogState, WatchdogState.Launching, "WatchdogLaunchAttempt");
             Program.Log.LogWarning(EventLogCatalog.ChildRestartByWatchdog);
-            ProcessHelper.InitiateChildProcess();
+            if (!ProcessHelper.InitiateChildProcess())
+            {
+                RegisterLaunchFailure(now, "LaunchFailed");
+                return;
+            }
+
+            if (!ProcessHelper.IsChildProcessRunning())
+            {
+                RegisterLaunchFailure(now, "LaunchNoProcessObserved");
+                return;
+            }
+
+            _consecutiveLaunchFailures = 0;
+            _nextRestartEligibleUtc = DateTime.MinValue;
+            TransitionState(WatchdogState.Launching, WatchdogState.Running, "LaunchSucceeded");
         }
 
         private static bool ShouldAttemptRestart(DateTime now)
         {
+            if (now < _nextRestartEligibleUtc)
+            {
+                return false;
+            }
+
             if ((now - _lastWatchdogRestartAttemptUtc) < WatchdogRestartThrottle)
             {
                 return false;
@@ -127,6 +177,48 @@ namespace NetBannerNG.Service
 
             _lastWatchdogRestartAttemptUtc = now;
             return true;
+        }
+
+        private static void RegisterLaunchFailure(DateTime now, string reasonCode)
+        {
+            _failedLaunchCount++;
+            _consecutiveLaunchFailures++;
+            var delay = CalculateBackoffDelay(_consecutiveLaunchFailures);
+            _nextRestartEligibleUtc = now + delay;
+            TransitionState(WatchdogState.Launching, WatchdogState.Backoff, reasonCode);
+            Program.Log.LogWarning(EventLogCatalog.WatchdogBackoffScheduled, reasonCode, _consecutiveLaunchFailures, delay.TotalSeconds, _failedLaunchCount);
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
+        }
+
+        internal static TimeSpan CalculateBackoffDelay(int consecutiveLaunchFailures)
+        {
+            var exponent = Math.Min(Math.Max(consecutiveLaunchFailures, 1) - 1, 5);
+            var baseSeconds = Math.Min(1 << exponent, (int)MaxRestartBackoff.TotalSeconds);
+            var jitterSeconds = BackoffJitter.NextDouble() * 0.5;
+            return TimeSpan.FromSeconds(baseSeconds + jitterSeconds);
+        }
+
+        private static void TransitionState(WatchdogState from, WatchdogState to, string reasonCode)
+        {
+            if (from == to)
+            {
+                return;
+            }
+
+            _watchdogState = to;
+            Program.Log.LogInformation(EventLogCatalog.WatchdogStateTransition, from, to, reasonCode);
+        }
+
+        internal static void ReportConnectionChurn()
+        {
+            _connectionChurnCount++;
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
+        }
+
+        internal static void ReportDeniedClient()
+        {
+            _deniedClientCount++;
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
         }
     }
 }
