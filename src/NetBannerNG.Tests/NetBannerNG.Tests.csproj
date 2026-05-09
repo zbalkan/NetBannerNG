@@ -16,6 +16,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
+      <ProjectReference Include="..\NetBannerNG.Service\NetBannerNG.Service.csproj" />
       <ProjectReference Include="..\NetBannerNG\NetBannerNG.csproj" />
     </ItemGroup>
 
