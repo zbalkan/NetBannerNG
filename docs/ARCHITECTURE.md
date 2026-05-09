@@ -16,7 +16,7 @@ This document is for developers and system administrators.
 - `GPO/NetBanner.admx`  
   NetBanner-compatible policy definition template.
 
-- `src/setup.iss`  
+- `installer/setup.iss`  
   Inno Setup installer definition.
 
 ## Runtime model
@@ -89,7 +89,7 @@ In Release builds, interactive hosting is disabled and the executable only runs 
 
 ## Installer behavior
 
-`src/setup.iss` currently:
+`installer/setup.iss` currently:
 
 - Installs files under `Program Files\NetBannerNG`
 - Creates shortcuts
@@ -102,3 +102,30 @@ In Release builds, interactive hosting is disabled and the executable only runs 
 - HKLM writes require elevation.
 - Deploy GPO settings before broad rollout to avoid inconsistent endpoint display.
 - Validate on multi-monitor systems if border rendering is enabled.
+
+## Codebase analysis summary
+
+After reviewing the service, desktop app, shared library, and tests, the runtime model is:
+
+1. **Service watchdog and session awareness**
+   - `NetBannerNG.Service` tracks the active interactive session and recreates its named-pipe server when sessions change.
+   - A watchdog loop relaunches the UI child process with throttling + exponential backoff and health counters.
+
+2. **IPC boundary**
+   - Service and UI communicate through session-scoped named pipes from `NetBannerNG.Common.NamedPipes`.
+   - Validation/sanitization helpers and authorization-focused tests are present to harden pipe usage.
+
+3. **UI lifecycle and single-instance behavior**
+   - `App.xaml.cs` enforces single-instance startup, resolves optional `--pipe=` args, and performs graceful shutdown with dispatcher-safe sequencing.
+
+4. **Banner/border rendering model**
+   - `BorderManager` creates per-monitor border groups (top banner + optional bottom/left/right bars), keeps them synced with monitor changes, and applies group health policies to avoid thrashing on repeated failures.
+
+5. **Policy-first settings resolution**
+   - `Settings` loads local defaults from `HKLM\SOFTWARE\NetBannerNG`, then overlays managed policy values from `HKLM\SOFTWARE\Policies\Microsoft\NetBanner` when present.
+   - Classification text composition includes optional custom display text, INFOCON/FPCON/CPCON values, and caveats.
+
+6. **Test coverage direction**
+   - The test project emphasizes watchdog transitions, named-pipe identity/security behavior, policy resolution, and monitor/border behaviors.
+
+This confirms NetBannerNG is architected as a service-supervised, per-user UI renderer with policy-compatible configuration and explicit resilience mechanisms for long-running endpoint operation.
