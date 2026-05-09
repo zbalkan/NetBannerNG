@@ -51,7 +51,11 @@ namespace NetBannerNG.Service
                 });
         }
 
-        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server) => server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity());
+        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server)
+        {
+            _ = PrivilegeHelper.TryGetActiveUserSid(out var interactiveUserSid);
+            server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity(interactiveUserSid));
+        }
 
         public async ValueTask DisposeAsync()
         {

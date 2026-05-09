@@ -70,6 +70,20 @@ namespace NetBannerNG.Common
             return true;
         }
 
+        public static bool TryGetActiveUserSid(out SecurityIdentifier? sid)
+        {
+            sid = null;
+            if (!GetActiveUser(out var user) || user == null)
+            {
+                user?.Dispose();
+                return false;
+            }
+
+            sid = user.User;
+            user.Dispose();
+            return sid != null;
+        }
+
         public static bool IsUserAdministrator(WindowsIdentity user)
         {
             if (user == null)
