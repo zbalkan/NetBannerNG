@@ -44,10 +44,11 @@ namespace NetBannerNG.Services
 
         internal async Task ShutdownRuntimeAsync()
         {
+            BorderManager.BeginShutdown();
+            MonitorWatcher.Unwatch();
+            WindowWatcher.Unwatch();
             BorderManager.CloseAllBorders();
             PinClearShutdown();
-            WindowWatcher.Unwatch();
-            MonitorWatcher.Unwatch();
             if (Client is not null)
             {
                 await Client.DisposeAsync();

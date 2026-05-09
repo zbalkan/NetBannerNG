@@ -20,4 +20,8 @@
       <ProjectReference Include="..\NetBannerNG\NetBannerNG.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Reference Include="WindowsBase" />
+    </ItemGroup>
+
 </Project>
