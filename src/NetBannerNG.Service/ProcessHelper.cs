@@ -14,10 +14,13 @@ namespace NetBannerNG.Service
         {
             public DateTime StartTimeUtc { get; set; }
             public string PipeName { get; set; } = string.Empty;
+            public string? CommandLine { get; set; }
+            public DateTime CommandLineLastAttemptUtc { get; set; } = DateTime.MinValue;
         }
 
         private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
         private static readonly object LaunchSync = new();
+        private static readonly Lazy<string> ExpectedChildProcessPath = new(() => Path.GetFullPath(GetChildProcessPath()));
 
         public static bool InitiateChildProcess()
         {
@@ -118,10 +121,43 @@ namespace NetBannerNG.Service
 
         private static IEnumerable<Process> GetChildProcesses()
         {
-            var expectedPath = Path.GetFullPath(GetChildProcessPath());
+            List<int> trackedProcessIds;
+            lock (LaunchSync)
+            {
+                trackedProcessIds = LaunchedProcesses.Keys.ToList();
+            }
+
+            if (trackedProcessIds.Count == 0)
+            {
+                return Enumerable.Empty<Process>();
+            }
+
+            var expectedPath = ExpectedChildProcessPath.Value;
             var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
-            return Process.GetProcessesByName(ChildProcessName)
-                .Where(process => IsExpectedChildProcess(process, expectedPath, interactiveSessionId));
+            var processes = new List<Process>(trackedProcessIds.Count);
+            var staleProcessIds = new List<int>();
+            foreach (var processId in trackedProcessIds)
+            {
+                try
+                {
+                    processes.Add(Process.GetProcessById(processId));
+                }
+                catch (ArgumentException)
+                {
+                    staleProcessIds.Add(processId);
+                }
+                catch (InvalidOperationException)
+                {
+                    staleProcessIds.Add(processId);
+                }
+            }
+
+            foreach (var processId in staleProcessIds)
+            {
+                UntrackLaunchedProcess(processId);
+            }
+
+            return processes.Where(process => IsExpectedChildProcess(process, expectedPath, interactiveSessionId));
         }
 
         private static bool IsExpectedChildProcess(Process process, string expectedPath, int interactiveSessionId)
@@ -151,7 +187,17 @@ namespace NetBannerNG.Service
                         return false;
                     }
 
-                    var commandLine = TryGetCommandLine(process.Id);
+                    var commandLine = launchInfo.CommandLine;
+                    if (commandLine == null)
+                    {
+                        var now = DateTime.UtcNow;
+                        if (now - launchInfo.CommandLineLastAttemptUtc > TimeSpan.FromSeconds(1))
+                        {
+                            launchInfo.CommandLineLastAttemptUtc = now;
+                            commandLine = TryGetCommandLine(process.Id);
+                            launchInfo.CommandLine = commandLine;
+                        }
+                    }
                     if (string.IsNullOrWhiteSpace(commandLine))
                     {
                         return false;
@@ -174,7 +220,8 @@ namespace NetBannerNG.Service
                 LaunchedProcesses[process.Id] = new LaunchedProcessInfo
                 {
                     StartTimeUtc = SafeGetStartTimeUtc(process),
-                    PipeName = pipeName
+                    PipeName = pipeName,
+                    CommandLine = $"--pipe={pipeName}"
                 };
             }
         }
