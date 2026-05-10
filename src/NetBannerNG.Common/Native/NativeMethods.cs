@@ -68,7 +68,7 @@ namespace NetBannerNG.Common.Native
         [DllImport("advapi32", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern int OpenProcessToken(IntPtr processHandle, // handle to process
-            SecurityImpersonationLevel desiredAccess, // desired access to process
+            TokenAccessRights desiredAccess, // desired access to process
             ref IntPtr tokenHandle // handle to open access token
         );
 

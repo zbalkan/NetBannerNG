@@ -107,9 +107,9 @@ namespace NetBannerNG.Common.Native
 
             var hToken = IntPtr.Zero;
 
-            var token = NativeMethods.OpenProcessToken(process.Handle, SecurityImpersonationLevel.TokenQuery |
-                                                                      SecurityImpersonationLevel.TokenImpersonate |
-                                                                      SecurityImpersonationLevel.TokenDuplicate, ref hToken) == 0
+            var token = NativeMethods.OpenProcessToken(process.Handle, TokenAccessRights.TokenQuery |
+                                                                      TokenAccessRights.TokenImpersonate |
+                                                                      TokenAccessRights.TokenDuplicate, ref hToken) == 0
                 ? throw new SecurityException($"Failed to access the token of the owner of {process.ProcessName}")
                 : hToken;
             return new WindowsIdentity(token);
