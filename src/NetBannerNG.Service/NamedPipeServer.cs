@@ -128,7 +128,11 @@ namespace NetBannerNG.Service
                     Text = $"{isAdmin}"
                 };
                 bootstrapMessage.Checksum = PipeMessageChecksum.Compute(bootstrapMessage);
-                await args.Connection.WriteAsync(bootstrapMessage).ConfigureAwait(false);
+                await _timeoutPolicy
+                    .ExecuteAsync(
+                        _ => args.Connection.WriteAsync(bootstrapMessage),
+                        new Context($"{nameof(NamedPipeServer)}.{nameof(OnClientConnectedAsync)}.{nameof(args.Connection.WriteAsync)}"))
+                    .ConfigureAwait(false);
                 Debug.WriteLine($"[PipeServer]  BootstrapSent action={bootstrapMessage.Action} checksum_len={bootstrapMessage.Checksum?.Length ?? 0} checksum={ByteArrayToString(bootstrapMessage.Checksum!)}");
             }
             catch (IOException ex)
