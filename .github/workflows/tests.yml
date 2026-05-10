@@ -1,0 +1,74 @@
+name: PR Tests
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.config'
+      - '**/packages.config'
+      - '**/global.json'
+      - '**/Directory.Build.props'
+      - '**/Directory.Build.targets'
+      - '**/Directory.Packages.props'
+      - '**/nuget.config'
+      - '.github/workflows/tests.yml'
+
+  push:
+    branches:
+      - master
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.config'
+      - '**/packages.config'
+      - '**/global.json'
+      - '**/Directory.Build.props'
+      - '**/Directory.Build.targets'
+      - '**/Directory.Packages.props'
+      - '**/nuget.config'
+      - '.github/workflows/tests.yml'
+
+  workflow_dispatch:
+  
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@fd55a6f3b34392fa83fde1454582407d8c714123
+
+      - name: Restore packages
+        run: nuget restore src/NetBannerNG.sln
+
+      - name: Build solution (Release)
+        run: msbuild src/NetBannerNG.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Run unit tests
+        run: dotnet test src/NetBannerNG.Tests/NetBannerNG.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=results.trx" --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: test-results
+          path: TestResults/**/*.trx
+          if-no-files-found: ignore

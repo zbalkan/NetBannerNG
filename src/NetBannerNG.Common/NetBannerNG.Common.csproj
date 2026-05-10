@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>12.0</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<AnalysisMode>All</AnalysisMode>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />
+		<PackageReference Include="MessagePack" Version="3.1.4">
+			<TreatAsUsed>true</TreatAsUsed>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="PresentationCore" />
+	  <Reference Include="PresentationFramework" />
+	  <Reference Include="System.DirectoryServices" />
+	  <Reference Include="System.DirectoryServices.AccountManagement" />
+	  <Reference Include="WindowsBase" />
+	</ItemGroup>
+</Project>

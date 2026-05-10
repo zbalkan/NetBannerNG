@@ -1,0 +1,14 @@
+﻿<borders:BorderBase
+    x:Class="NetBannerNG.Borders.LeftBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:borders="clr-namespace:NetBannerNG.Borders"
+    Title="LeftBar"
+    Closing="BorderBase_Closing"
+    MouseDoubleClick="Window_MouseDoubleClick"
+    ResizeMode="NoResize"
+    ScrollViewer.CanContentScroll="False"
+    ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+    ScrollViewer.VerticalScrollBarVisibility="Hidden"
+    ShowInTaskbar="False"
+    WindowStyle="None" />
