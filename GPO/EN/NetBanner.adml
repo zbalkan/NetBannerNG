@@ -6,8 +6,7 @@
   </description>
   <resources>
     <stringTable>
-      <!-- Legacy NetBanner strings map to existing numeric values and must remain stable. -->
-      <!-- New NetBannerNG-only strings should be added with new IDs and documented as NetBannerNG-specific. -->
+      <!-- Legacy NetBanner labels/IDs retained for old NetBanner compatibility. -->
       <string id="unknown_0">NetBanner</string>
       <string id="unknown_1">Classification</string>
       <string id="unknown_7">Custom Settings</string>
@@ -41,6 +40,24 @@
       <string id="unknown_36">Delta</string>
       <string id="unknown_8">If this policy setting is configured, Classification and Caveats policy settings are ignored.</string>
       <string id="SizeMessage">40 Characters Max</string>
+
+      <!-- NetBannerNG-specific additions for registry values consumed by Settings.cs -->
+      <string id="ng_classification_5">Public</string>
+      <string id="ng_classification_6">Restricted</string>
+      <string id="ng_classification_7">Confidential</string>
+      <string id="ng_classification_8">Sensitive</string>
+      <string id="ng_classification_9">For Official Use Only</string>
+      <string id="ng_cpcon_display">Cyber Protection Condition</string>
+      <string id="ng_cpcon_help">NetBannerNG-only policy for CpCon registry value used in classification metadata.</string>
+      <string id="ng_fontsize_display">Font Size (NetBannerNG)</string>
+      <string id="ng_fontsize_help">NetBannerNG-only policy for FontSize registry value.</string>
+      <string id="ng_bannersize_display">Banner Size (NetBannerNG)</string>
+      <string id="ng_bannersize_help">NetBannerNG-only policy for BannerSize registry value.</string>
+      <string id="ng_heartbeat_display">Heartbeat Seconds (NetBannerNG)</string>
+      <string id="ng_heartbeat_help">NetBannerNG-only policy for Heartbeat registry value.</string>
+      <string id="ng_disableborders_display">Disable Borders (NetBannerNG)</string>
+      <string id="ng_disableborders_help">NetBannerNG-only policy for DisableBorders registry value.</string>
+
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>
       <string id="Caveats_Help">Allows administrators to enter free form text.</string>
@@ -56,9 +73,7 @@
       <presentation id="CustomSettings">
         <dropdownList refId="BackgroundColor" defaultItem="0">Background Color</dropdownList>
         <dropdownList refId="TextColor" defaultItem="0">Text Color</dropdownList>
-        <textBox refId="DisplayText">
-          <label>Display Text</label>
-        </textBox>
+        <textBox refId="DisplayText"><label>Display Text</label></textBox>
       </presentation>
       <presentation id="InformationCondition">
         <dropdownList refId="InformationCondition" noSort="true" defaultItem="4">Information Condition</dropdownList>
@@ -66,10 +81,20 @@
       <presentation id="ForceProtectionCondition">
         <dropdownList refId="ForceProtection" noSort="true" defaultItem="0">Force Protection</dropdownList>
       </presentation>
+      <presentation id="CyberProtectionCondition">
+        <dropdownList refId="CyberProtection" noSort="true" defaultItem="4">Cyber Protection Condition</dropdownList>
+      </presentation>
       <presentation id="Caveats">
-        <textBox refId="SizeMessage">
-          <label>40 Characters Max</label>
-        </textBox>
+        <textBox refId="SizeMessage"><label>40 Characters Max</label></textBox>
+      </presentation>
+      <presentation id="FontSize">
+        <decimalTextBox refId="FontSizeValue" defaultValue="9" spin="true"><label>Font size (6-48)</label></decimalTextBox>
+      </presentation>
+      <presentation id="BannerSize">
+        <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true"><label>Banner size (10-100)</label></decimalTextBox>
+      </presentation>
+      <presentation id="Heartbeat">
+        <decimalTextBox refId="HeartbeatValue" defaultValue="20" spin="true"><label>Heartbeat seconds (1-3600)</label></decimalTextBox>
       </presentation>
     </presentationTable>
   </resources>
