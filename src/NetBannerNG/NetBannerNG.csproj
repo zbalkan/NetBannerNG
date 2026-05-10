@@ -1,0 +1,101 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net481</TargetFramework>
+		<OutputType>WinExe</OutputType>
+		<UseWPF>true</UseWPF>
+		<LangVersion>12.0</LangVersion>
+		<ImplicitUsings>disable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<AnalysisMode>All</AnalysisMode>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+
+		<Product>NetBannerNG</Product>
+		<AssemblyName>NetBannerNG</AssemblyName>
+		<RootNamespace>NetBannerNG</RootNamespace>
+
+		<Version>1.0.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<InstallerVersion>$(Version)</InstallerVersion>
+		
+		<Company>Zafer Balkan</Company>
+		<Authors>Zafer Balkan</Authors>
+		<Description>NetBannerNG</Description>
+		<Copyright>All Rights Reserved</Copyright>
+		<ApplicationIcon>..\Assets\DeltaZulu - dark.ico</ApplicationIcon>
+
+		<InstallerAppId>{8D938B9B-8B7D-4A87-9E86-4E7E471C4B6A}</InstallerAppId>
+		<InstallerUrl>https://zaferbalkan.com</InstallerUrl>
+
+		<NetBannerNGServiceExeName>NetBannerNG.Service.exe</NetBannerNGServiceExeName>
+		<NetBannerNGServiceName>NetBannerNGWatchdog</NetBannerNGServiceName>
+		<NetBannerNGServiceDisplayName>NetBannerNG Watchdog Service</NetBannerNGServiceDisplayName>
+		<NetBannerNGServiceDescription>Privileged watchdog service for NetBannerNG.</NetBannerNGServiceDescription>
+
+		<NetBannerNGEventLogName>Application</NetBannerNGEventLogName>
+		<NetBannerNGEventLogSource>NetBannerNG</NetBannerNGEventLogSource>
+		<NetBannerNGRegistryKey>SOFTWARE\NetBannerNG</NetBannerNGRegistryKey>
+		<NetBannerNGProgramDataDir>NetBannerNG</NetBannerNGProgramDataDir>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
+		<Optimize>false</Optimize>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="AppData\**">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />
+		<PackageReference Include="H.Pipes" Version="15.0.0" />
+		<PackageReference Include="Polly" Version="8.6.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
+	</ItemGroup>
+
+	<Target Name="GenerateInnoBuildInfo" AfterTargets="Build">
+
+		<PropertyGroup>
+			<InstallerDir>$(MSBuildProjectDirectory)\..\..\installer</InstallerDir>
+			<InstallerGeneratedDir>$(InstallerDir)\generated</InstallerGeneratedDir>
+			<InnoBuildInfoFile>$(InstallerGeneratedDir)\NetBannerNG.BuildInfo.issinc</InnoBuildInfoFile>
+		</PropertyGroup>
+
+		<MakeDir Directories="$(InstallerGeneratedDir)" />
+
+		<ItemGroup>
+			<InnoBuildInfoLines Include='#define MyAppId "$(InstallerAppId)"' />
+			<InnoBuildInfoLines Include='#define MyAppName "$(Product)"' />
+			<InnoBuildInfoLines Include='#define MyAppVersion "$(InstallerVersion)"' />
+			<InnoBuildInfoLines Include='#define MyAppPublisher "$(Company)"' />
+			<InnoBuildInfoLines Include='#define MyAppURL "$(InstallerUrl)"' />
+
+			<InnoBuildInfoLines Include='#define MyUiExeName "$(TargetFileName)"' />
+			<InnoBuildInfoLines Include='#define MyServiceExeName "$(NetBannerNGServiceExeName)"' />
+
+			<InnoBuildInfoLines Include='#define MyServiceName "$(NetBannerNGServiceName)"' />
+			<InnoBuildInfoLines Include='#define MyServiceDisplayName "$(NetBannerNGServiceDisplayName)"' />
+			<InnoBuildInfoLines Include='#define MyServiceDescription "$(NetBannerNGServiceDescription)"' />
+
+			<InnoBuildInfoLines Include='#define MyEventLogName "$(NetBannerNGEventLogName)"' />
+			<InnoBuildInfoLines Include='#define MyEventLogSource "$(NetBannerNGEventLogSource)"' />
+			<InnoBuildInfoLines Include='#define MyAppRegistryKey "$(NetBannerNGRegistryKey)"' />
+			<InnoBuildInfoLines Include='#define MyProgramDataDir "$(NetBannerNGProgramDataDir)"' />
+		</ItemGroup>
+
+		<WriteLinesToFile
+		  File="$(InnoBuildInfoFile)"
+		  Lines="@(InnoBuildInfoLines)"
+		  Overwrite="true"
+		  Encoding="UTF-8" />
+
+	</Target>
+
+</Project>

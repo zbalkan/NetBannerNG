@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net481</TargetFramework>
+		<LangVersion>12.0</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<AnalysisMode>All</AnalysisMode>
+		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0">
+			<TreatAsUsed>true</TreatAsUsed>
+		</PackageReference>
+		<PackageReference Include="H.Pipes.AccessControl" Version="15.0.0" />
+		<PackageReference Include="Polly" Version="8.6.6" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.7" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\NetBannerNG.Common\NetBannerNG.Common.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="System.Management" />
+	</ItemGroup>
+</Project>

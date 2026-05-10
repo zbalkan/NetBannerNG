@@ -1,0 +1,128 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@30375c66a4eea26614e0d39710365f22f8b0af57
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@fd55a6f3b34392fa83fde1454582407d8c714123
+
+      - name: Restore packages
+        run: nuget restore src/NetBannerNG.sln
+
+      - name: Build solution (Release)
+        run: msbuild src/NetBannerNG.sln /p:Configuration=Release /p:Platform="Any CPU" /m
+
+      - name: Read release metadata from generated Inno include
+        id: metadata
+        shell: pwsh
+        run: |
+          $buildInfoPath = 'installer/generated/NetBannerNG.BuildInfo.issinc'
+
+          if (-not (Test-Path $buildInfoPath)) {
+            throw "Generated Inno build info file not found at '$buildInfoPath'. Ensure the NetBannerNG.csproj GenerateInnoBuildInfo target ran during build."
+          }
+
+          $content = Get-Content $buildInfoPath -Raw
+
+          function Read-InnoDefine {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$Name
+            )
+
+            $pattern = "(?m)^#define\s+$([regex]::Escape($Name))\s+`"(?<value>.*)`"\s*$"
+            $match = [regex]::Match($content, $pattern)
+
+            if (-not $match.Success) {
+              throw "Unable to read Inno define '$Name' from '$buildInfoPath'."
+            }
+
+            return $match.Groups['value'].Value
+          }
+
+          $appName = Read-InnoDefine 'MyAppName'
+          $version = Read-InnoDefine 'MyAppVersion'
+
+          if ([string]::IsNullOrWhiteSpace($appName)) {
+            throw "MyAppName is empty in '$buildInfoPath'."
+          }
+
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "MyAppVersion is empty in '$buildInfoPath'."
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Installer version '$version' is not a 3-part version. Expected format: major.minor.patch."
+          }
+
+          $tag = "v$version"
+
+          "app_name=$appName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "App name: $appName"
+          Write-Host "Version: $version"
+          Write-Host "Tag: $tag"
+
+      - name: Validate release tag is new
+        shell: pwsh
+        run: |
+          $tag = '${{ steps.metadata.outputs.tag }}'
+          $existingTag = git ls-remote --tags --refs origin "refs/tags/$tag"
+
+          if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
+            throw "Tag '$tag' already exists. Bump <Version> in src/NetBannerNG/NetBannerNG.csproj before releasing."
+          }
+
+      - name: Build installer with Inno Setup
+        uses: Minionguyjpro/Inno-Setup-Action@202dd0c4950ef315b6ba13359998fe120179b147
+        with:
+          path: installer/setup.iss
+
+      - name: Prepare release artifacts
+        id: artifacts
+        shell: pwsh
+        run: |
+          $appName = '${{ steps.metadata.outputs.app_name }}'
+          $version = '${{ steps.metadata.outputs.version }}'
+          $installerPath = "installer/installer-output/$appName-$version-Setup.exe"
+
+          if (-not (Test-Path $installerPath)) {
+            throw "Installer not found at '$installerPath'. Check OutputDir and OutputBaseFilename in installer/setup.iss."
+          }
+
+          $sha256 = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          $shaPath = "$installerPath.sha256"
+          $installerFileName = Split-Path $installerPath -Leaf
+
+          "${sha256} *${installerFileName}" | Set-Content -Path $shaPath -NoNewline
+
+          "installer_path=$installerPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "sha_path=$shaPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
+        with:
+          tag_name: ${{ steps.metadata.outputs.tag }}
+          name: ${{ steps.metadata.outputs.app_name }} v${{ steps.metadata.outputs.version }}
+          generate_release_notes: true
+          files: |
+            ${{ steps.artifacts.outputs.installer_path }}
+            ${{ steps.artifacts.outputs.sha_path }}

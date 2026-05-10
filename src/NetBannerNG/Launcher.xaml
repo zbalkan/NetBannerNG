@@ -1,0 +1,22 @@
+﻿<Window
+    x:Class="NetBannerNG.Launcher"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:NetBannerNG"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Launcher"
+    Width="0"
+    Height="0"
+    Closing="Window_Closing"
+    ResizeMode="NoResize"
+    ScrollViewer.CanContentScroll="False"
+    ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+    ScrollViewer.VerticalScrollBarVisibility="Hidden"
+    ShowInTaskbar="False"
+    Top="-100"
+    Visibility="Hidden"
+    WindowStyle="ToolWindow"
+    mc:Ignorable="d">
+    <Grid />
+</Window>
