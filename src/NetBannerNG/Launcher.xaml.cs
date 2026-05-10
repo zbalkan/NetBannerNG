@@ -14,14 +14,7 @@ namespace NetBannerNG
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (Utils.AdminHelper.IsAdmin)
-            {
-                App.ShutDownGracefully();
-            }
-            else
-            {
-                e.Cancel = true;
-            }
+            App.ShutDownGracefully();
         }
     }
 }

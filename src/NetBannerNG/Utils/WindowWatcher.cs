@@ -36,6 +36,16 @@ namespace NetBannerNG.Utils
 
             _ = NativeMethods.UnhookWinEvent(_hookId);
             _hookId = default;
+
+            if (_debounceTimer != null)
+            {
+                _debounceTimer.Stop();
+                _debounceTimer.Tick -= OnDebounceTick;
+                _debounceTimer = null;
+            }
+
+            _pendingSendTop = false;
+            _pendingSendBottom = false;
         }
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(

@@ -75,6 +75,7 @@ namespace NetBannerNG.Common.NamedPipes
             }
             finally
             {
+                Array.Clear(payload, 0, payloadLength);
                 ArrayPool<byte>.Shared.Return(payload);
             }
         }
