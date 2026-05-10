@@ -55,6 +55,14 @@ namespace NetBannerNG.Common.Native
             ref StartupInfo lpStartupInfo,
             out ProcessInformation lpProcessInformation);
 
+        [DllImport("userenv.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        internal static extern bool CreateEnvironmentBlock(out IntPtr lpEnvironment, IntPtr hToken, bool bInherit);
+
+        [DllImport("userenv.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        internal static extern bool DestroyEnvironmentBlock(IntPtr lpEnvironment);
+
         [DllImport("advapi32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern bool DuplicateToken(IntPtr existingTokenHandle, int securityImpersonationLevel, ref IntPtr duplicateTokenHandle);

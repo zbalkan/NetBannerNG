@@ -41,7 +41,10 @@ namespace NetBannerNG.Borders
             DataContext = Settings.Instance;
         }
 
-        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();
+        private static void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
 
         private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
