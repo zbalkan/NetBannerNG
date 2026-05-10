@@ -18,10 +18,10 @@ The current design generally matches the expected architecture:
 3. **UI shuts down when service/pipe disconnects**, allowing service to re-provision the UI.
 
 ## Gaps / risks
-1. **Debug/interactive service mode does not actually start child process.**
-   In `NetBannerNG.Service/ProcessHelper.cs`, the `Process.Start(psi)` call is commented out inside `Environment.UserInteractive` branch. This makes interactive-mode watchdog validation unreliable.
-2. **Pipe ACL currently allows all authenticated users.**
-   `PipeSecurityPolicy` grants read/write to `AuthenticatedUserSid`. This is broad and may allow unrelated local users to connect to the service pipe.
+1. **Session targeting can still be challenging in RDP-heavy environments.**
+   Service launch/reconciliation remains tied to active-session discovery and may need additional policy for multi-session precedence.
+2. **Observability and least-privilege hardening should be continuously validated.**
+   Keep lifecycle and authorization logging/tests aligned with implementation as the service evolves.
 
 ## Recommendation
 - Keep the production pattern (service-as-watchdog + user-session UI) as-is.

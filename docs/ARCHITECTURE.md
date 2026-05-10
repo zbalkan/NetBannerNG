@@ -48,11 +48,11 @@ Supported policy areas in the supplied ADMX include:
 
 Defaults currently used by app settings loader:
 
-- `Classification = Public`
+- `Classification = UNCLASSIFIED`
 - `BannerColor = Green`
 - `FontColor = White`
 - `FontSize = 9`
-- `BannerSize = 20`
+- `BannerSize = 28`
 - `Heartbeat = 20`
 - `DisableBorders = false`
 
@@ -93,7 +93,7 @@ In Release builds, interactive hosting is disabled and the executable only runs 
 
 - Installs files under `Program Files\NetBannerNG`
 - Creates shortcuts
-- Registers service name `netbannerng`
+- Registers service name `NetBannerNGWatchdog`
 - Starts service on install
 - Stops/deletes service on uninstall
 

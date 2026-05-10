@@ -30,14 +30,14 @@ namespace NetBannerNG
 
         internal static async Task ShutDownGracefullyAsync()
         {
-            if (Interlocked.Exchange(ref _shutdownStarted, 1) == 1)
-            {
-                return;
-            }
-
             if (Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
             {
                 _ = dispatcher.BeginInvoke(new Func<Task>(ShutDownGracefullyAsync));
+                return;
+            }
+
+            if (Interlocked.Exchange(ref _shutdownStarted, 1) == 1)
+            {
                 return;
             }
 

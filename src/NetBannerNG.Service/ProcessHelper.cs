@@ -91,14 +91,14 @@ namespace NetBannerNG.Service
             validatedPath = GetChildProcessPath();
             if (!File.Exists(validatedPath))
             {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"File not found: {validatedPath}");
+                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, validatedPath, "File not found.");
                 return false;
             }
 
             validatedPath = Path.GetFullPath(validatedPath);
             if (!validatedPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Invalid executable path: {validatedPath}");
+                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, validatedPath, "Path must target an .exe file.");
                 return false;
             }
 
@@ -162,7 +162,7 @@ namespace NetBannerNG.Service
             }
             catch (Exception ex)
             {
-                Program.Log.LogInformation(EventLogCatalog.ProcessFailedToKill, process.Id, $"Identity check failed: {ex.GetType().Name}");
+                Program.Log.LogInformation(EventLogCatalog.ProcessIdentityValidationFailed, process.Id, ex.GetType().Name);
                 return false;
             }
         }
