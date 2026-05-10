@@ -37,7 +37,7 @@ namespace NetBannerNG.Utils
         private static bool IsUp(NetworkInterface ni) => ni.OperationalStatus == OperationalStatus.Up;
 
         private static bool IsPhysical(NetworkInterface ni) =>
-            // If it is wired or wireleess it is not virtual
+            // If it is wired or wireless it is not virtual
             ni.NetworkInterfaceType is NetworkInterfaceType.Wireless80211 or NetworkInterfaceType.Ethernet;
 
         private static bool HasSpecifiedGateway(IPInterfaceProperties properties)

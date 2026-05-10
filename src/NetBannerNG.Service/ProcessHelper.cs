@@ -39,7 +39,7 @@ namespace NetBannerNG.Service
                     {
                         TrackLaunchedProcess(process, pipeName);
                     }
-                    Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
+                    Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
                     return true;
                 }
                 catch (Exception ex)
@@ -57,7 +57,7 @@ namespace NetBannerNG.Service
             }
 
             TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName);
-            Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccesfully, psi.FileName);
+            Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
             return true;
         }
 

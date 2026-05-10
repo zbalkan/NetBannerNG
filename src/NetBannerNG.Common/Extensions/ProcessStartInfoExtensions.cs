@@ -67,7 +67,7 @@ namespace NetBannerNG.Common.Extensions
 
             if (!NativeMethods.CreateProcessAsUser(userToken, // user token
                 path, // executable path
-                string.Empty, // arguments
+                BuildCommandLine(path, psi.Arguments), // command line
                 ref sa, // process security attributes ( none )
                 ref sa, // thread  security attributes ( none )
                 false, // inherit handles?
@@ -92,6 +92,12 @@ namespace NetBannerNG.Common.Extensions
                 _ = NativeMethods.CloseHandle(processInformation.hThread);
                 _ = NativeMethods.CloseHandle(processInformation.hProcess);
             }
+        }
+
+        private static string BuildCommandLine(string executablePath, string? arguments)
+        {
+            var quotedPath = $"\"{executablePath}\"";
+            return string.IsNullOrWhiteSpace(arguments) ? quotedPath : $"{quotedPath} {arguments}";
         }
     }
 }

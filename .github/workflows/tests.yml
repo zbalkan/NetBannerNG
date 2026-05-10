@@ -19,7 +19,7 @@ on:
       - '**/Directory.Build.targets'
       - '**/Directory.Packages.props'
       - '**/nuget.config'
-      - '.github/workflows/pr-tests.yml'
+      - '.github/workflows/tests.yml'
 
   push:
     branches:
@@ -38,7 +38,7 @@ on:
       - '**/Directory.Build.targets'
       - '**/Directory.Packages.props'
       - '**/nuget.config'
-      - '.github/workflows/pr-tests.yml'
+      - '.github/workflows/tests.yml'
 
   workflow_dispatch:
   

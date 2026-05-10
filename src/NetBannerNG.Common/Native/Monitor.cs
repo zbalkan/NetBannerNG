@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -74,7 +75,13 @@ namespace NetBannerNG.Common.Native
 
         public override bool Equals(object? obj) => obj is Monitor monitor && EqualityComparer<Rect>.Default.Equals(Bounds, monitor.Bounds) && IsPrimary == monitor.IsPrimary && Name == monitor.Name && EqualityComparer<Rect>.Default.Equals(WorkingArea, monitor.WorkingArea) && Handle.Equals(monitor.Handle);
 
-        public bool Equals(Monitor? other) => Equals(other);
+        public bool Equals(Monitor? other) =>
+            other is not null &&
+            EqualityComparer<Rect>.Default.Equals(Bounds, other.Bounds) &&
+            IsPrimary == other.IsPrimary &&
+            Name == other.Name &&
+            EqualityComparer<Rect>.Default.Equals(WorkingArea, other.WorkingArea) &&
+            Handle.Equals(other.Handle);
 
         public override int GetHashCode() => (Bounds, IsPrimary, Name, WorkingArea, Handle).GetHashCode();
 
@@ -112,7 +119,13 @@ namespace NetBannerNG.Common.Native
 
             public override bool Equals(object? obj) => obj is MonitorInfoEx ex && cbSize == ex.cbSize && rcMonitor.Equals(ex.rcMonitor) && rcWork.Equals(ex.rcWork) && dwFlags == ex.dwFlags && EqualityComparer<char[]>.Default.Equals(szDevice, ex.szDevice);
 
-            public bool Equals(MonitorInfoEx? other) => Equals(other);
+            public bool Equals(MonitorInfoEx? other) =>
+                other is not null &&
+                cbSize == other.cbSize &&
+                rcMonitor.Equals(other.rcMonitor) &&
+                rcWork.Equals(other.rcWork) &&
+                dwFlags == other.dwFlags &&
+                ((szDevice == other.szDevice) || (szDevice != null && other.szDevice != null && szDevice.SequenceEqual(other.szDevice)));
 
             public override int GetHashCode() => (cbSize, rcMonitor, rcWork, dwFlags, szDevice).GetHashCode();
 

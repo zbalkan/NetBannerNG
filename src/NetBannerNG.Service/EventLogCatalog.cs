@@ -32,7 +32,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition PipeInboundRejectedUnauthorizedSession = new(3014, "Rejected inbound message from unauthorized/unbound client. ExpectedSession={0}, Pipe={1}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
-        public static readonly EventDefinition ProcessStartedSuccesfully = new(4001, "Started process: {0}");
+        public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");
         public static readonly EventDefinition ProcessStartFailed = new(4002, "Failed to start process: {0}. Error: {1}");
         public static readonly EventDefinition ProcessFailedToKill = new(4003, "Failed to kill process PID={0}. Error: {1}");
         public static readonly EventDefinition SessionChangedReinitializingPipe = new(4004, "Interactive session changed from {0} to {1}; reinitializing per-session pipe server.");

@@ -146,13 +146,13 @@ namespace NetBannerNG.Common.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
-        [DllImport("user32", CharSet = CharSet.Auto)]
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtr", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+        public static extern IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex);
 
-        [DllImport("user32", CharSet = CharSet.Auto)]
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtr", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-        public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
 
         [DllImport("kernel32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

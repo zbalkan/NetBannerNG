@@ -10,25 +10,13 @@ namespace NetBannerNG.Utils
 {
     internal static class WindowExtensions
     {
-        internal static void DockTop(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
-        {
-            Dock(border, DockEdge.Top, childElement, topMost);
-        }
+        internal static void DockTop(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true) => Dock(border, DockEdge.Top, childElement, topMost);
 
-        internal static void DockBottom(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
-        {
-            Dock(border, DockEdge.Bottom, childElement, topMost);
-        }
+        internal static void DockBottom(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true) => Dock(border, DockEdge.Bottom, childElement, topMost);
 
-        internal static void DockLeft(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
-        {
-            Dock(border, DockEdge.Left, childElement, topMost);
-        }
+        internal static void DockLeft(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true) => Dock(border, DockEdge.Left, childElement, topMost);
 
-        internal static void DockRight(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true)
-        {
-            Dock(border, DockEdge.Right, childElement, topMost);
-        }
+        internal static void DockRight(this BorderBase border, FrameworkElement? childElement = null, bool topMost = true) => Dock(border, DockEdge.Right, childElement, topMost);
 
         internal static void Undock(this BorderBase border)
         {
@@ -61,19 +49,26 @@ namespace NetBannerNG.Utils
 
             if (window.Owner != null)
             {
-                var result = SetWindowLong(windowHandle, gwlHwndParent, (int)window.Owner.GetHandle());
-                if (result == 0)
+                Marshal.GetLastWin32Error();
+                _ = SetWindowLongPtr(windowHandle, gwlHwndParent, window.Owner.GetHandle());
+                var lastError = Marshal.GetLastWin32Error();
+                if (lastError != 0)
                 {
-                    throw new InvalidOperationException($"Failed to set window parent. Error code: {Marshal.GetLastWin32Error()}");
+                    throw new InvalidOperationException($"Failed to set window parent. Error code: {lastError}");
                 }
             }
 
-            var currentStyle = GetWindowLong(windowHandle, gwlExstyle);
+            var currentStyle = GetWindowLongPtr(windowHandle, gwlExstyle).ToInt64();
             var newStyle = (currentStyle | wsExToolwindow) & ~wsExAppwindow;
-            var result2 = SetWindowLong(windowHandle, gwlExstyle, newStyle);
-            if (result2 == 0)
+            Marshal.GetLastWin32Error();
+            var result2 = SetWindowLongPtr(windowHandle, gwlExstyle, new IntPtr(newStyle));
+            if (result2 == IntPtr.Zero)
             {
-                throw new InvalidOperationException($"Failed to set extended window style. Error code: {Marshal.GetLastWin32Error()}");
+                var lastError = Marshal.GetLastWin32Error();
+                if (lastError != 0)
+                {
+                    throw new InvalidOperationException($"Failed to set extended window style. Error code: {lastError}");
+                }
             }
         }
     }
