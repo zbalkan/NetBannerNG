@@ -15,6 +15,10 @@ namespace NetBannerNG.Common.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern bool CloseHandle(IntPtr handle);
 
+        [DllImport("kernel32.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern void SetLastError(uint dwErrCode);
+
         /// <summary>
         /// The WTSGetActiveConsoleSessionId function retrieves the Remote Desktop Services session that
         /// is currently attached to the physical console. The physical console is the monitor, keyboard, and mouse.

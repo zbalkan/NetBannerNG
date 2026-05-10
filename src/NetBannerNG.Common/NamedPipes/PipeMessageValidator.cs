@@ -4,7 +4,7 @@ namespace NetBannerNG.Common.NamedPipes
     {
         public const int MaxLogTextLength = 4096;
 
-        public static bool IsValidInboundClientMessage(PipeMessage message)
+        public static bool IsValidInboundClientMessage(PipeMessage? message)
         {
             if (message == null)
             {

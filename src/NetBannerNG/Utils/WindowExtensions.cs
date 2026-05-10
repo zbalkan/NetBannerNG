@@ -49,18 +49,21 @@ namespace NetBannerNG.Utils
 
             if (window.Owner != null)
             {
-                Marshal.GetLastWin32Error();
-                _ = SetWindowLongPtr(windowHandle, gwlHwndParent, window.Owner.GetHandle());
-                var lastError = Marshal.GetLastWin32Error();
-                if (lastError != 0)
+                SetLastError(0);
+                var result = SetWindowLongPtr(windowHandle, gwlHwndParent, window.Owner.GetHandle());
+                if (result == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException($"Failed to set window parent. Error code: {lastError}");
+                    var lastError = Marshal.GetLastWin32Error();
+                    if (lastError != 0)
+                    {
+                        throw new InvalidOperationException($"Failed to set window parent. Error code: {lastError}");
+                    }
                 }
             }
 
             var currentStyle = GetWindowLongPtr(windowHandle, gwlExstyle).ToInt64();
             var newStyle = (currentStyle | wsExToolwindow) & ~wsExAppwindow;
-            Marshal.GetLastWin32Error();
+            SetLastError(0);
             var result2 = SetWindowLongPtr(windowHandle, gwlExstyle, new IntPtr(newStyle));
             if (result2 == IntPtr.Zero)
             {

@@ -118,7 +118,13 @@ namespace NetBannerNG.Utils
             }
 
             // if window is one of ours, ignore the calculation
-            return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
+            var dispatcher = Application.Current.Dispatcher;
+            if (dispatcher.CheckAccess())
+            {
+                return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
+            }
+
+            return !dispatcher.Invoke(() => Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle())));
         }
 
         private static bool IsFullScreen(IntPtr current)
