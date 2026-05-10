@@ -21,9 +21,15 @@ namespace NetBannerNG.Common.Extensions
                 throw new ArgumentNullException(nameof(psi));
             }
 
-            var result = PrivilegeHelper.GetActiveUser(out var user) && psi.RunImpersonated(user!);
-            user?.Dispose();
-            return result;
+            WindowsIdentity? user = null;
+            try
+            {
+                return PrivilegeHelper.GetActiveUser(out user) && psi.RunImpersonated(user!);
+            }
+            finally
+            {
+                user?.Dispose();
+            }
         }
 
         /// <summary>
