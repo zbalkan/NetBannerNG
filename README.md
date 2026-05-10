@@ -69,7 +69,7 @@ NetBannerNG reads NetBanner-compatible policy values from:
 
 - `HKLM\Software\Policies\Microsoft\NetBanner`
 
-The repository includes policy templates in `GPO/`.
+The repository includes policy templates in `GPO/`, sourced from the NetBanner Formula project: https://github.com/plus3it/netbanner-formula.
 
 ## Installation
 
@@ -90,4 +90,4 @@ The installer places binaries under Program Files and installs/starts the NetBan
 ## Project status
 
 - FPCON and INFOCON support added
-- Original NetBanner GPO files added
+- Original NetBanner GPO files added (source: https://github.com/plus3it/netbanner-formula)

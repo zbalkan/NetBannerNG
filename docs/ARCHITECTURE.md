@@ -14,7 +14,7 @@ This document is for developers and system administrators.
   Shared primitives: appbar helpers, native interop, named pipe contracts, process/security helpers.
 
 - `GPO/NetBanner.admx`  
-  NetBanner-compatible policy definition template.
+  NetBanner-compatible policy definition template (sourced from https://github.com/plus3it/netbanner-formula).
 
 - `installer/setup.iss`  
   Inno Setup installer definition.
