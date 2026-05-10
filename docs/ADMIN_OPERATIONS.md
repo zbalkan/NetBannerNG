@@ -10,7 +10,7 @@ This guide covers day-2 operations for NetBannerNG:
 - Upgrade
 - Rollback
 
-> NetBannerNG installs a Windows service named `netbannerng` and reads policy from `HKLM\Software\Policies\Microsoft\NetBanner`.
+> NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\Software\Policies\Microsoft\NetBanner`.
 
 ---
 
@@ -23,8 +23,8 @@ This guide covers day-2 operations for NetBannerNG:
 3. Verify service registration/start:
 
 ```powershell
-Get-Service netbannerng
-sc.exe qc netbannerng
+Get-Service NetBannerNGWatchdog
+sc.exe qc NetBannerNGWatchdog
 ```
 
 Expected state after install:
@@ -36,8 +36,8 @@ Expected state after install:
 
 ```cmd
 set APPDIR=C:\Program Files\NetBannerNG
-sc.exe create "netbannerng" start= auto binPath= "%APPDIR%\NetBannerNG.Service.exe" displayname= "NetBannerNG Service"
-sc.exe start "netbannerng"
+sc.exe create "NetBannerNGWatchdog" start= auto binPath= "%APPDIR%\NetBannerNG.Service.exe" displayname= "NetBannerNG Service"
+sc.exe start "NetBannerNGWatchdog"
 ```
 
 ---
@@ -50,8 +50,8 @@ sc.exe start "netbannerng"
 ### Option B: scripted remove example
 
 ```cmd
-sc.exe stop "netbannerng"
-sc.exe delete "netbannerng"
+sc.exe stop "NetBannerNGWatchdog"
+sc.exe delete "NetBannerNGWatchdog"
 ```
 
 Then remove residual binaries if needed:
@@ -79,7 +79,7 @@ reg export "HKLM\SOFTWARE\NetBannerNG" "C:\Temp\NetBannerNG-local-backup.reg" /y
 ### Post-upgrade verification examples
 
 ```powershell
-Get-Service netbannerng
+Get-Service NetBannerNGWatchdog
 Get-Item "C:\Program Files\NetBannerNG\NetBannerNG.Service.exe" | Select-Object FullName,LastWriteTime,Length
 ```
 
@@ -103,8 +103,8 @@ Recommended rollback pattern:
 ### Rollback command examples
 
 ```cmd
-sc.exe stop "netbannerng"
-sc.exe delete "netbannerng"
+sc.exe stop "NetBannerNGWatchdog"
+sc.exe delete "NetBannerNGWatchdog"
 ```
 
 Install prior version, then restore backups if needed:
@@ -112,7 +112,7 @@ Install prior version, then restore backups if needed:
 ```powershell
 reg import "C:\Temp\NetBanner-policy-backup.reg"
 reg import "C:\Temp\NetBannerNG-local-backup.reg"
-Get-Service netbannerng
+Get-Service NetBannerNGWatchdog
 ```
 
 ---
@@ -120,8 +120,8 @@ Get-Service netbannerng
 ## 5) Troubleshooting quick checks
 
 ```powershell
-Get-Service netbannerng
-sc.exe query netbannerng
+Get-Service NetBannerNGWatchdog
+sc.exe query NetBannerNGWatchdog
 tasklist /fi "imagename eq NetBannerNG.exe"
 ```
 

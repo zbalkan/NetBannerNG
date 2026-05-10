@@ -25,7 +25,15 @@ namespace NetBannerNG.Utils
         private static bool _pendingSendBottom;
         private static DispatcherTimer? _debounceTimer;
 
-        internal static void Watch() => _hookId = SetHook(ForegroundWindowHook);
+        internal static void Watch()
+        {
+            if (_hookId != default)
+            {
+                return;
+            }
+
+            _hookId = SetHook(ForegroundWindowHook);
+        }
 
         internal static void Unwatch()
         {

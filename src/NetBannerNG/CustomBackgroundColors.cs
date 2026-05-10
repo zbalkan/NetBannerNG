@@ -11,9 +11,9 @@ namespace NetBannerNG
         Red = 3,
         Yellow = 4,
         White = 5,
-        Black = 6,
-        SaddleBrown = 7,
-        Purple = 8,
-        Orange = 9,
+        SaddleBrown = 6,
+        Purple = 7,
+        Orange = 8,
+        Black = 9,
     }
 }

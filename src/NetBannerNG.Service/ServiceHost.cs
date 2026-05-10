@@ -28,12 +28,12 @@ namespace NetBannerNG.Service
         private static long _failedLaunchCount;
         private static long _deniedClientCount;
         private static WatchdogState _watchdogState = WatchdogState.NoSession;
-        internal static NamedPipeServer? pipeServer;
+        private static NamedPipeServer? _pipeServer;
         private static uint _currentSessionId;
 
         public ServiceHost()
         {
-            ServiceName = "NetBannerNG Service";
+            ServiceName = "NetBannerNGWatchdog";
             EventLogManager.Initialize();
         }
 
@@ -80,13 +80,13 @@ namespace NetBannerNG.Service
         private static async Task InitializeServiceThreadAsync()
         {
             _currentSessionId = PrivilegeHelper.GetInteractiveSessionId();
-            pipeServer = new NamedPipeServer(_currentSessionId);
+            _pipeServer = new NamedPipeServer(_currentSessionId);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
             TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "InitialPipeCreated");
 
-            await using (pipeServer)
+            await using (_pipeServer)
             {
-                await pipeServer.InitializeAsync().ConfigureAwait(false);
+                await _pipeServer.InitializeAsync().ConfigureAwait(false);
                 Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
                 ProcessHelper.KillAllChildProcess();
                 while (!ServiceStopCts.IsCancellationRequested)
@@ -125,14 +125,14 @@ namespace NetBannerNG.Service
             PrivilegeHelper.ResetSessionOwnerAdminCache();
             TransitionState(_watchdogState, WatchdogState.NoSession, "SessionChanged");
 
-            if (pipeServer != null)
+            if (_pipeServer != null)
             {
-                await pipeServer.DisposeAsync().ConfigureAwait(false);
+                await _pipeServer.DisposeAsync().ConfigureAwait(false);
             }
 
-            pipeServer = new NamedPipeServer(_currentSessionId);
+            _pipeServer = new NamedPipeServer(_currentSessionId);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
-            await pipeServer.InitializeAsync().ConfigureAwait(false);
+            await _pipeServer.InitializeAsync().ConfigureAwait(false);
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
             TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "SessionPipeReinitialized");
             ProcessHelper.KillAllChildProcess();
