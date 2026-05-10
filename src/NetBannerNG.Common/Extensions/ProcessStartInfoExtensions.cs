@@ -7,6 +7,8 @@ namespace NetBannerNG.Common.Extensions
 {
     public static class ProcessStartInfoExtensions
     {
+        private const uint CreateUnicodeEnvironment = 0x00000400;
+
         /// <summary>
         /// Get the active user's token and run the process in the given user's context
         /// </summary>
@@ -71,32 +73,50 @@ namespace NetBannerNG.Common.Extensions
 
             Debug.WriteLine($"During impersonation: {userIdentity.Name}. ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
 
-            if (!NativeMethods.CreateProcessAsUser(userToken, // user token
-                path, // executable path
-                BuildCommandLine(path, psi.Arguments), // command line
-                ref sa, // process security attributes ( none )
-                ref sa, // thread  security attributes ( none )
-                false, // inherit handles?
-                0, // creation flags
-                IntPtr.Zero, // environment variables
-                dir, // current directory of the new process
-                ref si, // startup info
-                out var processInformation)) // receive process information in pi
-            {
-                var error = Marshal.GetLastWin32Error();
-                Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
-                return false;
-            }
-
+            var environmentBlock = IntPtr.Zero;
             try
             {
-                Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
-                return true;
+                if (!NativeMethods.CreateEnvironmentBlock(out environmentBlock, userToken, false))
+                {
+                    var envError = Marshal.GetLastWin32Error();
+                    Debug.WriteLine($"Failed to create environment block for user {userIdentity.Name}. Error code: {envError}");
+                    return false;
+                }
+
+                if (!NativeMethods.CreateProcessAsUser(userToken, // user token
+                    path, // executable path
+                    BuildCommandLine(path, psi.Arguments), // command line
+                    ref sa, // process security attributes ( none )
+                    ref sa, // thread  security attributes ( none )
+                    false, // inherit handles?
+                    CreateUnicodeEnvironment, // creation flags
+                    environmentBlock, // environment variables
+                    dir, // current directory of the new process
+                    ref si, // startup info
+                    out var processInformation)) // receive process information in pi
+                {
+                    var error = Marshal.GetLastWin32Error();
+                    Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
+                    return false;
+                }
+
+                try
+                {
+                    Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+                    return true;
+                }
+                finally
+                {
+                    _ = NativeMethods.CloseHandle(processInformation.hThread);
+                    _ = NativeMethods.CloseHandle(processInformation.hProcess);
+                }
             }
             finally
             {
-                _ = NativeMethods.CloseHandle(processInformation.hThread);
-                _ = NativeMethods.CloseHandle(processInformation.hProcess);
+                if (environmentBlock != IntPtr.Zero)
+                {
+                    _ = NativeMethods.DestroyEnvironmentBlock(environmentBlock);
+                }
             }
         }
 

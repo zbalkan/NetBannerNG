@@ -149,7 +149,6 @@ namespace NetBannerNG
 
             e.Cancel = true;
             ShutDownGracefully();
-            e.Cancel = false;
         }
     }
 }

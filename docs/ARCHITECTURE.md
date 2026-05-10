@@ -49,8 +49,8 @@ Supported policy areas in the supplied ADMX include:
 Defaults currently used by app settings loader:
 
 - `Classification = UNCLASSIFIED`
-- `BannerColor = Green`
-- `FontColor = White`
+- `CustomBackgroundColor = #007A33`
+- `CustomForeColor = #FFFFFF`
 - `FontSize = 9`
 - `BannerSize = 28`
 - `Heartbeat = 20`
