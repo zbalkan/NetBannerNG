@@ -15,6 +15,7 @@ namespace NetBannerNG.Common.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern bool CloseHandle(IntPtr handle);
 
+        [method: CLSCompliant(false)]
         [DllImport("kernel32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern void SetLastError(uint dwErrCode);
