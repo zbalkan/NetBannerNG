@@ -11,8 +11,7 @@ namespace NetBannerNG.Borders
         internal Banner()
         {
             InitializeComponent();
-            Settings.Instance.Refresh();
-            DataContext = Settings.Instance;
+            RefreshDataContext();
         }
 
         internal override void Render(bool needsResize = false)
@@ -29,11 +28,17 @@ namespace NetBannerNG.Borders
 
         protected override void ReadSettings()
         {
-            Settings.Instance.Refresh();
-            DataContext = Settings.Instance;
+            RefreshDataContext();
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
+        }
+
+        private void RefreshDataContext()
+        {
+            Settings.Instance.Refresh();
+            DataContext = null;
+            DataContext = Settings.Instance;
         }
 
         private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();

@@ -94,7 +94,7 @@ jobs:
       - name: Build installer with Inno Setup
         uses: Minionguyjpro/Inno-Setup-Action@202dd0c4950ef315b6ba13359998fe120179b147
         with:
-          path: installer/NetBannerNG.iss
+          path: installer/setup.iss
 
       - name: Prepare release artifacts
         id: artifacts
@@ -105,7 +105,7 @@ jobs:
           $installerPath = "installer/installer-output/$appName-$version-Setup.exe"
 
           if (-not (Test-Path $installerPath)) {
-            throw "Installer not found at '$installerPath'. Check OutputDir and OutputBaseFilename in installer/NetBannerNG.iss."
+            throw "Installer not found at '$installerPath'. Check OutputDir and OutputBaseFilename in installer/setup.iss."
           }
 
           $sha256 = (Get-FileHash -Path $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
