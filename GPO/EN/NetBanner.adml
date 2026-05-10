@@ -16,6 +16,11 @@
       <string id="unknown_4">Secret</string>
       <string id="unknown_5">Top Secret</string>
       <string id="unknown_6">SCI</string>
+      <string id="unknown_40">Public</string>
+      <string id="unknown_42">Restricted</string>
+      <string id="unknown_43">Confidential</string>
+      <string id="unknown_44">Sensitive</string>
+      <string id="unknown_45">For Official Use Only</string>
       <string id="unknown_10">Green</string>
       <string id="unknown_11">Blue</string>
       <string id="unknown_12">Red</string>
