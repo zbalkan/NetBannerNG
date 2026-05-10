@@ -205,7 +205,19 @@ namespace NetBannerNG
             };
         }
 
-        private static string MapClassification(int value) => value switch { 1 => "UNCLASSIFIED", 2 => "SECRET", 3 => "TOP SECRET", 4 => "SCI", _ => "PUBLIC" };
+        private static string MapClassification(int value) => value switch
+        {
+            1 => "UNCLASSIFIED",
+            2 => "SECRET",
+            3 => "TOP SECRET",
+            4 => "SCI",
+            5 => "PUBLIC",
+            6 => "RESTRICTED",
+            7 => "CONFIDENTIAL",
+            8 => "SENSITIVE",
+            9 => "FOR OFFICIAL USE ONLY",
+            _ => "PUBLIC",
+        };
 
         private static bool HasManagedPolicyValues(RegistryKey? policyKey)
         {

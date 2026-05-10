@@ -73,9 +73,9 @@ namespace NetBannerNG.Service
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            if (e != null && e.ExceptionObject != null)
+            if (e?.ExceptionObject is Exception exception)
             {
-                Dump((Exception)e.ExceptionObject);
+                Dump(exception);
             }
         }
 
