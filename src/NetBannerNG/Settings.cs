@@ -166,7 +166,7 @@ namespace NetBannerNG
         private static SettingsSnapshot LoadSettings()
         {
             using var localMachineKey = OpenLocalMachineKey();
-            using var localKey = OpenLocalSettingsKey(localMachineKey);
+            using var localKey = OpenCurrentUserSettingsKey();
             var localDefaults = LoadOrCreateLocalSettings(localKey);
             using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
 
@@ -263,8 +263,8 @@ namespace NetBannerNG
             return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         }
 
-        private static RegistryKey OpenLocalSettingsKey(RegistryKey localMachineKey)
-            => localMachineKey.CreateSubKey(LocalRegistryPath, true) ?? throw new InvalidOperationException($@"Unable to open or create HKLM\{LocalRegistryPath}");
+        private static RegistryKey OpenCurrentUserSettingsKey()
+            => Registry.CurrentUser.CreateSubKey(LocalRegistryPath, true) ?? throw new InvalidOperationException($@"Unable to open or create HKCU\{LocalRegistryPath}");
 
         private static SolidColorBrush ParseBackgroundBrush(string value) => ParseBrushWithFallback(value, ToBackgroundHex((int)CustomBackgroundColors.Green), ToBackgroundHex);
 

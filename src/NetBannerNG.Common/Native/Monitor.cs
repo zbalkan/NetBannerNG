@@ -39,7 +39,13 @@ namespace NetBannerNG.Common.Native
                 var closure = new MonitorEnumCallback();
                 var proc = new MonitorEnumProc(closure.Callback);
                 _ = NativeMethods.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);
-                return closure.Monitors.Cast<Monitor>();
+                var monitors = closure.Monitors.Cast<Monitor>().ToList();
+                if (monitors.Count > 0)
+                {
+                    return monitors;
+                }
+
+                return new[] { CreateFallbackPrimaryMonitor() };
             }
         }
 
@@ -86,6 +92,13 @@ namespace NetBannerNG.Common.Native
         public override int GetHashCode() => (Bounds, IsPrimary, Name, WorkingArea, Handle).GetHashCode();
 
         public delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lParam);
+
+        private static Monitor CreateFallbackPrimaryMonitor()
+        {
+            var desktopWindow = NativeMethods.GetDesktopWindow();
+            var desktopMonitorHandle = NativeMethods.MonitorFromWindow(desktopWindow, NativeMethods.MonitorDefaultTo.Primary);
+            return new Monitor(desktopMonitorHandle, IntPtr.Zero);
+        }
 
         private class MonitorEnumCallback
         {
