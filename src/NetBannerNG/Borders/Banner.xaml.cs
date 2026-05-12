@@ -1,5 +1,4 @@
-﻿using System.Windows.Input;
-using NetBannerNG.Utils;
+﻿using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
 {
@@ -39,11 +38,6 @@ namespace NetBannerNG.Borders
             Settings.Instance.Refresh();
             DataContext = null;
             DataContext = Settings.Instance;
-        }
-
-        private static void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            e.Handled = true;
         }
 
         private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)

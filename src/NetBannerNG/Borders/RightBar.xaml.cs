@@ -1,5 +1,4 @@
-﻿using System.Windows.Input;
-using NetBannerNG.Utils;
+﻿using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
 {
@@ -12,8 +11,6 @@ namespace NetBannerNG.Borders
         {
             InitializeComponent();
         }
-
-        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();
 
         internal override void Render(bool needsResize = false)
         {
