@@ -1,5 +1,4 @@
-﻿using System.Windows.Input;
-using NetBannerNG.Utils;
+﻿using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
 {
@@ -29,8 +28,6 @@ namespace NetBannerNG.Borders
             Background = Settings.Instance.CustomBackgroundColor;
             Width = Settings.Instance.BorderSize;
         }
-
-        private void Window_MouseDoubleClick(object sender, MouseButtonEventArgs e) => System.Windows.Application.Current.MainWindow.Close();
 
         private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

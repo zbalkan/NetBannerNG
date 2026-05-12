@@ -5,7 +5,6 @@
     xmlns:borders="clr-namespace:NetBannerNG.Borders"
     Title="LeftBar"
     Closing="BorderBase_Closing"
-    MouseDoubleClick="Window_MouseDoubleClick"
     ResizeMode="NoResize"
     ScrollViewer.CanContentScroll="False"
     ScrollViewer.HorizontalScrollBarVisibility="Hidden"

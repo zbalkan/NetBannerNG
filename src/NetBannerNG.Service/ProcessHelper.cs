@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Management;
-using System.Threading;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
@@ -21,7 +20,6 @@ namespace NetBannerNG.Service
 
         private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
         private static readonly object LaunchSync = new();
-        private static readonly Lazy<string> ExpectedChildProcessPath = new(() => Path.GetFullPath(GetChildProcessPath()));
 
         public static bool InitiateChildProcess()
         {
