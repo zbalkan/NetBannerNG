@@ -147,33 +147,6 @@ namespace NetBannerNG.Utils
                    && Math.Abs(windowBounds.Bottom - screenBounds.Bottom) <= tolerance;
         }
 
-        //private static MonitorRect GetModifiedFullscreenBound(IntPtr currentMonitorHandle)
-        //{
-        //    var screenBounds = Monitor.GetMonitorBounds(currentMonitorHandle);
-        //    var bannerSize = Settings.Instance.BannerSize;
-        //    var borderSize = Settings.Instance.BorderSize;
-
-        //    var newSize = new MonitorRect
-        //    {
-        //        Top = screenBounds.Top + bannerSize,
-        //        Bottom = screenBounds.Bottom - borderSize,
-        //        Left = screenBounds.Left + borderSize,
-        //        Right = screenBounds.Right - borderSize
-        //    };
-
-        //    return newSize;
-        //}
-
-        //private static void ResizeForegroundWindow(IntPtr targetWindowHandle, MonitorRect bounds)
-        //{
-        //    var x = bounds.Left;
-        //    var y = bounds.Top;
-        //    var width = bounds.Right - bounds.Left;
-        //    var height = bounds.Bottom - bounds.Top;
-        //    _ = NativeMethods.SetWindowPos(targetWindowHandle, IntPtr.Zero, x, y, width, height,
-        //        NativeMethods.SetWindowPosFlags.Undefined);
-        //}
-
         private static void DispatchCoalesced(bool sendBottom)
         {
             var now = DateTime.UtcNow;

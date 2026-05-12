@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -102,17 +101,12 @@ namespace NetBannerNG.Common.Native
 
         private class MonitorEnumCallback
         {
-            public ArrayList Monitors { get; }
-
-            public MonitorEnumCallback()
-            {
-                Monitors = new ArrayList();
-            }
+            public List<Monitor> Monitors { get; } = new();
 
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "")]
             public bool Callback(IntPtr monitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr lParam)
             {
-                _ = Monitors.Add(new Monitor(monitor, hdc));
+                Monitors.Add(new Monitor(monitor, hdc));
                 return true;
             }
         }
