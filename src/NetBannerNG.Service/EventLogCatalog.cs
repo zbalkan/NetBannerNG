@@ -12,7 +12,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition ChildRestartByWatchdog = new(2004, "Child process not found. Watchdog is restarting NetBannerNG.");
         public static readonly EventDefinition WatchdogStateTransition = new(2005, "Watchdog state transition {0} -> {1}. Reason={2}");
         public static readonly EventDefinition WatchdogBackoffScheduled = new(2006, "Watchdog backoff scheduled. Reason={0}, Failures={1}, DelaySeconds={2:F2}, TotalFailedLaunches={3}");
-        public static readonly EventDefinition WatchdogHealthCounters = new(2007, "Watchdog health counters. ConnectionChurn={0}, FailedLaunches={1}, DeniedClients={2}");
+        public static readonly EventDefinition WatchdogHealthCounters = new(2007, "Watchdog health counters. ConnectionChurn={0}, FailedLaunches={1}, DeniedClients={2}, DeniedInbound={3}");
         public static readonly EventDefinition WatchdogLoopOverrun = new(2008, "Watchdog loop overrun detected. DurationMs={0:F2}");
 
         public static readonly EventDefinition PipeTimeoutCallback = new(3000, "{0} at {1}: execution timed out after {2} seconds, with: {3}.");
@@ -30,6 +30,8 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition PipeClientAuthorizationAccepted = new(3012, "Accepted pipe client for session {0}. Pipe={1}");
         public static readonly EventDefinition PipeClientAuthorizationRejected = new(3013, "Rejected pipe client for session {0}. Pipe={1}");
         public static readonly EventDefinition PipeInboundRejectedUnauthorizedSession = new(3014, "Rejected inbound message from unauthorized/unbound client. ExpectedSession={0}, Pipe={1}");
+        public static readonly EventDefinition PipeInboundIdentityRevalidationFailed = new(3015, "Rejected inbound message after identity revalidation failed. ExpectedSession={0}, Pipe={1}");
+        public static readonly EventDefinition PipeInboundSessionRevalidationFailed = new(3016, "Rejected inbound message after session revalidation failed. ExpectedSession={0}, ActiveSession={1}, Pipe={2}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");
@@ -37,6 +39,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition ProcessFailedToKill = new(4003, "Failed to kill process PID={0}. Error: {1}");
         public static readonly EventDefinition SessionChangedReinitializingPipe = new(4004, "Interactive session changed from {0} to {1}; reinitializing per-session pipe server.");
         public static readonly EventDefinition ProcessIdentityValidationFailed = new(4005, "Process identity validation failed for PID={0}. ErrorType={1}");
+        public static readonly EventDefinition ProcessCommandLineUnavailable = new(4006, "Command-line unavailable for tracked process PID={0}; relying on tracked launch metadata.");
 
         public static readonly EventDefinition UnhandledException = new(9000, "Unhandled exception captured. {0}");
     }

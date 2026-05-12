@@ -252,7 +252,7 @@ begin
       'binPath= "' + ServiceBinaryPath + '" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
-      'obj= LocalSystem',
+      'obj= "NT AUTHORITY\LocalService"',
       'Failed to create the NetBannerNG watchdog service.'
     );
   end
@@ -263,7 +263,7 @@ begin
       'binPath= "' + ServiceBinaryPath + '" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
-      'obj= LocalSystem',
+      'obj= "NT AUTHORITY\LocalService"',
       'Failed to configure the NetBannerNG watchdog service.'
     );
   end;

@@ -6,15 +6,15 @@ namespace NetBannerNG.Common.NamedPipes
 {
     public static class PipeSecurityPolicy
     {
-        private static readonly SecurityIdentifier LocalSystemSid = new(WellKnownSidType.LocalSystemSid, null);
-        private static readonly SecurityIdentifier BuiltinAdministratorsSid = new(WellKnownSidType.BuiltinAdministratorsSid, null);
-
+        private static readonly SecurityIdentifier LocalServiceSid = new(WellKnownSidType.LocalServiceSid, null);
+        private static readonly SecurityIdentifier NetworkSid = new(WellKnownSidType.NetworkSid, null);
         public static PipeSecurity CreateDefaultServerSecurity(SecurityIdentifier? interactiveUserSid = null)
         {
             var pipeSecurity = new PipeSecurity();
+            pipeSecurity.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
 
-            AddAllowRule(pipeSecurity, LocalSystemSid, PipeAccessRights.FullControl);
-            AddAllowRule(pipeSecurity, BuiltinAdministratorsSid, PipeAccessRights.ReadWrite);
+            AddAllowRule(pipeSecurity, LocalServiceSid, PipeAccessRights.FullControl);
+            AddDenyRule(pipeSecurity, NetworkSid, PipeAccessRights.ReadWrite);
 
             if (interactiveUserSid != null)
             {
@@ -26,5 +26,8 @@ namespace NetBannerNG.Common.NamedPipes
 
         private static void AddAllowRule(PipeSecurity pipeSecurity, SecurityIdentifier sid, PipeAccessRights rights) =>
             pipeSecurity.AddAccessRule(new PipeAccessRule(sid, rights, AccessControlType.Allow));
+
+        private static void AddDenyRule(PipeSecurity pipeSecurity, SecurityIdentifier sid, PipeAccessRights rights) =>
+            pipeSecurity.AddAccessRule(new PipeAccessRule(sid, rights, AccessControlType.Deny));
     }
 }

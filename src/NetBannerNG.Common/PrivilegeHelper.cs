@@ -81,15 +81,25 @@ namespace NetBannerNG.Common
         public static bool TryGetActiveUserSid(out SecurityIdentifier? sid)
         {
             sid = null;
-            if (!GetActiveUser(out var user) || user == null)
+            if (GetActiveUser(out var user) && user != null)
             {
-                user?.Dispose();
-                return false;
+                sid = user.User;
+                user.Dispose();
+                return sid != null;
             }
 
-            sid = user.User;
-            user.Dispose();
-            return sid != null;
+            user?.Dispose();
+
+            // In interactive debug mode (service host running as console app), WTSQueryUserToken
+            // may fail while the current process identity is the actual interactive user.
+            // Fall back to current identity SID so pipe ACLs still allow the launched UI client.
+            if (Environment.UserInteractive)
+            {
+                sid = WindowsIdentity.GetCurrent().User;
+                return sid != null;
+            }
+
+            return false;
         }
 
         public static bool IsUserAdministrator(WindowsIdentity user)

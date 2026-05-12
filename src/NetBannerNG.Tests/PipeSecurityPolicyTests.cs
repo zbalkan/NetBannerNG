@@ -11,18 +11,36 @@ namespace NetBannerNG.Tests
     public sealed class PipeSecurityPolicyTests
     {
         [TestMethod]
-        public void CreateDefaultServerSecurity_IncludesLocalSystemAndAdministratorsAllowRules()
+        public void CreateDefaultServerSecurity_IncludesLocalServiceAllowRule()
         {
             var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
             var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
                 .Cast<PipeAccessRule>()
                 .ToList();
 
-            var localSystemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
-            AssertAllowRule(rules, localSystemSid, PipeAccessRights.FullControl, "Local System");
+            var localServiceSid = new SecurityIdentifier(WellKnownSidType.LocalServiceSid, null);
+            AssertAllowRule(rules, localServiceSid, PipeAccessRights.FullControl, "Local Service");
+        }
+
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_DoesNotGrantBuiltinAdministratorsByDefault()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
 
             var adminsSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
-            AssertAllowRule(rules, adminsSid, PipeAccessRights.ReadWrite, "Builtin Administrators");
+            AssertNoAllowRule(rules, adminsSid, "Builtin Administrators");
+        }
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_ProtectsAclFromInheritance()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+
+            Assert.IsTrue(security.AreAccessRulesProtected);
         }
 
         [TestMethod]
@@ -50,6 +68,25 @@ namespace NetBannerNG.Tests
 
             AssertNoAllowRule(rules, everyoneSid, "Everyone");
             AssertNoAllowRule(rules, anonymousSid, "Anonymous");
+        }
+
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_DeniesNetworkSidByDefault()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var networkSid = new SecurityIdentifier(WellKnownSidType.NetworkSid, null);
+            var denyRule = rules.FirstOrDefault(r =>
+                r.IdentityReference.Value == networkSid.Value &&
+                r.AccessControlType == AccessControlType.Deny);
+
+            Assert.IsNotNull(denyRule, "Expected explicit deny rule for Network SID.");
+            Assert.IsTrue((denyRule.PipeAccessRights & PipeAccessRights.ReadWrite) == PipeAccessRights.ReadWrite,
+                "Expected Network SID deny rule to include ReadWrite access.");
         }
 
         [TestMethod]
