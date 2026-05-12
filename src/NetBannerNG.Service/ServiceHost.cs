@@ -65,6 +65,8 @@ namespace NetBannerNG.Service
             }
         }
 
+        internal static bool IsStopRequested => ServiceStopCts.IsCancellationRequested;
+
         private static void InitializeServiceThread()
         {
             try
@@ -200,7 +202,7 @@ namespace NetBannerNG.Service
 
         private static void RegisterLaunchFailure(DateTime now, string reasonCode)
         {
-            _failedLaunchCount++;
+            Interlocked.Increment(ref _failedLaunchCount);
             _consecutiveLaunchFailures++;
             var delay = CalculateBackoffDelay(_consecutiveLaunchFailures);
             _nextRestartEligibleUtc = now + delay;
@@ -230,19 +232,19 @@ namespace NetBannerNG.Service
 
         internal static void ReportConnectionChurn()
         {
-            _connectionChurnCount++;
+            Interlocked.Increment(ref _connectionChurnCount);
             Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
 
         internal static void ReportDeniedClient()
         {
-            _deniedClientCount++;
+            Interlocked.Increment(ref _deniedClientCount);
             Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
 
         internal static void ReportDeniedInbound()
         {
-            _deniedInboundCount++;
+            Interlocked.Increment(ref _deniedInboundCount);
             Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
     }

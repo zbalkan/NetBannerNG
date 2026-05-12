@@ -64,6 +64,7 @@ namespace NetBannerNG.Service
         }
 
 
+#if DEBUG
         private static bool ShouldCaptureFirstChanceExceptions()
         {
             var value = Environment.GetEnvironmentVariable("NETBANNERNG_DEBUG_DUMP_FIRST_CHANCE");
@@ -82,6 +83,7 @@ namespace NetBannerNG.Service
                 Dump(e.Exception);
             }
         }
+#endif
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
@@ -91,14 +93,13 @@ namespace NetBannerNG.Service
             }
         }
 
+#if DEBUG
         private static bool IsExpectedTransient(Exception exception) =>
             exception is OperationCanceledException ||
             (exception is COMException comEx && comEx.HResult == unchecked((int)0x80005000)) ||
-            (exception is IOException ioEx && (ioEx.Message.Contains("Pipe is broken") ||
-                                              ioEx.Message.Contains("Integrity of the message is broken"))) ||
-            (exception is InvalidOperationException invalidOpEx && invalidOpEx.Message.Contains("Process has exited")) ||
-            (exception is ArgumentException argumentEx && argumentEx.Message.Contains("is not running")) ||
-            (exception is Win32Exception win32Ex && win32Ex.Message.Contains("Only part of a ReadProcessMemory or WriteProcessMemory request was completed"));
+            (exception is IOException ioEx && ioEx.HResult == unchecked((int)0x8007006D)) || // ERROR_BROKEN_PIPE
+            (exception is Win32Exception win32Ex && win32Ex.NativeErrorCode == 299); // ERROR_PARTIAL_COPY
+#endif
 
         private static bool AreValidArguments(string[] args)
         {
@@ -132,12 +133,14 @@ namespace NetBannerNG.Service
             }
         }
 
+#if DEBUG
         private static void PrintConsoleHeader()
         {
             Console.WriteLine($"Hostname: {Environment.MachineName}");
             Console.WriteLine($"Domain: {Environment.UserDomainName}");
             Console.WriteLine("User interactive mode");
         }
+#endif
 
         private static void StartLogger() => EventLogManager.Initialize();
     }

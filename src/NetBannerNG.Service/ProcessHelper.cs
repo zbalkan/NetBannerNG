@@ -16,6 +16,7 @@ namespace NetBannerNG.Service
             public string PipeName { get; set; } = string.Empty;
             public string? CommandLine { get; set; }
             public DateTime CommandLineLastAttemptUtc { get; set; } = DateTime.MinValue;
+            public int CommandLineAttemptCount { get; set; }
         }
 
         private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
@@ -205,9 +206,16 @@ namespace NetBannerNG.Service
                     }
                     if (string.IsNullOrWhiteSpace(commandLine))
                     {
-                        // Command-line interrogation can fail across integrity/session boundaries.
-                        // If PID/start-time/session/name already match tracked launch metadata,
-                        // treat the process as expected and keep watchdog stable.
+                        // Retry command-line interrogation for a bounded number of attempts.
+                        // This balances correctness with watchdog stability when WMI access is transiently unavailable.
+                        if (launchInfo.CommandLineAttemptCount < 3)
+                        {
+                            launchInfo.CommandLineAttemptCount++;
+                            Program.Log.LogInformation(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                            return false;
+                        }
+
+                        // After bounded retries, accept tracked process identity based on PID/start-time/session/name.
                         Program.Log.LogInformation(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
                         return true;
                     }
@@ -257,7 +265,12 @@ namespace NetBannerNG.Service
                     return true;
                 }
 
-                Thread.Sleep(100);
+                if (ServiceHost.IsStopRequested)
+                {
+                    return false;
+                }
+
+                Thread.Sleep(50);
             }
 
             return false;
