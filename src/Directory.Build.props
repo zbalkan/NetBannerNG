@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <Authors>Zafer Balkan</Authors>
+    <Company>Zafer Balkan</Company>
+    <Copyright>All Rights Reserved</Copyright>
+    <NetBannerNGSharedIconPath>..\Assets\DeltaZulu - dark.ico</NetBannerNGSharedIconPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NetBannerNG'">
+    <Product>NetBannerNG</Product>
+    <Description>NetBannerNG</Description>
+    <ApplicationIcon>$(NetBannerNGSharedIconPath)</ApplicationIcon>
+
+    <InstallerVersion>$(Version)</InstallerVersion>
+    <InstallerAppId>{8D938B9B-8B7D-4A87-9E86-4E7E471C4B6A}</InstallerAppId>
+    <InstallerUrl>https://zaferbalkan.com</InstallerUrl>
+
+    <NetBannerNGServiceExeName>NetBannerNG.Service.exe</NetBannerNGServiceExeName>
+    <NetBannerNGServiceName>NetBannerNGWatchdog</NetBannerNGServiceName>
+    <NetBannerNGServiceDisplayName>NetBannerNG Watchdog Service</NetBannerNGServiceDisplayName>
+    <NetBannerNGServiceDescription>Privileged watchdog service for NetBannerNG.</NetBannerNGServiceDescription>
+
+    <NetBannerNGEventLogName>Application</NetBannerNGEventLogName>
+    <NetBannerNGEventLogSource>NetBannerNG</NetBannerNGEventLogSource>
+    <NetBannerNGRegistryKey>SOFTWARE\NetBannerNG</NetBannerNGRegistryKey>
+    <NetBannerNGProgramDataDir>NetBannerNG</NetBannerNGProgramDataDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NetBannerNG.Service'">
+    <ApplicationIcon>$(NetBannerNGSharedIconPath)</ApplicationIcon>
+  </PropertyGroup>
+</Project>

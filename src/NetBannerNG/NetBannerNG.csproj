@@ -11,33 +11,15 @@
 		<AnalysisMode>All</AnalysisMode>
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
 
-		<Product>NetBannerNG</Product>
 		<AssemblyName>NetBannerNG</AssemblyName>
 		<RootNamespace>NetBannerNG</RootNamespace>
 
-		<Version>1.0.0</Version>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
-		<InstallerVersion>$(Version)</InstallerVersion>
 		
-		<Company>Zafer Balkan</Company>
-		<Authors>Zafer Balkan</Authors>
-		<Description>NetBannerNG</Description>
-		<Copyright>All Rights Reserved</Copyright>
-		<ApplicationIcon>..\Assets\DeltaZulu - dark.ico</ApplicationIcon>
 
-		<InstallerAppId>{8D938B9B-8B7D-4A87-9E86-4E7E471C4B6A}</InstallerAppId>
-		<InstallerUrl>https://zaferbalkan.com</InstallerUrl>
 
-		<NetBannerNGServiceExeName>NetBannerNG.Service.exe</NetBannerNGServiceExeName>
-		<NetBannerNGServiceName>NetBannerNGWatchdog</NetBannerNGServiceName>
-		<NetBannerNGServiceDisplayName>NetBannerNG Watchdog Service</NetBannerNGServiceDisplayName>
-		<NetBannerNGServiceDescription>Privileged watchdog service for NetBannerNG.</NetBannerNGServiceDescription>
 
-		<NetBannerNGEventLogName>Application</NetBannerNGEventLogName>
-		<NetBannerNGEventLogSource>NetBannerNG</NetBannerNGEventLogSource>
-		<NetBannerNGRegistryKey>SOFTWARE\NetBannerNG</NetBannerNGRegistryKey>
-		<NetBannerNGProgramDataDir>NetBannerNG</NetBannerNGProgramDataDir>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
@@ -76,9 +58,12 @@
 			<InnoBuildInfoLines Include='#define MyAppVersion "$(InstallerVersion)"' />
 			<InnoBuildInfoLines Include='#define MyAppPublisher "$(Company)"' />
 			<InnoBuildInfoLines Include='#define MyAppURL "$(InstallerUrl)"' />
+			<InnoBuildInfoLines Include='#define MyInstallerIconFile "$(MSBuildProjectDirectory)\..\Assets\DeltaZulu - dark.ico"' />
 
 			<InnoBuildInfoLines Include='#define MyUiExeName "$(TargetFileName)"' />
 			<InnoBuildInfoLines Include='#define MyServiceExeName "$(NetBannerNGServiceExeName)"' />
+			<InnoBuildInfoLines Include='#define MyUiOutputDir "$(TargetDir)"' />
+			<InnoBuildInfoLines Include='#define MyServiceOutputDir "$(MSBuildProjectDirectory)\..\NetBannerNG.Service\bin\$(Configuration)\$(TargetFramework)\"' />
 
 			<InnoBuildInfoLines Include='#define MyServiceName "$(NetBannerNGServiceName)"' />
 			<InnoBuildInfoLines Include='#define MyServiceDisplayName "$(NetBannerNGServiceDisplayName)"' />
