@@ -18,6 +18,7 @@ OutputBaseFilename={#MyAppName}-{#MyAppVersion}-Setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile={#MyInstallerIconFile}
 
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
@@ -45,13 +46,13 @@ Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
 [Files]
 ; WPF UI output.
 ; SDK-style net481 project output.
-Source: "..\src\NetBannerNG\bin\Release\net481\*"; \
+Source: "{#MyUiOutputDir}*"; \
     DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; Watchdog service output.
 ; SDK-style net481 project output.
-Source: "..\src\NetBannerNG.Service\bin\Release\net481\*"; \
+Source: "{#MyServiceOutputDir}*"; \
     DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
