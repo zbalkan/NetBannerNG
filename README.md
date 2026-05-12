@@ -1,5 +1,8 @@
 # NetBannerNG
 
+[![PR Tests](https://github.com/zbalkan/NetBannerNG/actions/workflows/tests.yml/badge.svg)](https://github.com/zbalkan/NetBannerNG/actions/workflows/tests.yml)
+[![Dependabot Updates](https://github.com/zbalkan/NetBannerNG/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/zbalkan/NetBannerNG/actions/workflows/dependabot/dependabot-updates)
+
 NetBannerNG is an open-source alternative to Microsoft NetBanner for Windows endpoints.
 
 It displays a persistent desktop classification banner and supports existing NetBanner Group Policy settings so organizations can migrate with minimal policy changes.
