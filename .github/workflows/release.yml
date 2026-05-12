@@ -88,7 +88,7 @@ jobs:
           $existingTag = git ls-remote --tags --refs origin "refs/tags/$tag"
 
           if (-not [string]::IsNullOrWhiteSpace($existingTag)) {
-            throw "Tag '$tag' already exists. Bump <Version> in src/NetBannerNG/NetBannerNG.csproj before releasing."
+            throw "Tag '$tag' already exists. Bump <Version> in src/Directory.Build.props before releasing."
           }
 
       - name: Build installer with Inno Setup
