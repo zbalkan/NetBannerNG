@@ -36,7 +36,6 @@ namespace NetBannerNG.Borders
         private void RefreshDataContext()
         {
             Settings.Instance.Refresh();
-            DataContext = null;
             DataContext = Settings.Instance;
         }
 

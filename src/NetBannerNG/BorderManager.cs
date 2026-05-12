@@ -428,12 +428,14 @@ namespace NetBannerNG
             {
                 var groupId = BuildGroupId(monitor);
                 MonitorBorderGroup? existingGroup;
+                var shouldSyncExistingGroup = false;
                 lock (MonitorGroupsSync)
                 {
                     _ = MonitorGroups.TryGetValue(groupId, out existingGroup);
+                    shouldSyncExistingGroup = existingGroup != null && existingGroup.MatchesMonitor(monitor);
                 }
 
-                if (existingGroup != null && existingGroup.MatchesMonitor(monitor))
+                if (shouldSyncExistingGroup && existingGroup != null)
                 {
                     try
                     {

@@ -211,12 +211,12 @@ namespace NetBannerNG.Service
                         if (launchInfo.CommandLineAttemptCount < 3)
                         {
                             launchInfo.CommandLineAttemptCount++;
-                            Program.Log.LogInformation(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                            Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
                             return false;
                         }
 
                         // After bounded retries, accept tracked process identity based on PID/start-time/session/name.
-                        Program.Log.LogInformation(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                        Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
                         return true;
                     }
 
