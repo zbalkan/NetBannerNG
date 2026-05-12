@@ -27,6 +27,7 @@ namespace NetBannerNG.Service
         private static long _connectionChurnCount;
         private static long _failedLaunchCount;
         private static long _deniedClientCount;
+        private static long _deniedInboundCount;
         private static WatchdogState _watchdogState = WatchdogState.NoSession;
         private static NamedPipeServer? _pipeServer;
         private static uint _currentSessionId;
@@ -205,7 +206,7 @@ namespace NetBannerNG.Service
             _nextRestartEligibleUtc = now + delay;
             TransitionState(WatchdogState.Launching, WatchdogState.Backoff, reasonCode);
             Program.Log.LogWarning(EventLogCatalog.WatchdogBackoffScheduled, reasonCode, _consecutiveLaunchFailures, delay.TotalSeconds, _failedLaunchCount);
-            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
 
         internal static TimeSpan CalculateBackoffDelay(int consecutiveLaunchFailures)
@@ -230,13 +231,19 @@ namespace NetBannerNG.Service
         internal static void ReportConnectionChurn()
         {
             _connectionChurnCount++;
-            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
 
         internal static void ReportDeniedClient()
         {
             _deniedClientCount++;
-            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount);
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
+        }
+
+        internal static void ReportDeniedInbound()
+        {
+            _deniedInboundCount++;
+            Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
     }
 }

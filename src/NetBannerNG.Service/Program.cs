@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.ServiceProcess;
@@ -26,7 +27,10 @@ namespace NetBannerNG.Service
             }
 
 #if DEBUG
-            AppDomain.CurrentDomain.FirstChanceException += (sender, eventArgs) => CurrentDomain_FirstChanceException(sender, eventArgs);
+            if (ShouldCaptureFirstChanceExceptions())
+            {
+                AppDomain.CurrentDomain.FirstChanceException += (sender, eventArgs) => CurrentDomain_FirstChanceException(sender, eventArgs);
+            }
 #endif
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
@@ -59,6 +63,14 @@ namespace NetBannerNG.Service
 #endif
         }
 
+
+        private static bool ShouldCaptureFirstChanceExceptions()
+        {
+            var value = Environment.GetEnvironmentVariable("NETBANNERNG_DEBUG_DUMP_FIRST_CHANCE");
+            return string.Equals(value, "1") ||
+                   string.Equals(value, "true");
+        }
+
         private static void CurrentDomain_FirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
         {
             if (e != null && e.Exception != null)
@@ -83,7 +95,10 @@ namespace NetBannerNG.Service
             exception is OperationCanceledException ||
             (exception is COMException comEx && comEx.HResult == unchecked((int)0x80005000)) ||
             (exception is IOException ioEx && (ioEx.Message.Contains("Pipe is broken") ||
-                                              ioEx.Message.Contains("Integrity of the message is broken")));
+                                              ioEx.Message.Contains("Integrity of the message is broken"))) ||
+            (exception is InvalidOperationException invalidOpEx && invalidOpEx.Message.Contains("Process has exited")) ||
+            (exception is ArgumentException argumentEx && argumentEx.Message.Contains("is not running")) ||
+            (exception is Win32Exception win32Ex && win32Ex.Message.Contains("Only part of a ReadProcessMemory or WriteProcessMemory request was completed"));
 
         private static bool AreValidArguments(string[] args)
         {

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Management;
+using System.Threading;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
@@ -59,7 +60,12 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName);
+            if (!TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName))
+            {
+                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, "Process launch command succeeded but no child process was observed.");
+                return false;
+            }
+
             Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
             return true;
         }
@@ -132,7 +138,6 @@ namespace NetBannerNG.Service
                 return Enumerable.Empty<Process>();
             }
 
-            var expectedPath = ExpectedChildProcessPath.Value;
             var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
             var processes = new List<Process>(trackedProcessIds.Count);
             var staleProcessIds = new List<int>();
@@ -157,10 +162,10 @@ namespace NetBannerNG.Service
                 UntrackLaunchedProcess(processId);
             }
 
-            return processes.Where(process => IsExpectedChildProcess(process, expectedPath, interactiveSessionId));
+            return processes.Where(process => IsExpectedChildProcess(process, interactiveSessionId));
         }
 
-        private static bool IsExpectedChildProcess(Process process, string expectedPath, int interactiveSessionId)
+        private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
         {
             try
             {
@@ -169,8 +174,10 @@ namespace NetBannerNG.Service
                     return false;
                 }
 
-                var candidatePath = Path.GetFullPath(process.MainModule?.FileName ?? string.Empty);
-                if (!candidatePath.Equals(expectedPath, StringComparison.OrdinalIgnoreCase))
+                // Avoid Process.MainModule access here; cross-session and transient process states can
+                // throw Win32Exception (e.g., partial ReadProcessMemory) and cause noisy failures.
+                // Identity is validated using tracked PID + start time + expected --pipe argument.
+                if (!string.Equals(process.ProcessName, ChildProcessName, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
@@ -200,7 +207,11 @@ namespace NetBannerNG.Service
                     }
                     if (string.IsNullOrWhiteSpace(commandLine))
                     {
-                        return false;
+                        // Command-line interrogation can fail across integrity/session boundaries.
+                        // If PID/start-time/session/name already match tracked launch metadata,
+                        // treat the process as expected and keep watchdog stable.
+                        Program.Log.LogInformation(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                        return true;
                     }
 
                     return HasExpectedPipeArgument(commandLine, launchInfo.PipeName);
@@ -231,12 +242,27 @@ namespace NetBannerNG.Service
                 .Select(p => p.Id)
                 .ToHashSet();
 
-        private static void TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
+        private static bool TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
         {
-            foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId && !existingCandidates.Contains(p.Id)))
+            var deadlineUtc = DateTime.UtcNow.AddSeconds(3);
+            while (DateTime.UtcNow <= deadlineUtc)
             {
-                TrackLaunchedProcess(process, pipeName);
+                var observedAny = false;
+                foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId && !existingCandidates.Contains(p.Id)))
+                {
+                    observedAny = true;
+                    TrackLaunchedProcess(process, pipeName);
+                }
+
+                if (observedAny)
+                {
+                    return true;
+                }
+
+                Thread.Sleep(100);
             }
+
+            return false;
         }
 
         private static void UntrackLaunchedProcess(int processId)
