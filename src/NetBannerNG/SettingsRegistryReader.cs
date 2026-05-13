@@ -60,11 +60,11 @@ internal sealed class SettingsRegistryReader
         var policyValue = ReadString(policyPath, valueName);
         if (!string.IsNullOrWhiteSpace(policyValue))
         {
-            return policyValue;
+            return policyValue!;
         }
 
         var localValue = ReadString(localPath, valueName);
-        return string.IsNullOrWhiteSpace(localValue) ? compiledDefault : localValue;
+        return string.IsNullOrWhiteSpace(localValue) ? compiledDefault : localValue!;
     }
 
     internal int ResolveInt(string policyPath, string localPath, string valueName, int compiledDefault)
