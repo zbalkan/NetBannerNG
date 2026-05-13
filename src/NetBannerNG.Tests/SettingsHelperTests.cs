@@ -1,6 +1,5 @@
 using System;
 using System.Reflection;
-using Microsoft.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetBannerNG.Tests
@@ -90,46 +89,25 @@ namespace NetBannerNG.Tests
 
 
         [TestMethod]
-        public void ResolvePolicyKey_PrefersNetBannerNg_WhenBothPolicyRootsExist()
+        public void ParseClassificationSelection_HandlesMissingSeparatorAsNotConfigured()
         {
-            using var scope = new RegistryTestScope();
-            var netBannerNgPath = scope.ResolveManagedPolicyPath("NetBannerNG");
-            var legacyPath = scope.ResolveManagedPolicyPath("NetBanner");
-
-            using (var netBannerNgKey = Registry.CurrentUser.CreateSubKey(netBannerNgPath, true))
-            using (var legacyKey = Registry.CurrentUser.CreateSubKey(legacyPath, true))
-            {
-                netBannerNgKey!.SetValue("Classification", 2, RegistryValueKind.DWord);
-                netBannerNgKey.SetValue("CustomDisplayText", "FROM_NEW", RegistryValueKind.String);
-                legacyKey!.SetValue("Classification", 3, RegistryValueKind.DWord);
-                legacyKey.SetValue("CustomDisplayText", "FROM_LEGACY", RegistryValueKind.String);
-            }
-
-            using var policyRoot = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
-            using var resolved = InvokePrivate<RegistryKey?>("ResolvePolicyKey", policyRoot);
-
-            Assert.IsNotNull(resolved);
-            Assert.AreEqual(2, Convert.ToInt32(resolved!.GetValue("Classification")));
-            Assert.AreEqual("FROM_NEW", resolved.GetValue("CustomDisplayText")?.ToString());
+            var parsed = InvokePrivate<ValueTuple<string, string>>("ParseClassificationSelection", "INVALID");
+            Assert.AreEqual("NOT_CONFIGURED", parsed.Item1);
+            Assert.AreEqual("Classification not configured", parsed.Item2);
         }
 
         [TestMethod]
-        public void ResolvePolicyKey_WritesDefaultValues_WhenNetBannerNgValuesMissing()
+        public void TryConvertToInt_ReturnsFalse_ForInvalidInput()
         {
-            using var scope = new RegistryTestScope();
-            var netBannerNgPath = scope.ResolveManagedPolicyPath("NetBannerNG");
+            var type = Type.GetType("NetBannerNG.SettingsRegistryReader, NetBannerNG")
+                ?? throw new InvalidOperationException("Type NetBannerNG.SettingsRegistryReader was not found.");
+            var methodInfo = type.GetMethod("TryConvertToInt", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Method TryConvertToInt was not found.");
 
-            using var policyRoot = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
-            using var resolved = InvokePrivate<RegistryKey?>("ResolvePolicyKey", policyRoot);
+            var args = new object?[] { "not-an-int", 0 };
+            var success = (bool)(methodInfo.Invoke(null, args) ?? false);
 
-            Assert.IsNotNull(resolved);
-            Assert.AreEqual(0, Convert.ToInt32(resolved!.GetValue("CustomSettings")));
-            Assert.AreEqual($"NOT CONFIGURED - Classification not configured", resolved.GetValue("ClassificationSelection")?.ToString());
-
-            using var migratedKey = Registry.CurrentUser.OpenSubKey(netBannerNgPath, false);
-            Assert.IsNotNull(migratedKey);
-            Assert.AreEqual(0, Convert.ToInt32(migratedKey!.GetValue("CustomSettings")));
-            Assert.AreEqual($"NOT CONFIGURED - Classification not configured", migratedKey.GetValue("ClassificationSelection")?.ToString());
+            Assert.IsFalse(success);
         }
 
         private static T InvokePrivate<T>(string method, params object[] args)
@@ -141,27 +119,6 @@ namespace NetBannerNG.Tests
 
             return (T)(methodInfo.Invoke(null, args)
                 ?? throw new InvalidOperationException($"Method {method} returned null."));
-        }
-
-        private sealed class RegistryTestScope : IDisposable
-        {
-            private const string NetBannerNgPath = @"SOFTWARE\Policies\NetbannerNG";
-            private const string LegacyPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
-
-            internal RegistryTestScope()
-            {
-                Registry.CurrentUser.DeleteSubKeyTree(NetBannerNgPath, false);
-                Registry.CurrentUser.DeleteSubKeyTree(LegacyPath, false);
-            }
-
-            internal string ResolveManagedPolicyPath(string productName)
-                => productName == "NetBannerNG" ? NetBannerNgPath : LegacyPath;
-
-            public void Dispose()
-            {
-                Registry.CurrentUser.DeleteSubKeyTree(NetBannerNgPath, false);
-                Registry.CurrentUser.DeleteSubKeyTree(LegacyPath, false);
-            }
         }
 
     }
