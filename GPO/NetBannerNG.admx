@@ -17,20 +17,111 @@
   <policies>
     <!-- Legacy NetBanner policy/value mappings are preserved as-is for backward compatibility. -->
     <!-- NetBannerNG extensions are explicitly labeled below and use additive values only. -->
-    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG" valueName="Classification">
+    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection">
       <parentCategory ref="NetBannerNG" />
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements>
-        <enum id="Classification" key="Software\Policies\NetBannerNG" valueName="Classification">
-          <item displayName="$(string.unknown_3)"><value><decimal value="1" /></value></item>
-          <item displayName="$(string.unknown_4)"><value><decimal value="2" /></value></item>
-          <item displayName="$(string.unknown_5)"><value><decimal value="3" /></value></item>
-          <item displayName="$(string.unknown_6)"><value><decimal value="4" /></value></item>
-          <item displayName="$(string.ng_classification_5)"><value><decimal value="5" /></value></item>
-          <item displayName="$(string.ng_classification_6)"><value><decimal value="6" /></value></item>
-          <item displayName="$(string.ng_classification_7)"><value><decimal value="7" /></value></item>
-          <item displayName="$(string.ng_classification_8)"><value><decimal value="8" /></value></item>
-          <item displayName="$(string.ng_classification_9)"><value><decimal value="9" /></value></item>
+        <enum id="Classification" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection">
+          <item displayName="$(string.ng_class_sel_001)"><value><string>AG - AG CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_002)"><value><string>AG - AG SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_003)"><value><string>AG - AG-IN-CONFIDENCE</string></value></item>
+          <item displayName="$(string.ng_class_sel_004)"><value><string>AU - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_005)"><value><string>AU - OFFICIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_006)"><value><string>AU - OFFICIAL: SENSITIVE</string></value></item>
+          <item displayName="$(string.ng_class_sel_007)"><value><string>AU - SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_008)"><value><string>AU - TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_009)"><value><string>AU - UNOFFICIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_010)"><value><string>CA - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_011)"><value><string>CA - PROTECTED A</string></value></item>
+          <item displayName="$(string.ng_class_sel_012)"><value><string>CA - PROTECTED B</string></value></item>
+          <item displayName="$(string.ng_class_sel_013)"><value><string>CA - PROTECTED C</string></value></item>
+          <item displayName="$(string.ng_class_sel_014)"><value><string>CA - SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_015)"><value><string>CA - TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_016)"><value><string>CCEB - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_017)"><value><string>CCEB - RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_018)"><value><string>COE - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_019)"><value><string>COE - RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_020)"><value><string>COE - SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_021)"><value><string>DE - GEHEIM</string></value></item>
+          <item displayName="$(string.ng_class_sel_022)"><value><string>DE - STRENG GEHIM</string></value></item>
+          <item displayName="$(string.ng_class_sel_023)"><value><string>DE - VS-NUR FÜR DEN DIENSTGEBRAUCH</string></value></item>
+          <item displayName="$(string.ng_class_sel_024)"><value><string>DE - VS-VERTRAULICH</string></value></item>
+          <item displayName="$(string.ng_class_sel_025)"><value><string>DK - FORTROLIGT</string></value></item>
+          <item displayName="$(string.ng_class_sel_026)"><value><string>DK - HEMMELIGT</string></value></item>
+          <item displayName="$(string.ng_class_sel_027)"><value><string>DK - TIL TJENESTEBRUG</string></value></item>
+          <item displayName="$(string.ng_class_sel_028)"><value><string>DK - YDERST HEMMELIGT</string></value></item>
+          <item displayName="$(string.ng_class_sel_029)"><value><string>EE - KONFIDENTSIAALNE</string></value></item>
+          <item displayName="$(string.ng_class_sel_030)"><value><string>EE - PIIRATUD</string></value></item>
+          <item displayName="$(string.ng_class_sel_031)"><value><string>EE - SALAJANE</string></value></item>
+          <item displayName="$(string.ng_class_sel_032)"><value><string>EE - TÄIESTI SALAJANE</string></value></item>
+          <item displayName="$(string.ng_class_sel_033)"><value><string>ESA - ESA CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_034)"><value><string>ESA - ESA RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_035)"><value><string>ESA - ESA SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_036)"><value><string>ESA - ESA TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_037)"><value><string>EUCI - CONFIDENTIEL UE / EU CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_038)"><value><string>EUCI - RESTREINT UE / EU RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_039)"><value><string>EUCI - SECRET UE / EU SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_040)"><value><string>EUCI - TRÈS SECRET UE / EU TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_041)"><value><string>EURATOM - EURA-RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_042)"><value><string>FI - ERITTÄIN SALAINEN / YTTERST HEMLIG</string></value></item>
+          <item displayName="$(string.ng_class_sel_043)"><value><string>FI - KÄYTTÖ RAJOITETTU / BEGRÄNSAD TILLGÅNG</string></value></item>
+          <item displayName="$(string.ng_class_sel_044)"><value><string>FI - LUOTTAMUKSELLINEN / KONFIDENTIELL</string></value></item>
+          <item displayName="$(string.ng_class_sel_045)"><value><string>FI - SALAINEN / HEMLIG</string></value></item>
+          <item displayName="$(string.ng_class_sel_046)"><value><string>FR - CONFIDENTIEL DÉFENSE</string></value></item>
+          <item displayName="$(string.ng_class_sel_047)"><value><string>FR - SECRET DÉFENSE</string></value></item>
+          <item displayName="$(string.ng_class_sel_048)"><value><string>FR - TRÈS SECRET DÉFENSE</string></value></item>
+          <item displayName="$(string.ng_class_sel_049)"><value><string>ICC - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_050)"><value><string>ICC - RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_051)"><value><string>ICC - SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_052)"><value><string>ICC - UNDER SEAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_053)"><value><string>ICTY - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_054)"><value><string>IT - RISERVATISSIMO</string></value></item>
+          <item displayName="$(string.ng_class_sel_055)"><value><string>IT - RISERVATO</string></value></item>
+          <item displayName="$(string.ng_class_sel_056)"><value><string>IT - SEGRETISSIMO</string></value></item>
+          <item displayName="$(string.ng_class_sel_057)"><value><string>IT - SEGRETO</string></value></item>
+          <item displayName="$(string.ng_class_sel_058)"><value><string>NATO - COSMIC TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_059)"><value><string>NATO - NATO CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_060)"><value><string>NATO - NATO RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_061)"><value><string>NATO - NATO SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_062)"><value><string>NATO - NATO UNCLASSIFIED</string></value></item>
+          <item displayName="$(string.ng_class_sel_063)"><value><string>NSG - NSG CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_064)"><value><string>OECD - OECD CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_065)"><value><string>OPCW - OPCW HIGHLY PROTECTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_066)"><value><string>OPCW - OPCW PROTECTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_067)"><value><string>OPCW - OPCW RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_068)"><value><string>OSCE - RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_069)"><value><string>PL - POUFNE</string></value></item>
+          <item displayName="$(string.ng_class_sel_070)"><value><string>PL - TAJNE</string></value></item>
+          <item displayName="$(string.ng_class_sel_071)"><value><string>PL - ZASTRZEŻONE</string></value></item>
+          <item displayName="$(string.ng_class_sel_072)"><value><string>PL - ŚCIŚLE TAJNE</string></value></item>
+          <item displayName="$(string.ng_class_sel_073)"><value><string>SE - HEMLIG/CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_074)"><value><string>SE - HEMLIG/RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_075)"><value><string>SE - HEMLIG/SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_076)"><value><string>SE - HEMLIG/TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_077)"><value><string>TR - GİZLİ</string></value></item>
+          <item displayName="$(string.ng_class_sel_078)"><value><string>TR - HİZMETE ÖZEL</string></value></item>
+          <item displayName="$(string.ng_class_sel_079)"><value><string>TR - ÇOK GİZLİ</string></value></item>
+          <item displayName="$(string.ng_class_sel_080)"><value><string>TR - ÖZEL</string></value></item>
+          <item displayName="$(string.ng_class_sel_081)"><value><string>UA - ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ</string></value></item>
+          <item displayName="$(string.ng_class_sel_082)"><value><string>UA - ОСОБЛИВОЇ ВАЖЛИВОСТІ</string></value></item>
+          <item displayName="$(string.ng_class_sel_083)"><value><string>UA - ТАЄМНО</string></value></item>
+          <item displayName="$(string.ng_class_sel_084)"><value><string>UA - ЦІЛКОМ ТАЄМНО</string></value></item>
+          <item displayName="$(string.ng_class_sel_085)"><value><string>UK - PROTECTIVE MARKING NOT SET</string></value></item>
+          <item displayName="$(string.ng_class_sel_086)"><value><string>UK - UK OFFICIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_087)"><value><string>UK - UK OFFICIAL SENSITIVE</string></value></item>
+          <item displayName="$(string.ng_class_sel_088)"><value><string>UK - UK SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_089)"><value><string>UK - UK TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_090)"><value><string>UN - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_091)"><value><string>UN - STRICTLY CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_092)"><value><string>US - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_093)"><value><string>US - CONTROLLED UNCLASSIFIED INFORMATION</string></value></item>
+          <item displayName="$(string.ng_class_sel_094)"><value><string>US - SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_095)"><value><string>US - TOP SECRET</string></value></item>
+          <item displayName="$(string.ng_class_sel_096)"><value><string>US - TOP SECRET//SENSITIVE COMPARTMENT INFORMATION</string></value></item>
+          <item displayName="$(string.ng_class_sel_097)"><value><string>US - UNCLASSIFIED</string></value></item>
+          <item displayName="$(string.ng_class_sel_098)"><value><string>WASSENAAR - CONFIDENTIAL</string></value></item>
+          <item displayName="$(string.ng_class_sel_099)"><value><string>WASSENAAR - RESTRICTED</string></value></item>
+          <item displayName="$(string.ng_class_sel_100)"><value><string>WTO - RESTRICTED</string></value></item>
         </enum>
       </elements>
     </policy>
@@ -39,20 +130,20 @@
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements>
         <enum id="BackgroundColor" key="Software\Policies\NetBannerNG" valueName="CustomBackgroundColor">
-          <item displayName="$(string.unknown_10)"><value><decimal value="1" /></value></item>
-          <item displayName="$(string.unknown_11)"><value><decimal value="2" /></value></item>
-          <item displayName="$(string.unknown_12)"><value><decimal value="3" /></value></item>
-          <item displayName="$(string.unknown_13)"><value><decimal value="4" /></value></item>
-          <item displayName="$(string.unknown_14)"><value><decimal value="5" /></value></item>
-          <item displayName="$(string.unknown_15)"><value><decimal value="6" /></value></item>
-          <item displayName="$(string.unknown_16)"><value><decimal value="7" /></value></item>
-          <item displayName="$(string.unknown_17)"><value><decimal value="8" /></value></item>
-          <item displayName="$(string.unknown_18)"><value><decimal value="9" /></value></item>
+          <item displayName="$(string.unknown_10)"><value><string>#007A33</string></value></item>
+          <item displayName="$(string.unknown_11)"><value><string>#0033A0</string></value></item>
+          <item displayName="$(string.unknown_12)"><value><string>#C8102E</string></value></item>
+          <item displayName="$(string.unknown_13)"><value><string>#F7EA48</string></value></item>
+          <item displayName="$(string.unknown_14)"><value><string>#FFFFFF</string></value></item>
+          <item displayName="$(string.unknown_15)"><value><string>#000000</string></value></item>
+          <item displayName="$(string.unknown_16)"><value><string>#8B4513</string></value></item>
+          <item displayName="$(string.unknown_17)"><value><string>#800080</string></value></item>
+          <item displayName="$(string.unknown_18)"><value><string>#FF671F</string></value></item>
         </enum>
         <enum id="TextColor" key="Software\Policies\NetBannerNG" valueName="CustomForeColor">
-          <item displayName="$(string.unknown_20)"><value><decimal value="1" /></value></item>
-          <item displayName="$(string.unknown_21)"><value><decimal value="2" /></value></item>
-          <item displayName="$(string.unknown_22)"><value><decimal value="3" /></value></item>
+          <item displayName="$(string.unknown_20)"><value><string>#000000</string></value></item>
+          <item displayName="$(string.unknown_21)"><value><string>#FFFFFF</string></value></item>
+          <item displayName="$(string.unknown_22)"><value><string>#C8102E</string></value></item>
         </enum>
         <text id="DisplayText" key="Software\Policies\NetBannerNG" valueName="CustomDisplayText" />
       </elements>
@@ -88,46 +179,6 @@
     <policy name="DisableBorders" class="Machine" displayName="$(string.ng_disableborders_display)" explainText="$(string.ng_disableborders_help)" key="Software\Policies\NetBannerNG" valueName="DisableBorders">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
-    </policy>
-    <policy name="ClassificationProfile" class="Machine" displayName="$(string.ng_classificationprofile_display)" explainText="$(string.ng_classificationprofile_help)" presentation="$(presentation.ClassificationProfile)" key="Software\Policies\NetBannerNG" valueName="ClassificationProfile">
-      <parentCategory ref="NetBannerNG" />
-      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements>
-        <enum id="ClassificationProfile" key="Software\Policies\NetBannerNG" valueName="ClassificationProfile">
-          <item displayName="$(string.ng_classificationprofile_nato)"><value><string>NATO</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_us)"><value><string>US</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_uk)"><value><string>UK</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_ca)"><value><string>CA</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_au)"><value><string>AU</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_de)"><value><string>DE</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_dk)"><value><string>DK</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_euci)"><value><string>EUCI</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_ep)"><value><string>EP</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_ee)"><value><string>EE</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_fr)"><value><string>FR</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_it)"><value><string>IT</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_pl)"><value><string>PL</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_fi)"><value><string>FI</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_se)"><value><string>SE</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_tr)"><value><string>TR</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_ua)"><value><string>UA</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_esa)"><value><string>ESA</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_oecd)"><value><string>OECD</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_euratom)"><value><string>EURATOM</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_wassenaar)"><value><string>WASSENAAR</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_osce)"><value><string>OSCE</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_opcw)"><value><string>OPCW</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_coe)"><value><string>COE</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_wto)"><value><string>WTO</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_icc)"><value><string>ICC</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_nsg)"><value><string>NSG</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_icty)"><value><string>ICTY</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_ag)"><value><string>AG</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_cceb)"><value><string>CCEB</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_un)"><value><string>UN</string></value></item>
-          <item displayName="$(string.ng_classificationprofile_fvey)"><value><string>FVEY</string></value></item>
-        </enum>
-      </elements>
     </policy>
     <policy name="ShowHostInformation" class="Machine" displayName="$(string.ng_showhostinfo_display)" explainText="$(string.ng_showhostinfo_help)" key="Software\Policies\NetBannerNG" valueName="ShowHostInformation">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />

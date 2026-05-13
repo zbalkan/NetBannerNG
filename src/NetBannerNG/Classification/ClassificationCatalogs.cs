@@ -11,7 +11,7 @@ namespace NetBannerNG.Classification
         internal ClassificationCatalog(ClassificationCatalogEntry[] entries, Dictionary<int, string> valueLabels)
         {
             _entries = entries;
-            _valueLabels = valueLabels;
+            _valueLabels = valueLabels.Count > 0 ? valueLabels : BuildOrdinalLabels(entries);
         }
 
         internal string CanonicalLabelForValue(int value, string fallback)
@@ -41,6 +41,30 @@ namespace NetBannerNG.Classification
             return winner?.BackgroundHex ?? fallbackHex;
         }
 
+        internal string ResolveForegroundFromBannerText(string classificationText, string fallbackHex)
+        {
+            var tokens = ExtractCandidateTokens(classificationText);
+            ClassificationCatalogEntry? winner = null;
+
+            foreach (var entry in _entries)
+            {
+                foreach (var token in tokens)
+                {
+                    if (!entry.Matches(token))
+                    {
+                        continue;
+                    }
+
+                    if (winner == null || entry.Priority > winner.Priority)
+                    {
+                        winner = entry;
+                    }
+                }
+            }
+
+            return winner?.ForegroundHex ?? fallbackHex;
+        }
+
         private static string[] ExtractCandidateTokens(string text)
         {
             var normalized = Normalize(text);
@@ -54,6 +78,20 @@ namespace NetBannerNG.Classification
         }
 
         private static string Normalize(string value) => (value ?? string.Empty).Trim().ToUpperInvariant();
+
+        private static Dictionary<int, string> BuildOrdinalLabels(ClassificationCatalogEntry[] entries)
+        {
+            var sorted = (ClassificationCatalogEntry[])entries.Clone();
+            Array.Sort(sorted, static (left, right) => left.Priority.CompareTo(right.Priority));
+
+            var labels = new Dictionary<int, string>();
+            for (var i = 0; i < sorted.Length; i++)
+            {
+                labels[i + 1] = sorted[i].Label;
+            }
+
+            return labels;
+        }
     }
 
     internal sealed class ClassificationCatalogEntry
@@ -65,6 +103,7 @@ namespace NetBannerNG.Classification
             Key = key;
             Label = Normalize(label);
             BackgroundHex = backgroundHex;
+            ForegroundHex = null;
             Priority = priority;
             _aliases = aliases ?? Array.Empty<string>();
             for (var i = 0; i < _aliases.Length; i++)
@@ -74,6 +113,7 @@ namespace NetBannerNG.Classification
         }
 
         internal string? BackgroundHex { get; }
+        internal string? ForegroundHex { get; }
         internal string Key { get; }
         internal string Label { get; }
         internal int Priority { get; }
@@ -101,10 +141,11 @@ namespace NetBannerNG.Classification
 
     internal static class ClassificationCatalogRegistry
     {
-        private const string DefaultCatalog = "NATO";
+        private const string NotConfiguredCatalogKey = "NOT_CONFIGURED";
 
         private static readonly Dictionary<string, ClassificationCatalog> Catalogs = new()
         {
+            [NotConfiguredCatalogKey] = BuildNotConfiguredCatalog(),
             ["NATO"] = BuildNatoCatalog(),
             ["US"] = BuildUsCatalog(),
             ["UK"] = BuildUkCatalog(),
@@ -141,8 +182,16 @@ namespace NetBannerNG.Classification
         internal static ClassificationCatalog Resolve(string? catalogName)
         {
             var key = (catalogName ?? string.Empty).Trim().ToUpperInvariant();
-            return Catalogs.TryGetValue(key, out var catalog) ? catalog : Catalogs[DefaultCatalog];
+            return Catalogs.TryGetValue(key, out var catalog) ? catalog : Catalogs[NotConfiguredCatalogKey];
         }
+
+        internal static string NotConfiguredLabelText => "Classification not configured";
+        internal static string NotConfiguredBackgroundHex => "#FFFFFF";
+        internal static string NotConfiguredForegroundHex => "#000000";
+
+        private static ClassificationCatalog BuildNotConfiguredCatalog() => new(
+            new[] { new ClassificationCatalogEntry("NOT_CONFIGURED", NotConfiguredLabelText, NotConfiguredBackgroundHex, 0, "NOT CONFIGURED"), },
+            new Dictionary<int, string> { [0] = NotConfiguredLabelText });
 
         private static ClassificationCatalog BuildNatoCatalog() => new(
             new[]

@@ -17,7 +17,7 @@ This matrix compares NetBannerNG with Microsoft NetBanner and SystemBanner for p
 | --- | ---: | ---: | ---: |
 | Group Policy-based configuration | ✅ | ✅ | ✅ |
 | Primary policy path `HKLM\Software\Policies\NetBannerNG` + legacy compatibility `...\Microsoft\NetBanner` | ✅ | ⚠️ | ⚠️ |
-| Policy-selectable classification profiles/schemes | ✅ (`ClassificationProfile`) | ⚠️ | ℹ️ |
+| Policy-selectable classification profiles/schemes | ✅ (`ClassificationSelection`) | ⚠️ | ℹ️ |
 | Top classification banner | ✅ | ✅ | ✅ |
 | Optional desktop border rendering | ✅ | ⚠️ (varies by implementation/version) | ✅ |
 | Optional full-width bottom banner mode | ✅ | ⚠️ | ℹ️ |

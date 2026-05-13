@@ -71,8 +71,19 @@
 
 			<InnoBuildInfoLines Include='#define MyEventLogName "$(NetBannerNGEventLogName)"' />
 			<InnoBuildInfoLines Include='#define MyEventLogSource "$(NetBannerNGEventLogSource)"' />
-			<InnoBuildInfoLines Include='#define MyAppRegistryKey "$(NetBannerNGRegistryKey)"' />
+			<InnoBuildInfoLines Include='#define MyPolicyRegistryKey "$(NetBannerNGPolicyRegistryKey)"' />
 			<InnoBuildInfoLines Include='#define MyProgramDataDir "$(NetBannerNGProgramDataDir)"' />
+			<InnoBuildInfoLines Include='#define DefaultClassificationProfile "$(NetBannerNGDefaultClassificationProfile)"' />
+			<InnoBuildInfoLines Include='#define DefaultBannerSize "$(NetBannerNGDefaultBannerSize)"' />
+			<InnoBuildInfoLines Include='#define DefaultCustomSettings "$(NetBannerNGDefaultCustomSettings)"' />
+			<InnoBuildInfoLines Include='#define DefaultCustomBackgroundColor "$(NetBannerNGDefaultCustomBackgroundColor)"' />
+			<InnoBuildInfoLines Include='#define DefaultCustomForeColor "$(NetBannerNGDefaultCustomForeColor)"' />
+			<InnoBuildInfoLines Include='#define DefaultInfoCon "$(NetBannerNGDefaultInfoCon)"' />
+			<InnoBuildInfoLines Include='#define DefaultFpCon "$(NetBannerNGDefaultFpCon)"' />
+			<InnoBuildInfoLines Include='#define DefaultCaveatsEnabled "$(NetBannerNGDefaultCaveatsEnabled)"' />
+			<InnoBuildInfoLines Include='#define DefaultDisableBorders "$(NetBannerNGDefaultDisableBorders)"' />
+			<InnoBuildInfoLines Include='#define DefaultShowHostInformation "$(NetBannerNGDefaultShowHostInformation)"' />
+			<InnoBuildInfoLines Include='#define DefaultEnableBottomBanner "$(NetBannerNGDefaultEnableBottomBanner)"' />
 		</ItemGroup>
 
 		<WriteLinesToFile
@@ -81,6 +92,19 @@
 		  Overwrite="true"
 		  Encoding="UTF-8" />
 
+	</Target>
+
+	<Target Name="GenerateSettingsDefaults" BeforeTargets="BeforeCompile">
+		<PropertyGroup>
+			<GeneratedDefaultsFile>$(IntermediateOutputPath)SettingsDefaults.g.cs</GeneratedDefaultsFile>
+		</PropertyGroup>
+		<ItemGroup>
+			<SettingsDefaultsLines Include="namespace NetBannerNG { internal static class SettingsDefaults { internal const int DefaultBannerSize = $(NetBannerNGDefaultBannerSize); internal const string DefaultClassificationProfile = &quot;$(NetBannerNGDefaultClassificationProfile)&quot;; internal const int DefaultCustomSettings = $(NetBannerNGDefaultCustomSettings); internal const string DefaultCustomBackgroundColor = &quot;$(NetBannerNGDefaultCustomBackgroundColor)&quot;; internal const string DefaultCustomForeColor = &quot;$(NetBannerNGDefaultCustomForeColor)&quot;; internal const int DefaultInfoCon = $(NetBannerNGDefaultInfoCon); internal const int DefaultFpCon = $(NetBannerNGDefaultFpCon); internal const int DefaultCaveatsEnabled = $(NetBannerNGDefaultCaveatsEnabled); internal const int DefaultDisableBorders = $(NetBannerNGDefaultDisableBorders); internal const int DefaultShowHostInformation = $(NetBannerNGDefaultShowHostInformation); internal const int DefaultEnableBottomBanner = $(NetBannerNGDefaultEnableBottomBanner); internal const string PolicyRegistryPath = @&quot;$(NetBannerNGPolicyRegistryKey)&quot;; } }" />
+		</ItemGroup>
+		<WriteLinesToFile File="$(GeneratedDefaultsFile)" Lines="@(SettingsDefaultsLines)" Overwrite="true" />
+		<ItemGroup>
+			<Compile Include="$(GeneratedDefaultsFile)" />
+		</ItemGroup>
 	</Target>
 
 </Project>
