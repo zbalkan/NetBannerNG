@@ -99,6 +99,25 @@ namespace NetBannerNG.Tests
             Assert.AreEqual("#007A33", InvokePrivate<string>("ResolveCatalogBackground", "DK", "HEMMELIGT"));
         }
 
+        [TestMethod]
+        public void Clamp_EnforcesExpectedNumericRanges()
+        {
+            Assert.AreEqual(16, InvokePrivate<int>("Clamp", 5, 16, 60));
+            Assert.AreEqual(60, InvokePrivate<int>("Clamp", 90, 16, 60));
+            Assert.AreEqual(28, InvokePrivate<int>("Clamp", 28, 16, 60));
+        }
+
+        [TestMethod]
+        public void Truncate_EnforcesMaxLength_ForCaveatsPayloads()
+        {
+            var overLimit = new string('X', 50);
+            var truncated = InvokePrivate<string>("Truncate", overLimit, 40);
+
+            Assert.AreEqual(40, truncated.Length);
+            Assert.AreEqual(overLimit.Substring(0, 40), truncated);
+            Assert.AreEqual("short", InvokePrivate<string>("Truncate", "short", 40));
+        }
+
 
         [TestMethod]
         public void ResolvePolicyKey_PrefersNetBannerNg_WhenBothPolicyRootsExist()
