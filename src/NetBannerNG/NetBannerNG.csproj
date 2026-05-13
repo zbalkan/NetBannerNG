@@ -94,17 +94,5 @@
 
 	</Target>
 
-	<Target Name="GenerateSettingsDefaults" BeforeTargets="BeforeCompile">
-		<PropertyGroup>
-			<GeneratedDefaultsFile>$(IntermediateOutputPath)SettingsDefaults.g.cs</GeneratedDefaultsFile>
-		</PropertyGroup>
-		<ItemGroup>
-			<SettingsDefaultsLines Include="namespace NetBannerNG { internal static class SettingsDefaults { internal const int DefaultBannerSize = $(NetBannerNGDefaultBannerSize); internal const string DefaultClassificationProfile = &quot;$(NetBannerNGDefaultClassificationProfile)&quot;; internal const int DefaultCustomSettings = $(NetBannerNGDefaultCustomSettings); internal const string DefaultCustomBackgroundColor = &quot;$(NetBannerNGDefaultCustomBackgroundColor)&quot;; internal const string DefaultCustomForeColor = &quot;$(NetBannerNGDefaultCustomForeColor)&quot;; internal const int DefaultInfoCon = $(NetBannerNGDefaultInfoCon); internal const int DefaultFpCon = $(NetBannerNGDefaultFpCon); internal const int DefaultCaveatsEnabled = $(NetBannerNGDefaultCaveatsEnabled); internal const int DefaultDisableBorders = $(NetBannerNGDefaultDisableBorders); internal const int DefaultShowHostInformation = $(NetBannerNGDefaultShowHostInformation); internal const int DefaultEnableBottomBanner = $(NetBannerNGDefaultEnableBottomBanner); internal const string PolicyRegistryPath = @&quot;$(NetBannerNGPolicyRegistryKey)&quot;; } }" />
-		</ItemGroup>
-		<WriteLinesToFile File="$(GeneratedDefaultsFile)" Lines="@(SettingsDefaultsLines)" Overwrite="true" />
-		<ItemGroup>
-			<Compile Include="$(GeneratedDefaultsFile)" />
-		</ItemGroup>
-	</Target>
 
 </Project>
