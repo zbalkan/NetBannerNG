@@ -171,7 +171,7 @@
     </policy>
     <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG" valueName="BannerSize">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="10" maxValue="100" /></elements>
+      <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="16" maxValue="60" /></elements>
     </policy>
     <policy name="DisableBorders" class="Machine" displayName="$(string.ng_disableborders_display)" explainText="$(string.ng_disableborders_help)" key="Software\Policies\NetBannerNG" valueName="DisableBorders">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />

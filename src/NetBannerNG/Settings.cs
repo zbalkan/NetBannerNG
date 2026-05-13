@@ -12,6 +12,13 @@ namespace NetBannerNG
     {
         private const double BorderBannerRatio = 0.15;
         private const int DefaultBannerSize = SettingsDefaults.DefaultBannerSize;
+        private const int MinBannerSize = SettingsDefaults.MinBannerSize;
+        private const int MaxBannerSize = SettingsDefaults.MaxBannerSize;
+        private const int MaxCaveatsLength = SettingsDefaults.MaxCaveatsLength;
+        private const int MinInfoCon = SettingsDefaults.MinInfoCon;
+        private const int MaxInfoCon = SettingsDefaults.MaxInfoCon;
+        private const int MinFpCon = SettingsDefaults.MinFpCon;
+        private const int MaxFpCon = SettingsDefaults.MaxFpCon;
         private const string DefaultClassificationProfile = SettingsDefaults.DefaultClassificationProfile;
         private const int MinimumBorderSize = 2;
         private const string PolicyRegistryPath = SettingsDefaults.PolicyRegistryPath;
@@ -121,9 +128,9 @@ namespace NetBannerNG
             var customSettings = GetInt(policyKey!, "CustomSettings", 0) == 1;
             var caveatsEnabled = GetInt(policyKey!, "CaveatsEnabled", 0) == 1;
             var displayText = customSettings ? GetString(policyKey!, "CustomDisplayText", string.Empty) : string.Empty;
-            var infocon = GetInt(policyKey!, "InfoCon", 0);
-            var fpcon = GetInt(policyKey!, "FpCon", 0);
-            var caveats = caveatsEnabled ? GetString(policyKey!, "Caveats", string.Empty) : string.Empty;
+            var infocon = Clamp(GetInt(policyKey!, "InfoCon", 0), MinInfoCon, MaxInfoCon);
+            var fpcon = Clamp(GetInt(policyKey!, "FpCon", 0), MinFpCon, MaxFpCon);
+            var caveats = caveatsEnabled ? Truncate(GetString(policyKey!, "Caveats", string.Empty), MaxCaveatsLength) : string.Empty;
             var classificationText = ComposeClassificationText(classificationLabel, displayText, infocon, fpcon, caveats);
 
             var policyBackground = GetString(policyKey!, "CustomBackgroundColor", "#FFFFFF");
@@ -136,7 +143,7 @@ namespace NetBannerNG
                 FpCon = fpcon,
                 CustomBackgroundColor = customSettings ? policyBackground : ResolveCatalogBackground(classificationProfile, classificationText),
                 CustomForeColor = customSettings ? policyForeground : ResolveCatalogForeground(classificationProfile, classificationText),
-                BannerSize = GetInt(policyKey!, "BannerSize", DefaultBannerSize),
+                BannerSize = Clamp(GetInt(policyKey!, "BannerSize", DefaultBannerSize), MinBannerSize, MaxBannerSize),
                 DisableBorders = GetBool(policyKey!, "DisableBorders", SettingsDefaults.DefaultDisableBorders == 1),
                 ShowHostInformation = GetBool(policyKey!, "ShowHostInformation", false),
                 EnableBottomBanner = GetBool(policyKey!, "EnableBottomBanner", SettingsDefaults.DefaultEnableBottomBanner == 1),
@@ -262,6 +269,19 @@ namespace NetBannerNG
 
         private static string NormalizeColorValue(string raw)
                     => string.IsNullOrWhiteSpace(raw) ? "#FFFFFF" : raw.Trim();
+
+        private static int Clamp(int value, int min, int max)
+            => Math.Min(max, Math.Max(min, value));
+
+        private static string Truncate(string value, int maxLength)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+            {
+                return value;
+            }
+
+            return value.Substring(0, maxLength);
+        }
 
         private static RegistryKey OpenLocalMachineKey()
         {
