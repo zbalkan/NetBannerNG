@@ -2,7 +2,7 @@
 
 Audience: migration planners, security engineering leads, endpoint platform owners.
 
-This matrix helps evaluate NetBannerNG relative to Microsoft NetBanner and SystemBanner.
+This matrix compares NetBannerNG with Microsoft NetBanner and SystemBanner for practical migration planning.
 
 ## Legend
 - ✅: Supported
@@ -15,42 +15,54 @@ This matrix helps evaluate NetBannerNG relative to Microsoft NetBanner and Syste
 | Capability | NetBannerNG | Microsoft NetBanner | SystemBanner |
 |---|---:|---:|---:|
 | Group Policy-based configuration | ✅ | ✅ | ✅ |
-| Primary policy path `HKLM\Software\Policies\NetbannerNG` + legacy compatibility `...\Microsoft\NetBanner` | ✅ | ⚠️ | ⚠️ |
+| Primary policy path `HKLM\Software\Policies\NetBannerNG` + legacy compatibility `...\Microsoft\NetBanner` | ✅ | ⚠️ | ⚠️ |
 | Policy-selectable classification profiles/schemes | ✅ (`ClassificationProfile`) | ⚠️ | ℹ️ |
 | Top classification banner | ✅ | ✅ | ✅ |
-| Optional desktop border rendering | ✅ | ⚠️ (varies by implementation/version) | ✅ (AppBar-based behavior documented) |
+| Optional desktop border rendering | ✅ | ⚠️ (varies by implementation/version) | ✅ |
+| Optional full-width bottom banner mode | ✅ | ⚠️ | ℹ️ |
 | Custom text / caveats | ✅ | ✅ | ✅ |
 | INFOCON support | ✅ | ⚠️ | ℹ️ |
 | FPCON support | ✅ | ⚠️ | ℹ️ |
+| CPCON support | ✅ | ⚠️ | ℹ️ |
 | Multi-monitor awareness | ✅ | ✅ | ✅ |
-| Fullscreen-aware placement | ✅ (top-most toggled off in fullscreen) | ⚠️ | ✅ (documented) |
-| Mouse-over opacity behavior | ❌ | ℹ️ | ✅ (documented in README) |
+| Fullscreen-aware placement | ✅ | ⚠️ | ✅ |
+| Mouse-over opacity behavior | ❌ | ℹ️ | ✅ |
 | Dedicated Windows Service host | ✅ | ⚠️ | ℹ️ |
 | Explicit inter-process named pipe coordination | ✅ | ℹ️ | ℹ️ |
-| Installer workflow for enterprise deployment | ✅ (Inno Setup + service create/start) | ✅ | ✅ (MSI/scripts documented) |
+| Installer workflow for enterprise deployment | ✅ (Inno Setup + service lifecycle) | ✅ | ✅ |
 | Textual-only EUCI/EP/national/international preset model (non-authoritative colors) | ✅ | ℹ️ | ℹ️ |
 | Dedicated test project in repo | ✅ | ℹ️ | ℹ️ |
 
+## Architectural deltas that matter in migration
+
+### NetBannerNG strengths
+- Modular runtime split (`UI + Service + Common`) improves maintainability and governance.
+- Service-supervised lifecycle reduces user-session drift and enables deterministic restart control.
+- Named-pipe contract and security-focused tests provide clearer IPC hardening path.
+
+### SystemBanner strengths
+- Simpler app-centric operational mental model.
+- Strongly documented end-user UX expectations (notably mouse-over opacity).
+- Straightforward install/remove messaging for admin operators.
+
 ## Migration interpretation
 
-### Why choose NetBannerNG
-- If you need policy-key compatibility with a modular architecture (UI + service + common).
-- If service lifecycle control and IPC-based coordination are important.
-- If you need INFOCON/FPCON support in the current codebase.
-- If you need profile-based textual marking presets with local-policy control of non-authoritative colors.
+### Choose NetBannerNG when you need
+- service-controlled lifecycle supervision,
+- richer policy composition (INFOCON/FPCON/CPCON + catalogs),
+- explicit compatibility path for NetBanner policy migration.
 
-### Why stay/choose SystemBanner
-- If your org prefers a simpler app-centric deployment model.
-- If documented mouse-over opacity behavior is a hard requirement.
-- If existing admin processes already rely on its MSI/script conventions.
+### Keep/choose SystemBanner when you need
+- documented mouse-over opacity as a strict requirement,
+- simpler single-application operational profile.
 
 ### Typical migration path to NetBannerNG
-1. Keep existing NetBanner policy path.
-2. Deploy NetBannerNG in pilot ring.
-3. Validate monitor/fullscreen behavior and caveats.
-4. Expand deployment in phases with rollback checkpoints.
+1. Preserve policy path compatibility during pilot.
+2. Validate multi-monitor and fullscreen behavior in ring-0.
+3. Validate session behavior in console and RDP usage patterns.
+4. Phase rollout with rollback checkpoints.
 
 ## Evidence notes
 
-- NetBannerNG statuses are based on this repository’s source and docs.
-- Microsoft NetBanner and SystemBanner entries are based on public behavior descriptions; some cells remain ⚠️/ℹ️ where source-level verification is unavailable in this environment.
+- NetBannerNG entries come from local source/docs in this repository.
+- Microsoft NetBanner/SystemBanner cells reflect public behavior descriptions; unknowns remain where source-level verification was unavailable.
