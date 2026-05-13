@@ -11,7 +11,7 @@ namespace NetBannerNG.Borders
         internal BottomBanner()
         {
             InitializeComponent();
-            RefreshDataContext();
+            Render();
         }
 
         internal override void Render(bool needsResize = false)
@@ -32,7 +32,7 @@ namespace NetBannerNG.Borders
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
-            TbClassification.FontSize = CalculateFontSize(Settings.Instance.BannerSize, topMargin: 2, bottomMargin: 2);
+            TbClassification.FontSize = CalculateFontSize(Settings.Instance.BannerSize, topMargin: TbClassification.Margin.Top, bottomMargin: TbClassification.Margin.Bottom);
         }
 
         public static double CalculateFontSize(
