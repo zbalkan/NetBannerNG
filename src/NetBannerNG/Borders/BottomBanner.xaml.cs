@@ -32,7 +32,21 @@ namespace NetBannerNG.Borders
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
-            TbClassification.FontSize = Math.Max(1, Settings.Instance.BannerSize - 1);
+            TbClassification.FontSize = CalculateFontSize(Settings.Instance.BannerSize, topMargin: 2, bottomMargin: 2);
+        }
+
+        public static double CalculateFontSize(
+            double barHeight,
+            double topMargin,
+            double bottomMargin,
+            double minFontSize = 8,
+            double maxFontSize = 72,
+            double fontScale = 0.9)
+        {
+            var usableHeight = Math.Max(0, barHeight - topMargin - bottomMargin);
+            var fontSize = usableHeight * fontScale;
+
+            return Math.Max(minFontSize, Math.Min(maxFontSize, fontSize));
         }
 
         private void RefreshDataContext()
