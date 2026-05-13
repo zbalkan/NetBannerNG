@@ -65,24 +65,22 @@ Name: "{autodesktop}\{#MyAppName}"; \
     Tasks: desktopicon
 
 [Registry]
-; Application-owned local registry key.
-;
-; This key is explicitly removed during uninstall in [Code].
 ; Do not delete GPO-owned policy keys here.
-; Specifically, do not delete:
-; HKLM\SOFTWARE\Policies\Microsoft\NetBanner
 
-Root: HKLM; \
-    Subkey: "{#MyAppRegistryKey}"; \
-    ValueType: string; \
-    ValueName: "InstallPath"; \
-    ValueData: "{app}"
-
-Root: HKLM; \
-    Subkey: "{#MyAppRegistryKey}"; \
-    ValueType: string; \
-    ValueName: "Version"; \
-    ValueData: "{#MyAppVersion}"
+; Default policy-backed settings, written on first install only.
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "ClassificationSelection"; ValueData: "NOT CONFIGURED - Classification not configured"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "CustomSettings"; ValueData: "{#DefaultCustomSettings}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomBackgroundColor"; ValueData: "{#DefaultCustomBackgroundColor}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomForeColor"; ValueData: "{#DefaultCustomForeColor}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomDisplayText"; ValueData: ""; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "InfoCon"; ValueData: "{#DefaultInfoCon}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "FpCon"; ValueData: "{#DefaultFpCon}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "CaveatsEnabled"; ValueData: "{#DefaultCaveatsEnabled}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "Caveats"; ValueData: ""; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "BannerSize"; ValueData: "{#DefaultBannerSize}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "DisableBorders"; ValueData: "{#DefaultDisableBorders}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "ShowHostInformation"; ValueData: "{#DefaultShowHostInformation}"; Flags: createvalueifdoesntexist
+Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "EnableBottomBanner"; ValueData: "{#DefaultEnableBottomBanner}"; Flags: createvalueifdoesntexist
 
 [Run]
 ; Service lifecycle is handled in [Code].
@@ -331,14 +329,6 @@ begin
   end;
 end;
 
-procedure DeleteApplicationRegistryKey();
-begin
-  if RegKeyExists(HKLM, '{#MyAppRegistryKey}') then
-  begin
-    RegDeleteKeyIncludingSubkeys(HKLM, '{#MyAppRegistryKey}');
-  end;
-end;
-
 procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
@@ -359,6 +349,5 @@ begin
   begin
     DeleteServiceIfExists('{#MyServiceName}');
     DeleteEventLogSourceRegistryKey();
-    DeleteApplicationRegistryKey();
   end;
 end;

@@ -23,8 +23,20 @@
 
     <NetBannerNGEventLogName>Application</NetBannerNGEventLogName>
     <NetBannerNGEventLogSource>NetBannerNG</NetBannerNGEventLogSource>
-    <NetBannerNGRegistryKey>SOFTWARE\NetBannerNG</NetBannerNGRegistryKey>
+    <NetBannerNGPolicyRegistryKey>SOFTWARE\Policies\NetBannerNG</NetBannerNGPolicyRegistryKey>
     <NetBannerNGProgramDataDir>NetBannerNG</NetBannerNGProgramDataDir>
+
+    <NetBannerNGDefaultClassificationProfile>NOT_CONFIGURED</NetBannerNGDefaultClassificationProfile>
+    <NetBannerNGDefaultBannerSize>28</NetBannerNGDefaultBannerSize>
+    <NetBannerNGDefaultCustomSettings>0</NetBannerNGDefaultCustomSettings>
+    <NetBannerNGDefaultCustomBackgroundColor>#FFFFFF</NetBannerNGDefaultCustomBackgroundColor>
+    <NetBannerNGDefaultCustomForeColor>#000000</NetBannerNGDefaultCustomForeColor>
+    <NetBannerNGDefaultInfoCon>0</NetBannerNGDefaultInfoCon>
+    <NetBannerNGDefaultFpCon>0</NetBannerNGDefaultFpCon>
+    <NetBannerNGDefaultCaveatsEnabled>0</NetBannerNGDefaultCaveatsEnabled>
+    <NetBannerNGDefaultDisableBorders>0</NetBannerNGDefaultDisableBorders>
+    <NetBannerNGDefaultShowHostInformation>1</NetBannerNGDefaultShowHostInformation>
+    <NetBannerNGDefaultEnableBottomBanner>0</NetBannerNGDefaultEnableBottomBanner>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NetBannerNG.Service'">

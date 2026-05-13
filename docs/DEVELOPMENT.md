@@ -23,13 +23,12 @@ Audience: developers and maintainers.
 
 Registry paths:
 - Managed policy: `HKLM\SOFTWARE\Policies\NetBannerNG`
-- Local fallback: `HKLM\SOFTWARE\NetBannerNG`
-- Legacy migration compatibility: `HKLM\SOFTWARE\Policies\Microsoft\NetBanner`
 
 Behavior:
-- Load local defaults, then overlay managed policy values when present.
-- `ClassificationProfile` selects catalogs from `ClassificationCatalogs`.
-- `NATO` and `US` have built-in color mappings.
+- Seed missing managed values with build-defined defaults (Not Configured baseline), then read managed policy values.
+- No local settings fallback path is used.
+- `ClassificationSelection` selects catalog/classification values in the format `<Catalog> - <Classification>`.
+- Default profile is `NOT_CONFIGURED`.
 - EU/country/international profiles are primarily textual presets; color should be set by policy.
 
 ## Build prerequisites

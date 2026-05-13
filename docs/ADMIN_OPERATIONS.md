@@ -12,7 +12,7 @@ This guide covers day-2 operations for NetBannerNG:
 - Rollback
 
 > NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\SOFTWARE\Policies\NetBannerNG`.
-> NetBannerNG supports profile-based classification catalogs via policy value `ClassificationProfile` (for example: `NATO`, `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `EE`, `FI`, `FR`, `IT`, `LT`, `LV`, `NO`, `NZ`, `PL`, `SE`, `TR`, `UA`, `EUCI`, `EP`, `FVEY`, plus international-organization catalogs).
+> NetBannerNG supports profile-based classification catalogs via policy value `ClassificationSelection` using the format `<Catalog> - <Classification>` (for example: `NATO - COSMIC TOP SECRET`, `TR - HİZMETE ÖZEL`, `US - TOP SECRET//SENSITIVE COMPARTMENT INFORMATION`).
 
 ---
 
@@ -72,7 +72,6 @@ Recommended version-change pattern (today):
 
 ```powershell
 reg export "HKLM\SOFTWARE\Policies\NetBannerNG" "C:\Temp\NetBanner-policy-backup.reg" /y
-reg export "HKLM\SOFTWARE\NetBannerNG" "C:\Temp\NetBannerNG-local-backup.reg" /y
 ```
 
 ### Post-upgrade verification examples
@@ -92,14 +91,14 @@ Operational checks after reinstall/upgrade:
 ### Classification profile verification
 
 ```powershell
-Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText
+Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object ClassificationSelection,EnableBottomBanner,CustomSettings,CustomDisplayText
 ```
 
 Notes:
 
-- If `ClassificationProfile` is not configured and legacy `Classification` is `1..4`, NetBannerNG auto-dispatches to the `US` catalog for backward compatibility.
-- Otherwise, when `ClassificationProfile` is not configured, NetBannerNG defaults to `NATO`.
-- `CustomSettings=1` uses explicit custom colors and bypasses automatic catalog-based background selection.
+- Installer/runtime seed missing policy values to **Not Configured** defaults only when values do not exist.
+- Existing GPO-provided values are never overwritten by default seeding.
+- `CustomSettings=1` uses explicit custom colors and bypasses automatic catalog-based background/foreground selection.
 
 ---
 
@@ -118,7 +117,6 @@ Restore backups if needed:
 
 ```powershell
 reg import "C:\Temp\NetBanner-policy-backup.reg"
-reg import "C:\Temp\NetBannerNG-local-backup.reg"
 Get-Service NetBannerNGWatchdog
 ```
 
@@ -155,18 +153,15 @@ Registry backend reminder:
 1. Import/update `NetBannerNG.admx` and either `en-US/NetBannerNG.adml` or `en-GB/NetBannerNG.adml` into your Central Store.
 2. Open Group Policy Management Editor for the target OU.
 3. Navigate to the NetBanner policy node and configure:
-   - `Classification`
-   - `ClassificationProfile` (NetBannerNG extension)
+   - `Classification` (writes `ClassificationSelection`)
    - Optional: `CustomSettings`, `CustomDisplayText`, `Caveats`, `InfoCon`, `FpCon`
 4. For non-`NATO`/`US` textual schemes (including country, EU, and international-organization catalogs such as `ESA`, `OPCW`, `OSCE`, `UN`), define foreground/background colors in policy if your organization requires specific visual standards.
 5. Configure `EnableBottomBanner` when you want a full mirrored banner at the bottom edge (otherwise NetBannerNG keeps the legacy bottom border behavior).
 
 ### Recommended profile selection workflow
 
-1. Start with `ClassificationProfile = NATO` for new deployments.
-2. For migrated legacy NetBanner OUs (US-oriented), either:
-   - Explicitly set `ClassificationProfile = US`, or
-   - Rely on auto-dispatch behavior for `Classification` values `1..4`.
+1. Start with `ClassificationSelection = NOT CONFIGURED - Classification not configured` unless your policy baseline explicitly requires a specific catalog/classification.
+2. Set an explicit value (for example `NATO - COSMIC TOP SECRET` or `US - SECRET`) when your organization requires specific labels/colors.
 3. Avoid mixing profile intent and free-form labels in `CustomDisplayText` unless mission policy requires it.
 
 ### Validation workflow after GPO changes
@@ -175,7 +170,7 @@ Registry backend reminder:
 2. Verify effective values:
 
 ```powershell
-   Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon
+   Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object ClassificationSelection,EnableBottomBanner,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon
 ```
 
 3. Confirm banner colors/labels match the selected profile catalog.
