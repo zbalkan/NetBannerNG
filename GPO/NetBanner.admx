@@ -129,6 +129,8 @@
           <item displayName="$(string.ng_classificationprofile_pl)"><value><string>PL</string></value></item>
           <item displayName="$(string.ng_classificationprofile_fi)"><value><string>FI</string></value></item>
           <item displayName="$(string.ng_classificationprofile_se)"><value><string>SE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_tr)"><value><string>TR</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_ua)"><value><string>UA</string></value></item>
           <item displayName="$(string.ng_classificationprofile_esa)"><value><string>ESA</string></value></item>
           <item displayName="$(string.ng_classificationprofile_oecd)"><value><string>OECD</string></value></item>
           <item displayName="$(string.ng_classificationprofile_euratom)"><value><string>EURATOM</string></value></item>
