@@ -185,7 +185,8 @@ namespace NetBannerNG
                         break;
 
                     case LeftBar or RightBar:
-                        window.Height = monitor.Bounds.Height;
+                        window.Top = monitor.Bounds.Top + Settings.Instance.BannerSize;
+                        window.Height = Math.Max(1, monitor.Bounds.Height - Settings.Instance.BannerSize - Settings.Instance.BorderSize);
                         break;
                 }
             }
@@ -267,7 +268,7 @@ namespace NetBannerNG
                 {
                     Owner = System.Windows.Application.Current.MainWindow,
                     Top = initialVerticalTop,
-                    Left = Monitor.Bounds.Left,
+                    Left = Monitor.Bounds.Right - Settings.Instance.BorderSize,
                     Height = initialVerticalHeight,
                     AppBarMessageKey = BuildMessageKey("Right"),
                     IsDocked = !_cleanStart

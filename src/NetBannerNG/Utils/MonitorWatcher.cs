@@ -33,6 +33,15 @@ namespace NetBannerNG.Utils
             _isWatching = false;
         }
 
-        private static void ScreenHandler(object sender, EventArgs e) => _ = Application.Current.Dispatcher.BeginInvoke(_onDisplaySettingsChanged, DispatcherPriority.Background);
+        private static void ScreenHandler(object sender, EventArgs e)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                return;
+            }
+
+            _ = dispatcher.BeginInvoke(_onDisplaySettingsChanged, DispatcherPriority.Background);
+        }
     }
 }
