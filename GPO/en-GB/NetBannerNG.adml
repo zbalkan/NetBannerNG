@@ -13,10 +13,6 @@
       <string id="unknown_24">Information Condition</string>
       <string id="unknown_31">Force Protection Condition</string>
       <string id="unknown_37">Caveats</string>
-      <string id="unknown_3">Unclassified</string>
-      <string id="unknown_4">Secret</string>
-      <string id="unknown_5">Top Secret</string>
-      <string id="unknown_6">SCI</string>
       <string id="unknown_10">Green</string>
       <string id="unknown_11">Blue</string>
       <string id="unknown_12">Red</string>
@@ -43,11 +39,8 @@
 If this policy is Enabled, NetBannerNG uses the custom text and color values from this policy. When enabled, the composed banner text uses the selected classification as a base and appends the custom display text; Caveats text from the Caveats policy is not appended.
 
 If this policy is Disabled or Not Configured, NetBannerNG does not use custom text/colors from this policy and falls back to catalog-based colors and standard text composition.</string>
-      <string id="SizeMessage">40 Characters Max</string>
 
       <!-- NetBannerNG-specific additions for registry values consumed by Settings.cs -->
-      <string id="ng_classification_5">Public</string>
-      <string id="ng_classification_not_configured">Classification not configured</string>
       <string id="ng_class_sel_001">AG - AG CONFIDENTIAL</string>
       <string id="ng_class_sel_002">AG - AG SECRET</string>
       <string id="ng_class_sel_003">AG - AG-IN-CONFIDENCE</string>
@@ -148,11 +141,6 @@ If this policy is Disabled or Not Configured, NetBannerNG does not use custom te
       <string id="ng_class_sel_098">WASSENAAR - CONFIDENTIAL</string>
       <string id="ng_class_sel_099">WASSENAAR - RESTRICTED</string>
       <string id="ng_class_sel_100">WTO - RESTRICTED</string>
-      <string id="ng_classification_6">Restricted</string>
-      <string id="ng_classification_7">Confidential</string>
-      <string id="ng_classification_8">Sensitive</string>
-      <string id="ng_classification_9">For Official Use Only</string>
-      <string id="ng_cpcon_display">Cyber Protection Condition</string>
       <string id="ng_bannersize_display">Banner Size</string>
       <string id="ng_bannersize_help">This policy controls banner height in pixels. Allowed values are 16 through 60.
 
