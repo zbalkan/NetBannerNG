@@ -20,6 +20,8 @@ namespace NetBannerNG
         private const int MinFpCon = SettingsDefaults.MinFpCon;
         private const int MaxFpCon = SettingsDefaults.MaxFpCon;
         private const string DefaultClassificationProfile = SettingsDefaults.DefaultClassificationProfile;
+        private const string DefaultBackgroundHex = SettingsDefaults.DefaultCustomBackgroundColor;
+        private const string DefaultForegroundHex = SettingsDefaults.DefaultCustomForeColor;
         private const int MinimumBorderSize = 2;
         private const string PolicyRegistryPath = SettingsDefaults.PolicyRegistryPath;
         private static readonly BrushConverter BrushConverter = new();
@@ -133,8 +135,8 @@ namespace NetBannerNG
             var caveats = caveatsEnabled ? Truncate(GetString(policyKey!, "Caveats", string.Empty), MaxCaveatsLength) : string.Empty;
             var classificationText = ComposeClassificationText(classificationLabel, displayText, infocon, fpcon, caveats);
 
-            var policyBackground = GetString(policyKey!, "CustomBackgroundColor", "#FFFFFF");
-            var policyForeground = GetString(policyKey!, "CustomForeColor", "#000000");
+            var policyBackground = GetString(policyKey!, "CustomBackgroundColor", DefaultBackgroundHex);
+            var policyForeground = GetString(policyKey!, "CustomForeColor", DefaultForegroundHex);
             return new SettingsSnapshot
             {
                 Classification = classificationText,
@@ -156,8 +158,8 @@ namespace NetBannerNG
             Caveats = string.Empty,
             InfoCon = SettingsDefaults.DefaultInfoCon,
             FpCon = SettingsDefaults.DefaultFpCon,
-            CustomBackgroundColor = NormalizeColorValue(SettingsDefaults.DefaultCustomBackgroundColor),
-            CustomForeColor = NormalizeColorValue(SettingsDefaults.DefaultCustomForeColor),
+            CustomBackgroundColor = NormalizeColorValue(DefaultBackgroundHex, DefaultBackgroundHex),
+            CustomForeColor = NormalizeColorValue(DefaultForegroundHex, DefaultForegroundHex),
             BannerSize = DefaultBannerSize,
             DisableBorders = SettingsDefaults.DefaultDisableBorders == 1,
             ShowHostInformation = SettingsDefaults.DefaultShowHostInformation == 1,
@@ -267,8 +269,8 @@ namespace NetBannerNG
             }
         }
 
-        private static string NormalizeColorValue(string raw)
-                    => string.IsNullOrWhiteSpace(raw) ? "#FFFFFF" : raw.Trim();
+        private static string NormalizeColorValue(string raw, string fallback)
+                    => string.IsNullOrWhiteSpace(raw) ? fallback : raw.Trim();
 
         private static int Clamp(int value, int min, int max)
             => Math.Min(max, Math.Max(min, value));
@@ -289,7 +291,7 @@ namespace NetBannerNG
             return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         }
 
-        private static SolidColorBrush ParseBackgroundBrush(string value) => ParseBrushWithFallback(value, "#FFFFFF");
+        private static SolidColorBrush ParseBackgroundBrush(string value) => ParseBrushWithFallback(value, DefaultBackgroundHex);
 
         private static SolidColorBrush ParseBrushWithFallback(string value, string fallbackHex)
         {
@@ -301,7 +303,7 @@ namespace NetBannerNG
             return (SolidColorBrush)BrushConverter.ConvertFromInvariantString(fallbackHex);
         }
 
-        private static SolidColorBrush ParseForegroundBrush(string value) => ParseBrushWithFallback(value, "#000000");
+        private static SolidColorBrush ParseForegroundBrush(string value) => ParseBrushWithFallback(value, DefaultForegroundHex);
 
         private static string ResolveCatalogBackground(string profileName, string classificationText)
             => ClassificationCatalogRegistry.Resolve(profileName).ResolveBackgroundFromBannerText(classificationText, ClassificationCatalogRegistry.NotConfiguredBackgroundHex);
