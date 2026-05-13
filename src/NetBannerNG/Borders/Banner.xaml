@@ -128,7 +128,7 @@
                 LineHeight="11"
                 LineStackingStrategy="BlockLineHeight"
                 SnapsToDevicePixels="True"
-                Text="{Binding Metadata}"
+                Text="{Binding ConditionMetadata}"
                 TextAlignment="Right"
                 TextTrimming="CharacterEllipsis" />
         </Grid>
