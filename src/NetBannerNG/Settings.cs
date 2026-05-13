@@ -185,20 +185,19 @@ namespace NetBannerNG
             }
 
             var defaultClassification = ParseClassification(localDefaults.Classification ?? MapClassification(DefaultClassificationValue));
-            var classification = GetInt(policyKey, "Classification", defaultClassification);
-            var classificationProfile = ResolveEffectiveClassificationProfile(policyKey);
-            var customSettings = GetInt(policyKey, "CustomSettings", 0) == 1;
-            var caveatsEnabled = GetInt(policyKey, "CaveatsEnabled", 0) == 1;
-            var displayText = customSettings ? GetString(policyKey, "CustomDisplayText", string.Empty) : string.Empty;
-            var infocon = GetInt(policyKey, "InfoCon", 0);
-            var fpcon = GetInt(policyKey, "FpCon", 0);
-            var cpcon = GetInt(policyKey, "CpCon", 0);
-            var caveats = caveatsEnabled ? GetString(policyKey, "Caveats", string.Empty) : string.Empty;
+            var classification = GetInt(policyKey!, "Classification", defaultClassification);
+            var classificationProfile = ResolveEffectiveClassificationProfile(policyKey!);
+            var customSettings = GetInt(policyKey!, "CustomSettings", 0) == 1;
+            var caveatsEnabled = GetInt(policyKey!, "CaveatsEnabled", 0) == 1;
+            var displayText = customSettings ? GetString(policyKey!, "CustomDisplayText", string.Empty) : string.Empty;
+            var infocon = GetInt(policyKey!, "InfoCon", 0);
+            var fpcon = GetInt(policyKey!, "FpCon", 0);
+            var cpcon = GetInt(policyKey!, "CpCon", 0);
+            var caveats = caveatsEnabled ? GetString(policyKey!, "Caveats", string.Empty) : string.Empty;
             var classificationText = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, cpcon, caveats);
 
-            var policyBackground = GetInt(policyKey, "CustomBackgroundColor", (int)CustomBackgroundColors.Green);
-            var policyForeground = GetInt(policyKey, "CustomForeColor", (int)CustomForeColors.White);
-
+            var policyBackground = GetInt(policyKey!, "CustomBackgroundColor", (int)CustomBackgroundColors.Green);
+            var policyForeground = GetInt(policyKey!, "CustomForeColor", (int)CustomForeColors.White);
             return new SettingsSnapshot
             {
                 Classification = classificationText,
@@ -208,15 +207,14 @@ namespace NetBannerNG
                 CpCon = cpcon,
                 CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveCatalogBackground(classificationProfile, classificationText),
                 CustomForeColor = customSettings ? ToForegroundHex(policyForeground) : localDefaults.CustomForeColor,
-                FontSize = GetInt(policyKey, "FontSize", localDefaults.FontSize),
-                BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
-                Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
-                DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
-                ShowHostInformation = GetBool(policyKey, "ShowHostInformation", false),
-                EnableBottomBanner = GetBool(policyKey, "EnableBottomBanner", localDefaults.EnableBottomBanner),
+                FontSize = GetInt(policyKey!, "FontSize", localDefaults.FontSize),
+                BannerSize = GetInt(policyKey!, "BannerSize", localDefaults.BannerSize),
+                Heartbeat = GetInt(policyKey!, "Heartbeat", localDefaults.Heartbeat),
+                DisableBorders = GetBool(policyKey!, "DisableBorders", localDefaults.DisableBorders),
+                ShowHostInformation = GetBool(policyKey!, "ShowHostInformation", false),
+                EnableBottomBanner = GetBool(policyKey!, "EnableBottomBanner", localDefaults.EnableBottomBanner),
             };
         }
-
 
         private static RegistryKey? ResolvePolicyKey(RegistryKey localMachineKey)
         {
@@ -260,6 +258,7 @@ namespace NetBannerNG
                 destinationKey.SetValue(key, value, valueKind);
             }
         }
+
         private static string MapClassification(int value) => value switch
         {
             1 => "UNCLASSIFIED",
