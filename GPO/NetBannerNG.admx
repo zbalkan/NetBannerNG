@@ -14,7 +14,7 @@
     <category name="NetBannerNG" displayName="$(string.unknown_0)" />
   </categories>
   <policies>
-    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection">
+    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG">
       <parentCategory ref="NetBannerNG" />
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements>
@@ -145,7 +145,7 @@
         <text id="DisplayText" key="Software\Policies\NetBannerNG" valueName="CustomDisplayText" />
       </elements>
     </policy>
-    <policy name="InformationCondition" class="Machine" displayName="$(string.unknown_24)" explainText="$(string.InformationCondition_Help)" presentation="$(presentation.InformationCondition)" key="Software\Policies\NetBannerNG" valueName="InfoCon">
+    <policy name="InformationCondition" class="Machine" displayName="$(string.unknown_24)" explainText="$(string.InformationCondition_Help)" presentation="$(presentation.InformationCondition)" key="Software\Policies\NetBannerNG">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements><enum id="InformationCondition" key="Software\Policies\NetBannerNG" valueName="InfoCon">
           <item displayName="$(string.unknown_26)"><value><decimal value="1" /></value></item>
@@ -155,7 +155,7 @@
           <item displayName="$(string.unknown_30)"><value><decimal value="5" /></value></item>
       </enum></elements>
     </policy>
-    <policy name="ForceProtectionCondition" class="Machine" displayName="$(string.unknown_31)" explainText="$(string.ForceProtectionCondition_Help)" presentation="$(presentation.ForceProtectionCondition)" key="Software\Policies\NetBannerNG" valueName="FpCon">
+    <policy name="ForceProtectionCondition" class="Machine" displayName="$(string.unknown_31)" explainText="$(string.ForceProtectionCondition_Help)" presentation="$(presentation.ForceProtectionCondition)" key="Software\Policies\NetBannerNG">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements><enum id="ForceProtection" key="Software\Policies\NetBannerNG" valueName="FpCon">
           <item displayName="$(string.unknown_33)"><value><decimal value="1" /></value></item>
@@ -169,7 +169,7 @@
       <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
       <elements><text id="SizeMessage" key="Software\Policies\NetBannerNG" valueName="Caveats" maxLength="40" /></elements>
     </policy>
-    <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG" valueName="BannerSize">
+    <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="16" maxValue="60" /></elements>
     </policy>
