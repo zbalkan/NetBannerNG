@@ -11,6 +11,7 @@ namespace NetBannerNG.Borders
         internal Banner()
         {
             InitializeComponent();
+            Render();
         }
 
         internal override void Render(bool needsResize = false)
@@ -31,7 +32,7 @@ namespace NetBannerNG.Borders
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
-            TbClassification.FontSize = CalculateFontSize(Settings.Instance.BannerSize, topMargin: 2, bottomMargin: 2);
+            TbClassification.FontSize = CalculateFontSize(Settings.Instance.BannerSize, topMargin: TbClassification.Margin.Top, bottomMargin: TbClassification.Margin.Bottom);
         }
 
         public static double CalculateFontSize(
@@ -40,7 +41,7 @@ namespace NetBannerNG.Borders
             double bottomMargin,
             double minFontSize = 8,
             double maxFontSize = 72,
-            double fontScale = 0.9)
+            double fontScale = 0.8)
         {
             var usableHeight = Math.Max(0, barHeight - topMargin - bottomMargin);
             var fontSize = usableHeight * fontScale;
@@ -59,6 +60,11 @@ namespace NetBannerNG.Borders
             Width = 0;
             Height = 0;
             this.Undock();
+        }
+
+        private void BorderBase_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+
         }
     }
 }
