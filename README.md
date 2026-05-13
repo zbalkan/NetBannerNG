@@ -11,7 +11,7 @@ It is designed for organizations that need persistent, policy-driven desktop mar
 
 - Persistent top classification banner with optional screen-border marking
 - Optional full-width bottom banner mode
-- INFOCON / FPCON / CPCON and caveat display support
+- INFOCON / FPCON and caveat display support
 - Multi-monitor behavior and fullscreen-aware operation
 - Group Policy-first management with local fallback settings
 - Service-supervised runtime for resilient operation

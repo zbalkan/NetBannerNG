@@ -76,16 +76,6 @@
           <item displayName="$(string.unknown_36)"><value><decimal value="4" /></value></item>
       </enum></elements>
     </policy>
-    <policy name="CyberProtectionCondition" class="Machine" displayName="$(string.ng_cpcon_display)" explainText="$(string.ng_cpcon_help)" presentation="$(presentation.CyberProtectionCondition)" key="Software\Policies\NetBannerNG" valueName="CpCon">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><enum id="CyberProtection" key="Software\Policies\NetBannerNG" valueName="CpCon">
-          <item displayName="$(string.unknown_26)"><value><decimal value="1" /></value></item>
-          <item displayName="$(string.unknown_27)"><value><decimal value="2" /></value></item>
-          <item displayName="$(string.unknown_28)"><value><decimal value="3" /></value></item>
-          <item displayName="$(string.unknown_29)"><value><decimal value="4" /></value></item>
-          <item displayName="$(string.unknown_30)"><value><decimal value="5" /></value></item>
-      </enum></elements>
-    </policy>
     <policy name="Caveats" class="Machine" displayName="$(string.unknown_37)" explainText="$(string.Caveats_Help)" presentation="$(presentation.Caveats)" key="Software\Policies\NetBannerNG" valueName="CaveatsEnabled">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
@@ -98,10 +88,6 @@
     <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG" valueName="BannerSize">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="10" maxValue="100" /></elements>
-    </policy>
-    <policy name="Heartbeat" class="Machine" displayName="$(string.ng_heartbeat_display)" explainText="$(string.ng_heartbeat_help)" presentation="$(presentation.Heartbeat)" key="Software\Policies\NetBannerNG" valueName="Heartbeat">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><decimal id="HeartbeatValue" key="Software\Policies\NetBannerNG" valueName="Heartbeat" minValue="1" maxValue="3600" /></elements>
     </policy>
     <policy name="DisableBorders" class="Machine" displayName="$(string.ng_disableborders_display)" explainText="$(string.ng_disableborders_help)" key="Software\Policies\NetBannerNG" valueName="DisableBorders">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
