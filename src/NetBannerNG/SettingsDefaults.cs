@@ -21,4 +21,5 @@ internal static class SettingsDefaults
     internal const int DefaultShowHostInformation = 0;
     internal const int DefaultEnableBottomBanner = 0;
     internal const string PolicyRegistryPath = @"SOFTWARE\Policies\NetBannerNG";
+    internal const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
 }

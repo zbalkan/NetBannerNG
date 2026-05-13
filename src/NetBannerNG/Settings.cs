@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Windows.Media;
 using Microsoft.Win32;
 using NetBannerNG.Classification;
@@ -24,14 +23,9 @@ namespace NetBannerNG
         private const string DefaultForegroundHex = SettingsDefaults.DefaultCustomForeColor;
         private const int MinimumBorderSize = 2;
         private const string PolicyRegistryPath = SettingsDefaults.PolicyRegistryPath;
+        private const string LocalRegistryPath = SettingsDefaults.LocalRegistryPath;
         private static readonly BrushConverter BrushConverter = new();
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
-
-        private static readonly string[] ManagedPolicyKeys =
-                {
-            "ClassificationSelection", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
-            "InfoCon", "FpCon", "CaveatsEnabled", "Caveats", "BannerSize", "DisableBorders", "ShowHostInformation", "EnableBottomBanner",
-        };
 
         private SettingsSnapshot? _currentSettings;
         private bool _needsResize;
@@ -101,122 +95,41 @@ namespace NetBannerNG
 
         private static string GatherHostInfo() => $"{Environment.MachineName} | {Environment.UserName} | {NetworkHelper.GetPhysicalIPAddress()}";
 
-        private static bool GetBool(RegistryKey key, string name, bool defaultValue)
-        {
-            var value = key?.GetValue(name);
-            return value == null ? defaultValue : Convert.ToInt32(value, CultureInfo.InvariantCulture) != 0;
-        }
-
-        private static int GetInt(RegistryKey key, string name, int defaultValue)
-        {
-            var value = key?.GetValue(name);
-            return value == null ? defaultValue : Convert.ToInt32(value, CultureInfo.InvariantCulture);
-        }
-
-        private static string GetString(RegistryKey key, string name, string defaultValue) => key?.GetValue(name)?.ToString() ?? defaultValue;
 
         private static SettingsSnapshot LoadSettings()
         {
             using var localMachineKey = OpenLocalMachineKey();
-            using var policyKey = ResolvePolicyKey(localMachineKey);
+            var registryReader = new SettingsRegistryReader(localMachineKey);
+            registryReader.EnsureDebugRegistryKeys(PolicyRegistryPath, LocalRegistryPath);
 
-            if (policyKey == null || !HasManagedPolicyValues(policyKey))
-            {
-                return BuildDefaultSettingsSnapshot();
-            }
-
-            var selection = GetString(policyKey!, "ClassificationSelection", $"NOT CONFIGURED - {ClassificationCatalogRegistry.NotConfiguredLabelText}");
+            var selection = registryReader.ResolveString(PolicyRegistryPath, LocalRegistryPath, "ClassificationSelection", string.Empty);
             var (classificationProfile, classificationLabel) = ParseClassificationSelection(selection);
-            var customSettings = GetInt(policyKey!, "CustomSettings", 0) == 1;
-            var caveatsEnabled = GetInt(policyKey!, "CaveatsEnabled", 0) == 1;
-            var displayText = customSettings ? GetString(policyKey!, "CustomDisplayText", string.Empty) : string.Empty;
-            var infocon = Clamp(GetInt(policyKey!, "InfoCon", 0), MinInfoCon, MaxInfoCon);
-            var fpcon = Clamp(GetInt(policyKey!, "FpCon", 0), MinFpCon, MaxFpCon);
-            var caveats = caveatsEnabled ? Truncate(GetString(policyKey!, "Caveats", string.Empty), MaxCaveatsLength) : string.Empty;
+            var customSettings = registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "CustomSettings", SettingsDefaults.DefaultCustomSettings) == 1;
+            var caveatsEnabled = registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "CaveatsEnabled", SettingsDefaults.DefaultCaveatsEnabled) == 1;
+            var displayText = customSettings ? registryReader.ResolveString(PolicyRegistryPath, LocalRegistryPath, "CustomDisplayText", string.Empty) : string.Empty;
+            var infocon = Clamp(registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "InfoCon", SettingsDefaults.DefaultInfoCon), MinInfoCon, MaxInfoCon);
+            var fpcon = Clamp(registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "FpCon", SettingsDefaults.DefaultFpCon), MinFpCon, MaxFpCon);
+            var caveats = caveatsEnabled ? Truncate(registryReader.ResolveString(PolicyRegistryPath, LocalRegistryPath, "Caveats", string.Empty), MaxCaveatsLength) : string.Empty;
             var classificationText = ComposeClassificationText(classificationLabel, displayText, infocon, fpcon, caveats);
 
-            var policyBackground = GetString(policyKey!, "CustomBackgroundColor", DefaultBackgroundHex);
-            var policyForeground = GetString(policyKey!, "CustomForeColor", DefaultForegroundHex);
+            var configuredBackground = registryReader.ResolveString(PolicyRegistryPath, LocalRegistryPath, "CustomBackgroundColor", DefaultBackgroundHex);
+            var configuredForeground = registryReader.ResolveString(PolicyRegistryPath, LocalRegistryPath, "CustomForeColor", DefaultForegroundHex);
             return new SettingsSnapshot
             {
                 Classification = classificationText,
                 Caveats = caveats,
                 InfoCon = infocon,
                 FpCon = fpcon,
-                CustomBackgroundColor = customSettings ? policyBackground : ResolveCatalogBackground(classificationProfile, classificationText),
-                CustomForeColor = customSettings ? policyForeground : ResolveCatalogForeground(classificationProfile, classificationText),
-                BannerSize = Clamp(GetInt(policyKey!, "BannerSize", DefaultBannerSize), MinBannerSize, MaxBannerSize),
-                DisableBorders = GetBool(policyKey!, "DisableBorders", SettingsDefaults.DefaultDisableBorders == 1),
-                ShowHostInformation = GetBool(policyKey!, "ShowHostInformation", false),
-                EnableBottomBanner = GetBool(policyKey!, "EnableBottomBanner", SettingsDefaults.DefaultEnableBottomBanner == 1),
+                CustomBackgroundColor = customSettings ? configuredBackground : ResolveCatalogBackground(classificationProfile, classificationText),
+                CustomForeColor = customSettings ? configuredForeground : ResolveCatalogForeground(classificationProfile, classificationText),
+                BannerSize = Clamp(registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "BannerSize", DefaultBannerSize), MinBannerSize, MaxBannerSize),
+                DisableBorders = registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "DisableBorders", SettingsDefaults.DefaultDisableBorders) == 1,
+                ShowHostInformation = registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "ShowHostInformation", SettingsDefaults.DefaultShowHostInformation) == 1,
+                EnableBottomBanner = registryReader.ResolveInt(PolicyRegistryPath, LocalRegistryPath, "EnableBottomBanner", SettingsDefaults.DefaultEnableBottomBanner) == 1,
             };
         }
 
-        private static SettingsSnapshot BuildDefaultSettingsSnapshot() => new()
-        {
-            Classification = ClassificationCatalogRegistry.NotConfiguredLabelText,
-            Caveats = string.Empty,
-            InfoCon = SettingsDefaults.DefaultInfoCon,
-            FpCon = SettingsDefaults.DefaultFpCon,
-            CustomBackgroundColor = NormalizeColorValue(DefaultBackgroundHex, DefaultBackgroundHex),
-            CustomForeColor = NormalizeColorValue(DefaultForegroundHex, DefaultForegroundHex),
-            BannerSize = DefaultBannerSize,
-            DisableBorders = SettingsDefaults.DefaultDisableBorders == 1,
-            ShowHostInformation = SettingsDefaults.DefaultShowHostInformation == 1,
-            EnableBottomBanner = SettingsDefaults.DefaultEnableBottomBanner == 1,
-        };
 
-        private static RegistryKey? ResolvePolicyKey(RegistryKey localMachineKey)
-        {
-            using var writablePolicyKey = localMachineKey.CreateSubKey(PolicyRegistryPath, true);
-            if (writablePolicyKey == null)
-            {
-                return null;
-            }
-
-            DeleteUnusedValues(writablePolicyKey);
-            WriteDefaultPolicyValues(writablePolicyKey);
-            return localMachineKey.OpenSubKey(PolicyRegistryPath, false);
-        }
-
-        private static void DeleteUnusedValues(RegistryKey key)
-        {
-            key.DeleteValue("CpCon", false);
-            key.DeleteValue("Heartbeat", false);
-        }
-
-        private static void WriteDefaultPolicyValues(RegistryKey policyKey)
-        {
-            WritePolicyStringIfMissing(policyKey, "ClassificationSelection", $"NOT CONFIGURED - {ClassificationCatalogRegistry.NotConfiguredLabelText}");
-            WritePolicyDwordIfMissing(policyKey, "CustomSettings", SettingsDefaults.DefaultCustomSettings);
-            WritePolicyStringIfMissing(policyKey, "CustomBackgroundColor", SettingsDefaults.DefaultCustomBackgroundColor);
-            WritePolicyStringIfMissing(policyKey, "CustomForeColor", SettingsDefaults.DefaultCustomForeColor);
-            WritePolicyStringIfMissing(policyKey, "CustomDisplayText", string.Empty);
-            WritePolicyDwordIfMissing(policyKey, "InfoCon", SettingsDefaults.DefaultInfoCon);
-            WritePolicyDwordIfMissing(policyKey, "FpCon", SettingsDefaults.DefaultFpCon);
-            WritePolicyDwordIfMissing(policyKey, "CaveatsEnabled", SettingsDefaults.DefaultCaveatsEnabled);
-            WritePolicyStringIfMissing(policyKey, "Caveats", string.Empty);
-            WritePolicyDwordIfMissing(policyKey, "BannerSize", SettingsDefaults.DefaultBannerSize);
-            WritePolicyDwordIfMissing(policyKey, "DisableBorders", SettingsDefaults.DefaultDisableBorders);
-            WritePolicyDwordIfMissing(policyKey, "ShowHostInformation", SettingsDefaults.DefaultShowHostInformation);
-            WritePolicyDwordIfMissing(policyKey, "EnableBottomBanner", SettingsDefaults.DefaultEnableBottomBanner);
-        }
-
-        private static void WritePolicyDwordIfMissing(RegistryKey policyKey, string valueName, int defaultValue)
-        {
-            if (policyKey.GetValue(valueName) == null)
-            {
-                policyKey.SetValue(valueName, defaultValue, RegistryValueKind.DWord);
-            }
-        }
-
-        private static void WritePolicyStringIfMissing(RegistryKey policyKey, string valueName, string defaultValue)
-        {
-            if (policyKey.GetValue(valueName) == null)
-            {
-                policyKey.SetValue(valueName, defaultValue, RegistryValueKind.String);
-            }
-        }
 
         private static (string ProfileName, string ClassificationLabel) ParseClassificationSelection(string rawSelection)
         {
@@ -237,24 +150,6 @@ namespace NetBannerNG
             return (profile, label);
         }
 
-        private static bool HasManagedPolicyValues(RegistryKey? policyKey)
-        {
-            if (policyKey == null)
-            {
-                return false;
-            }
-
-            foreach (var key in ManagedPolicyKeys)
-            {
-                if (policyKey.GetValue(key) != null)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static void AppendConditionValues(List<string> values, int infoCon, int fpCon)
         {
             AddConditionIfEnabled(values, "INFOCON", infoCon);
@@ -269,8 +164,6 @@ namespace NetBannerNG
             }
         }
 
-        private static string NormalizeColorValue(string raw, string fallback)
-                    => string.IsNullOrWhiteSpace(raw) ? fallback : raw.Trim();
 
         private static int Clamp(int value, int min, int max)
             => Math.Min(max, Math.Max(min, value));
