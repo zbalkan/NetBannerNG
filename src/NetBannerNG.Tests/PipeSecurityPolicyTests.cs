@@ -85,7 +85,7 @@ namespace NetBannerNG.Tests
                 r.AccessControlType == AccessControlType.Deny);
 
             Assert.IsNotNull(denyRule, "Expected explicit deny rule for Network SID.");
-            Assert.IsTrue((denyRule.PipeAccessRights & PipeAccessRights.ReadWrite) == PipeAccessRights.ReadWrite,
+            Assert.AreEqual(PipeAccessRights.ReadWrite, denyRule.PipeAccessRights & PipeAccessRights.ReadWrite,
                 "Expected Network SID deny rule to include ReadWrite access.");
         }
 
@@ -112,7 +112,7 @@ namespace NetBannerNG.Tests
                 r.AccessControlType == AccessControlType.Allow);
 
             Assert.IsNotNull(rule, $"Expected explicit allow rule for {principalLabel}.");
-            Assert.IsTrue((rule.PipeAccessRights & expectedRights) == expectedRights,
+            Assert.AreEqual(expectedRights, rule.PipeAccessRights & expectedRights,
                 $"Expected {principalLabel} to have {expectedRights} access.");
         }
 
