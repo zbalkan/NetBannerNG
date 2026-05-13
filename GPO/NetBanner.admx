@@ -108,5 +108,43 @@
       <parentCategory ref="NetBanner" /><supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
       <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
     </policy>
+    <policy name="ClassificationProfile" class="Machine" displayName="$(string.ng_classificationprofile_display)" explainText="$(string.ng_classificationprofile_help)" presentation="$(presentation.ClassificationProfile)" key="Software\Policies\Microsoft\NetBanner" valueName="ClassificationProfile">
+      <parentCategory ref="NetBanner" />
+      <supportedOn ref="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1" />
+      <elements>
+        <enum id="ClassificationProfile" key="Software\Policies\Microsoft\NetBanner" valueName="ClassificationProfile">
+          <item displayName="$(string.ng_classificationprofile_nato)"><value><string>NATO</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_us)"><value><string>US</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_uk)"><value><string>UK</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_ca)"><value><string>CA</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_au)"><value><string>AU</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_de)"><value><string>DE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_dk)"><value><string>DK</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_euci)"><value><string>EUCI</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_ep)"><value><string>EP</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_ee)"><value><string>EE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_fr)"><value><string>FR</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_it)"><value><string>IT</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_pl)"><value><string>PL</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_fi)"><value><string>FI</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_se)"><value><string>SE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_esa)"><value><string>ESA</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_oecd)"><value><string>OECD</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_euratom)"><value><string>EURATOM</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_wassenaar)"><value><string>WASSENAAR</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_osce)"><value><string>OSCE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_opcw)"><value><string>OPCW</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_coe)"><value><string>COE</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_wto)"><value><string>WTO</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_icc)"><value><string>ICC</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_nsg)"><value><string>NSG</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_icty)"><value><string>ICTY</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_ag)"><value><string>AG</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_cceb)"><value><string>CCEB</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_un)"><value><string>UN</string></value></item>
+          <item displayName="$(string.ng_classificationprofile_fvey)"><value><string>FVEY</string></value></item>
+        </enum>
+      </elements>
+    </policy>
   </policies>
 </policyDefinitions>

@@ -34,12 +34,19 @@ At a high level:
 
 - `HKLM\Software\Policies\Microsoft\NetBanner`
 
+Notes for Windows administrators:
+- ADMX/ADML is the management plane; registry is the policy backend written by Group Policy Client.
+- NetBannerNG reads policy-backed values first, then local application defaults.
+- Policy-backed registry values can remain after policy unlink/removal unless explicitly reverted (registry tattooing behavior awareness is required in deployment design).
+
 Supported policy areas in the supplied ADMX include:
 
 - Classification
+- ClassificationProfile (catalog/scheme selector)
 - Custom colors/text
 - INFOCON
 - FPCON
+- CPCON
 - Caveats
 
 ### Local NetBannerNG settings path
@@ -124,8 +131,33 @@ After reviewing the service, desktop app, shared library, and tests, the runtime
 5. **Policy-first settings resolution**
    - `Settings` loads local defaults from `HKLM\SOFTWARE\NetBannerNG`, then overlays managed policy values from `HKLM\SOFTWARE\Policies\Microsoft\NetBanner` when present.
    - Classification text composition includes optional custom display text, INFOCON/FPCON/CPCON values, and caveats.
+   - `ClassificationProfile` dispatches into the catalog registry (`ClassificationCatalogs`) so classification schemes are extensible (NATO/US plus EUCI/EP/national/international textual presets).
+   - Color semantics are profile-aware: NATO/US have built-in mappings; EUCI/EP and most national/international profiles are textual schemes and rely on local policy colors unless explicitly configured.
 
 6. **Test coverage direction**
    - The test project emphasizes watchdog transitions, named-pipe identity/security behavior, policy resolution, and monitor/border behaviors.
 
 This confirms NetBannerNG is architected as a service-supervised, per-user UI renderer with policy-compatible configuration and explicit resilience mechanisms for long-running endpoint operation.
+
+## Service/UI lifecycle notes (merged review)
+
+Review scope included:
+- `src/NetBannerNG.Service/*`
+- `src/NetBannerNG.Common/Extensions/ProcessStartInfoExtensions.cs`
+- `src/NetBannerNG/Services/AppLifecycleService.cs`
+- `src/NetBannerNG/NamedPipeClient.cs`
+
+Current accepted behavior:
+- Service runs as watchdog in Session 0 and launches UI in the interactive user session.
+- Watchdog relaunches UI when child process is absent.
+- UI exits when service/pipe disconnects so service can re-provision it.
+- Session targeting is currently console-centric in parts of the launch path; this is an accepted operational characteristic for now.
+- Service retries launch when no interactive user is available, with failure logging and retry loop.
+
+Named-pipe model (current):
+- Single machine-local endpoint model is used by default.
+- This is not currently a per-session pipe-server map.
+- Multi-session/RDP-heavy deployments should be validated carefully against operational policy expectations.
+
+Security posture (current guidance):
+- Keep pipe authorization least-privilege and continuously validate ACL/identity assumptions as implementation evolves.

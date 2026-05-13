@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Windows.Media;
 using Microsoft.Win32;
+using NetBannerNG.Classification;
 using NetBannerNG.Utils;
 
 namespace NetBannerNG
@@ -14,6 +15,7 @@ namespace NetBannerNG
         private const int DefaultClassificationValue = 1;
         private const int DefaultFontSize = 9;
         private const int DefaultHeartbeat = 20;
+        private const string DefaultClassificationProfile = "NATO";
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
         private const string PolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
@@ -23,7 +25,7 @@ namespace NetBannerNG
         private static readonly string[] ManagedPolicyKeys =
                 {
             "Classification", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
-            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders",
+            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders", "ClassificationProfile",
         };
 
         private SettingsSnapshot? _currentSettings;
@@ -177,6 +179,7 @@ namespace NetBannerNG
 
             var defaultClassification = ParseClassification(localDefaults.Classification ?? MapClassification(DefaultClassificationValue));
             var classification = GetInt(policyKey, "Classification", defaultClassification);
+            var classificationProfile = ResolveEffectiveClassificationProfile(policyKey);
             var customSettings = GetInt(policyKey, "CustomSettings", 0) == 1;
             var caveatsEnabled = GetInt(policyKey, "CaveatsEnabled", 0) == 1;
             var displayText = customSettings ? GetString(policyKey, "CustomDisplayText", string.Empty) : string.Empty;
@@ -196,7 +199,7 @@ namespace NetBannerNG
                 InfoCon = infocon,
                 FpCon = fpcon,
                 CpCon = cpcon,
-                CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveNatoBackground(classificationText),
+                CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveCatalogBackground(classificationProfile, classificationText),
                 CustomForeColor = customSettings ? ToForegroundHex(policyForeground) : localDefaults.CustomForeColor,
                 FontSize = GetInt(policyKey, "FontSize", localDefaults.FontSize),
                 BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
@@ -216,7 +219,7 @@ namespace NetBannerNG
             7 => "CONFIDENTIAL",
             8 => "SENSITIVE",
             9 => "FOR OFFICIAL USE ONLY",
-            _ => "PUBLIC",
+            _ => ClassificationCatalogRegistry.Resolve(DefaultClassificationProfile).CanonicalLabelForValue(value, "PUBLIC"),
         };
 
         private static bool HasManagedPolicyValues(RegistryKey? policyKey)
@@ -235,6 +238,21 @@ namespace NetBannerNG
             }
 
             return false;
+        }
+
+        private static string ResolveEffectiveClassificationProfile(RegistryKey policyKey)
+        {
+            var configuredProfile = GetString(policyKey, "ClassificationProfile", string.Empty).Trim();
+            if (!string.IsNullOrEmpty(configuredProfile))
+            {
+                return configuredProfile;
+            }
+
+            // Backward compatibility dispatch:
+            // If legacy NetBanner-style classification values are configured and no explicit profile is set,
+            // prefer US catalog behavior. Otherwise use NATO default.
+            var classificationValue = GetInt(policyKey, "Classification", DefaultClassificationValue);
+            return classificationValue >= 1 && classificationValue <= 4 ? "US" : DefaultClassificationProfile;
         }
 
         private static void AppendConditionValues(List<string> values, int infoCon, int fpCon, int cpCon)
@@ -283,35 +301,20 @@ namespace NetBannerNG
             return (SolidColorBrush)BrushConverter.ConvertFromInvariantString(fallbackHex);
         }
 
-        private static int ParseClassification(string classification) => classification.Trim().ToUpperInvariant() switch { "UNCLASSIFIED" => 1, "SECRET" => 2, "TOP SECRET" => 3, "SCI" => 4, _ => DefaultClassificationValue };
+        private static int ParseClassification(string classification)
+                    => classification.Trim().ToUpperInvariant() switch
+                    {
+                        "UNCLASSIFIED" => 1,
+                        "SECRET" => 2,
+                        "TOP SECRET" => 3,
+                        "SCI" => 4,
+                        _ => DefaultClassificationValue,
+                    };
 
         private static SolidColorBrush ParseForegroundBrush(string value) => ParseBrushWithFallback(value, ToForegroundHex((int)CustomForeColors.White), ToForegroundHex);
 
-        private static string ResolveNatoBackground(string classificationText)
-        {
-            var t = classificationText.ToUpperInvariant();
-            if (t.Contains("COSMIC TOP SECRET"))
-            {
-                return "#F7EA48";
-            }
-
-            if (t.Contains("SECRET"))
-            {
-                return "#C8102E";
-            }
-
-            if (t.Contains("CONFIDENTIAL"))
-            {
-                return "#0033A0";
-            }
-
-            if (t.Contains("RESTRICTED"))
-            {
-                return "#FF671F";
-            }
-
-            return "#007A33";
-        }
+        private static string ResolveCatalogBackground(string profileName, string classificationText)
+            => ClassificationCatalogRegistry.Resolve(profileName).ResolveBackgroundFromBannerText(classificationText, "#007A33");
 
         private static string ToBackgroundHex(int value) => value switch
         {
