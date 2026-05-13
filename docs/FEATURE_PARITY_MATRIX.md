@@ -16,6 +16,7 @@ This matrix helps evaluate NetBannerNG relative to Microsoft NetBanner and Syste
 |---|---:|---:|---:|
 | Group Policy-based configuration | ✅ | ✅ | ✅ |
 | Policy path compatibility `HKLM\Software\Policies\Microsoft\NetBanner` | ✅ | ✅ | ✅ (documented compatibility intent) |
+| Policy-selectable classification profiles/schemes | ✅ (`ClassificationProfile`) | ⚠️ | ℹ️ |
 | Top classification banner | ✅ | ✅ | ✅ |
 | Optional desktop border rendering | ✅ | ⚠️ (varies by implementation/version) | ✅ (AppBar-based behavior documented) |
 | Custom text / caveats | ✅ | ✅ | ✅ |
@@ -27,6 +28,7 @@ This matrix helps evaluate NetBannerNG relative to Microsoft NetBanner and Syste
 | Dedicated Windows Service host | ✅ | ⚠️ | ℹ️ |
 | Explicit inter-process named pipe coordination | ✅ | ℹ️ | ℹ️ |
 | Installer workflow for enterprise deployment | ✅ (Inno Setup + service create/start) | ✅ | ✅ (MSI/scripts documented) |
+| Textual-only EUCI/EP/national/international preset model (non-authoritative colors) | ✅ | ℹ️ | ℹ️ |
 | Dedicated test project in repo | ✅ | ℹ️ | ℹ️ |
 
 ## Migration interpretation
@@ -35,6 +37,7 @@ This matrix helps evaluate NetBannerNG relative to Microsoft NetBanner and Syste
 - If you need policy-key compatibility with a modular architecture (UI + service + common).
 - If service lifecycle control and IPC-based coordination are important.
 - If you need INFOCON/FPCON support in the current codebase.
+- If you need profile-based textual marking presets with local-policy control of non-authoritative colors.
 
 ### Why stay/choose SystemBanner
 - If your org prefers a simpler app-centric deployment model.

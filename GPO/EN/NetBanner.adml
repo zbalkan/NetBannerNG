@@ -57,6 +57,38 @@
       <string id="ng_heartbeat_help">NetBannerNG-only policy for Heartbeat registry value.</string>
       <string id="ng_disableborders_display">Disable Borders (NetBannerNG)</string>
       <string id="ng_disableborders_help">NetBannerNG-only policy for DisableBorders registry value.</string>
+      <string id="ng_classificationprofile_display">Classification Catalog Profile (NetBannerNG)</string>
+      <string id="ng_classificationprofile_help">Selects the classification catalog used for alias parsing and automatic background color resolution. Default behavior is NATO when this policy is not configured.</string>
+      <string id="ng_classificationprofile_nato">NATO</string>
+      <string id="ng_classificationprofile_us">United States (US)</string>
+      <string id="ng_classificationprofile_uk">United Kingdom (UK)</string>
+      <string id="ng_classificationprofile_ca">Canada (CA)</string>
+      <string id="ng_classificationprofile_au">Australia (AU)</string>
+      <string id="ng_classificationprofile_de">Germany (DE)</string>
+      <string id="ng_classificationprofile_dk">Denmark (DK)</string>
+      <string id="ng_classificationprofile_euci">EUCI</string>
+      <string id="ng_classificationprofile_ep">European Parliament (EP)</string>
+      <string id="ng_classificationprofile_ee">Estonia (EE)</string>
+      <string id="ng_classificationprofile_fr">France (FR)</string>
+      <string id="ng_classificationprofile_it">Italy (IT)</string>
+      <string id="ng_classificationprofile_pl">Poland (PL)</string>
+      <string id="ng_classificationprofile_fi">Finland (FI)</string>
+      <string id="ng_classificationprofile_se">Sweden (SE)</string>
+      <string id="ng_classificationprofile_esa">European Space Agency (ESA)</string>
+      <string id="ng_classificationprofile_oecd">OECD</string>
+      <string id="ng_classificationprofile_euratom">EURATOM</string>
+      <string id="ng_classificationprofile_wassenaar">Wassenaar Arrangement</string>
+      <string id="ng_classificationprofile_osce">OSCE</string>
+      <string id="ng_classificationprofile_opcw">OPCW</string>
+      <string id="ng_classificationprofile_coe">Council of Europe (COE)</string>
+      <string id="ng_classificationprofile_wto">WTO</string>
+      <string id="ng_classificationprofile_icc">ICC</string>
+      <string id="ng_classificationprofile_nsg">NSG</string>
+      <string id="ng_classificationprofile_icty">ICTY</string>
+      <string id="ng_classificationprofile_ag">AG</string>
+      <string id="ng_classificationprofile_cceb">CCEB</string>
+      <string id="ng_classificationprofile_un">United Nations (UN)</string>
+      <string id="ng_classificationprofile_fvey">Five Eyes (FVEY)</string>
 
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>
@@ -95,6 +127,9 @@
       </presentation>
       <presentation id="Heartbeat">
         <decimalTextBox refId="HeartbeatValue" defaultValue="20" spin="true"><label>Heartbeat seconds (1-3600)</label></decimalTextBox>
+      </presentation>
+      <presentation id="ClassificationProfile">
+        <dropdownList refId="ClassificationProfile" noSort="true" defaultItem="0">Classification Profile</dropdownList>
       </presentation>
     </presentationTable>
   </resources>

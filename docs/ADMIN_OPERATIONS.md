@@ -11,12 +11,13 @@ This guide covers day-2 operations for NetBannerNG:
 - Rollback
 
 > NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\Software\Policies\Microsoft\NetBanner`.
+> NetBannerNG supports profile-based classification catalogs via policy value `ClassificationProfile` (for example: `NATO`, `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `FVEY`).
 
 ---
 
 ## 1) Install
 
-### Option A: Installer package (recommended)
+### Installer package (required)
 1. Run the NetBannerNG setup executable as Administrator.
 2. Verify files are installed under:
    - `C:\Program Files\NetBannerNG`
@@ -32,42 +33,31 @@ Expected state after install:
 - Service is running.
 - Banner appears for logged-on users (after policy is applied).
 
-### Option B: scripted/service-only install example
-
-```cmd
-set APPDIR=C:\Program Files\NetBannerNG
-sc.exe create "NetBannerNGWatchdog" start= auto binPath= "%APPDIR%\NetBannerNG.Service.exe" displayname= "NetBannerNG Service"
-sc.exe start "NetBannerNGWatchdog"
-```
+Installer behavior reference:
+- Service lifecycle (stop/configure/start) is handled by Inno Setup `[Code]` in `installer/setup.iss`.
+- Do not perform standalone `sc.exe create/config/delete` as a primary install path.
 
 ---
 
 ## 2) Remove (Uninstall)
 
-### Option A: Use installer uninstall (recommended)
+### Use installer uninstall (required)
 - Uninstall from Apps & Features (or run uninstaller from install directory).
-
-### Option B: scripted remove example
-
-```cmd
-sc.exe stop "NetBannerNGWatchdog"
-sc.exe delete "NetBannerNGWatchdog"
-```
-
-Then remove residual binaries if needed:
-
-```cmd
-rmdir /s /q "C:\Program Files\NetBannerNG"
-```
 
 ---
 
 ## 3) Upgrade
 
-Recommended pattern:
+Current status:
+- NetBannerNG does **not** currently provide a formal, supported in-place upgrade path.
+- Use uninstall + install workflow for version changes today.
+- Inno Setup service lifecycle automation (`installer/setup.iss`) is the intended foundation for future first-class upgrade support.
+
+Recommended version-change pattern (today):
 1. Export/backup relevant registry keys and current installer artifacts.
-2. Apply new installer version (in-place upgrade).
-3. Confirm service status and banner behavior.
+2. Uninstall current version using installer/uninstaller.
+3. Install target version using installer package.
+4. Confirm service status and banner behavior.
 
 ### Pre-upgrade backup examples
 
@@ -83,10 +73,22 @@ Get-Service NetBannerNGWatchdog
 Get-Item "C:\Program Files\NetBannerNG\NetBannerNG.Service.exe" | Select-Object FullName,LastWriteTime,Length
 ```
 
-Operational checks:
+Operational checks after reinstall/upgrade:
 - Service running without restart loops.
 - Banner renders on all monitors.
 - Fullscreen transitions move banner behind fullscreen windows and restore afterward.
+- Expected classification color profile is active for the managed OU(s).
+
+### Classification profile verification
+
+```powershell
+Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\NetBanner" | Select-Object Classification,ClassificationProfile,CustomSettings,CustomDisplayText
+```
+
+Notes:
+- If `ClassificationProfile` is not configured and legacy `Classification` is `1..4`, NetBannerNG auto-dispatches to the `US` catalog for backward compatibility.
+- Otherwise, when `ClassificationProfile` is not configured, NetBannerNG defaults to `NATO`.
+- `CustomSettings=1` uses explicit custom colors and bypasses automatic catalog-based background selection.
 
 ---
 
@@ -95,19 +97,12 @@ Operational checks:
 Use rollback when an upgrade introduces rendering or service issues.
 
 Recommended rollback pattern:
-1. Stop and remove current service.
-2. Reinstall prior known-good version.
+1. Uninstall current version using installer/uninstaller.
+2. Reinstall prior known-good version using installer package.
 3. Restore registry backups if policy/local settings were changed unexpectedly.
 4. Start service and validate behavior.
 
-### Rollback command examples
-
-```cmd
-sc.exe stop "NetBannerNGWatchdog"
-sc.exe delete "NetBannerNGWatchdog"
-```
-
-Install prior version, then restore backups if needed:
+Restore backups if needed:
 
 ```powershell
 reg import "C:\Temp\NetBanner-policy-backup.reg"
@@ -132,7 +127,51 @@ If service starts but banner does not appear:
 
 ---
 
-## 6) Change management recommendations
+## 6) GPO management playbook (administrator training)
+
+NetBannerNG policy management is intended to be driven through Group Policy (`Computer Configuration` scope).
+
+Registry backend reminder:
+- ADMX/ADML policy settings are ultimately stored in registry by Group Policy processing.
+- Treat registry as the backend state, not the primary management interface.
+- Plan for registry tattooing behavior in change/rollback procedures.
+
+### Where to configure
+1. Import/update `NetBanner.admx` and `EN/NetBanner.adml` into your Central Store.
+2. Open Group Policy Management Editor for the target OU.
+3. Navigate to the NetBanner policy node and configure:
+   - `Classification`
+   - `ClassificationProfile` (NetBannerNG extension)
+   - Optional: `CustomSettings`, `CustomDisplayText`, `Caveats`, `InfoCon`, `FpCon`, `CpCon`
+4. For `EUCI`/`EP`/UK-national-equivalence and international-organization textual schemes (`ESA`, `OPCW`, `OSCE`, `UN`, etc.), define foreground/background colors in local policy if your organization requires specific visual standards.
+
+### Recommended profile selection workflow
+1. Start with `ClassificationProfile = NATO` for new deployments.
+2. For migrated legacy NetBanner OUs (US-oriented), either:
+   - Explicitly set `ClassificationProfile = US`, or
+   - Rely on auto-dispatch behavior for `Classification` values `1..4`.
+3. Avoid mixing profile intent and free-form labels in `CustomDisplayText` unless mission policy requires it.
+
+### Validation workflow after GPO changes
+1. Force policy refresh (`gpupdate /force`) on a pilot endpoint.
+2. Verify effective values:
+   ```powershell
+   Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\NetBanner" | Select-Object Classification,ClassificationProfile,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon,CpCon
+   ```
+3. Confirm banner colors/labels match the selected profile catalog.
+4. Expand rollout ring-by-ring after pilot validation.
+
+### Tattooing warning (important)
+- Some registry values may persist after GPO changes/unlinking depending on policy state transitions and operational handling.
+- Always validate effective values on pilot systems after:
+  - GPO unlink/removal
+  - OU moves
+  - rollback to older policy baselines
+- Keep explicit rollback scripts/backups for policy and local keys.
+
+---
+
+## 7) Change management recommendations
 
 - Pilot on a small endpoint ring first.
 - Validate multi-monitor and fullscreen app scenarios.

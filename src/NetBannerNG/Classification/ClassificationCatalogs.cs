@@ -1,0 +1,266 @@
+using System;
+using System.Collections.Generic;
+
+namespace NetBannerNG.Classification
+{
+    internal sealed class ClassificationCatalog
+    {
+        private readonly ClassificationCatalogEntry[] _entries;
+        private readonly Dictionary<int, string> _valueLabels;
+
+        internal ClassificationCatalog(ClassificationCatalogEntry[] entries, Dictionary<int, string> valueLabels)
+        {
+            _entries = entries;
+            _valueLabels = valueLabels;
+        }
+
+        internal string CanonicalLabelForValue(int value, string fallback)
+            => _valueLabels.TryGetValue(value, out var label) ? label : fallback;
+
+        internal string ResolveBackgroundFromBannerText(string classificationText, string fallbackHex)
+        {
+            var tokens = ExtractCandidateTokens(classificationText);
+            ClassificationCatalogEntry? winner = null;
+
+            foreach (var entry in _entries)
+            {
+                foreach (var token in tokens)
+                {
+                    if (!entry.Matches(token))
+                    {
+                        continue;
+                    }
+
+                    if (winner == null || entry.Priority > winner.Priority)
+                    {
+                        winner = entry;
+                    }
+                }
+            }
+
+            return winner?.BackgroundHex ?? fallbackHex;
+        }
+
+        private static string[] ExtractCandidateTokens(string text)
+        {
+            var normalized = Normalize(text);
+            var pieces = normalized.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+            for (var i = 0; i < pieces.Length; i++)
+            {
+                pieces[i] = pieces[i].Trim();
+            }
+
+            return pieces;
+        }
+
+        private static string Normalize(string value) => (value ?? string.Empty).Trim().ToUpperInvariant();
+    }
+
+    internal sealed class ClassificationCatalogEntry
+    {
+        private readonly string[] _aliases;
+
+        internal ClassificationCatalogEntry(string key, string label, string? backgroundHex, int priority, params string[] aliases)
+        {
+            Key = key;
+            Label = Normalize(label);
+            BackgroundHex = backgroundHex;
+            Priority = priority;
+            _aliases = aliases ?? Array.Empty<string>();
+            for (var i = 0; i < _aliases.Length; i++)
+            {
+                _aliases[i] = Normalize(_aliases[i]);
+            }
+        }
+
+        internal string? BackgroundHex { get; }
+        internal string Key { get; }
+        internal string Label { get; }
+        internal int Priority { get; }
+
+        internal bool Matches(string normalizedValue)
+        {
+            if (normalizedValue == Label)
+            {
+                return true;
+            }
+
+            foreach (var alias in _aliases)
+            {
+                if (normalizedValue == alias)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static string Normalize(string value) => (value ?? string.Empty).Trim().ToUpperInvariant();
+    }
+
+    internal static class ClassificationCatalogRegistry
+    {
+        private const string DefaultCatalog = "NATO";
+
+        private static readonly Dictionary<string, ClassificationCatalog> Catalogs = new()
+        {
+            ["NATO"] = BuildNatoCatalog(),
+            ["US"] = BuildUsCatalog(),
+            ["UK"] = BuildUkCatalog(),
+            ["CA"] = BuildCanadaCatalog(),
+            ["AU"] = BuildAustraliaCatalog(),
+            ["DE"] = BuildGermanyCatalog(),
+            ["DK"] = BuildDenmarkCatalog(),
+            ["EUCI"] = BuildEuciCatalog(),
+            ["EP"] = BuildEuropeanParliamentCatalog(),
+            ["EE"] = BuildEstoniaCatalog(),
+            ["FR"] = BuildFranceCatalog(),
+            ["IT"] = BuildItalyCatalog(),
+            ["PL"] = BuildPolandCatalog(),
+            ["FI"] = BuildFinlandCatalog(),
+            ["SE"] = BuildSwedenCatalog(),
+            ["ESA"] = BuildEsaCatalog(),
+            ["OECD"] = BuildOecdCatalog(),
+            ["EURATOM"] = BuildEuratomCatalog(),
+            ["WASSENAAR"] = BuildWassenaarCatalog(),
+            ["OSCE"] = BuildOsceCatalog(),
+            ["OPCW"] = BuildOpcwCatalog(),
+            ["COE"] = BuildCouncilOfEuropeCatalog(),
+            ["WTO"] = BuildWtoCatalog(),
+            ["ICC"] = BuildIccCatalog(),
+            ["NSG"] = BuildNsgCatalog(),
+            ["ICTY"] = BuildIctyCatalog(),
+            ["AG"] = BuildAgCatalog(),
+            ["CCEB"] = BuildCcebCatalog(),
+            ["UN"] = BuildUnCatalog(),
+        };
+
+        internal static ClassificationCatalog Resolve(string? catalogName)
+        {
+            var key = (catalogName ?? string.Empty).Trim().ToUpperInvariant();
+            return Catalogs.TryGetValue(key, out var catalog) ? catalog : Catalogs[DefaultCatalog];
+        }
+
+        private static ClassificationCatalog BuildNatoCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("NATO_UNCLASSIFIED", "NATO UNCLASSIFIED", "#007A33", 10, "UNCLASSIFIED", "UNCLASS", "PUBLIC"),
+                new ClassificationCatalogEntry("NATO_RESTRICTED", "NATO RESTRICTED", "#FF671F", 20, "RESTRICTED"),
+                new ClassificationCatalogEntry("NATO_CONFIDENTIAL", "NATO CONFIDENTIAL", "#0033A0", 30, "CONFIDENTIAL"),
+                new ClassificationCatalogEntry("NATO_SECRET", "NATO SECRET", "#C8102E", 40, "SECRET"),
+                new ClassificationCatalogEntry("COSMIC_TOP_SECRET", "COSMIC TOP SECRET", "#F7EA48", 50, "TOP SECRET"),
+            },
+            new Dictionary<int, string>
+            {
+                [1] = "UNCLASSIFIED",
+                [2] = "SECRET",
+                [3] = "TOP SECRET",
+                [4] = "SCI",
+                [5] = "PUBLIC",
+                [6] = "RESTRICTED",
+                [7] = "CONFIDENTIAL",
+                [8] = "SENSITIVE",
+                [9] = "FOR OFFICIAL USE ONLY",
+            });
+
+        private static ClassificationCatalog BuildUsCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("CUI", "CONTROLLED UNCLASSIFIED INFORMATION", "#502B85", 10, "CUI"),
+                new ClassificationCatalogEntry("UNCLASSIFIED", "UNCLASSIFIED", "#007A33", 20, "U"),
+                new ClassificationCatalogEntry("CONFIDENTIAL", "CONFIDENTIAL", "#0033A0", 30, "C"),
+                new ClassificationCatalogEntry("SECRET", "SECRET", "#C8102E", 40, "S"),
+                new ClassificationCatalogEntry("TOP_SECRET", "TOP SECRET", "#FF8C00", 50, "TS"),
+                new ClassificationCatalogEntry("TS_SCI", "TOP SECRET//SENSITIVE COMPARTMENT INFORMATION", "#FCE83A", 60, "TS//SCI"),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildUkCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("PMNS", "PROTECTIVE MARKING NOT SET", null, 10),
+                new ClassificationCatalogEntry("UK_OFFICIAL", "UK OFFICIAL", null, 20),
+                new ClassificationCatalogEntry("UK_OFFICIAL_SENSITIVE", "UK OFFICIAL SENSITIVE", null, 30),
+                new ClassificationCatalogEntry("UK_SECRET", "UK SECRET", null, 40),
+                new ClassificationCatalogEntry("UK_TOP_SECRET", "UK TOP SECRET", null, 50),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildCanadaCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("PROTECTED_A", "PROTECTED A", null, 10),
+                new ClassificationCatalogEntry("PROTECTED_B", "PROTECTED B", null, 20),
+                new ClassificationCatalogEntry("PROTECTED_C", "PROTECTED C", null, 30),
+                new ClassificationCatalogEntry("CONFIDENTIAL", "CONFIDENTIAL", null, 40),
+                new ClassificationCatalogEntry("SECRET", "SECRET", null, 50),
+                new ClassificationCatalogEntry("TOP_SECRET", "TOP SECRET", null, 60),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildAustraliaCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("UNOFFICIAL", "UNOFFICIAL", null, 10),
+                new ClassificationCatalogEntry("OFFICIAL", "OFFICIAL", null, 20),
+                new ClassificationCatalogEntry("OFFICIAL_SENSITIVE", "OFFICIAL: SENSITIVE", null, 30, "OFFICIAL SENSITIVE"),
+                new ClassificationCatalogEntry("CONFIDENTIAL", "CONFIDENTIAL", null, 40),
+                new ClassificationCatalogEntry("SECRET", "SECRET", null, 50),
+                new ClassificationCatalogEntry("TOP_SECRET", "TOP SECRET", null, 60),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildGermanyCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("VS_NFD", "VS-NUR FÜR DEN DIENSTGEBRAUCH", null, 10),
+                new ClassificationCatalogEntry("VS_VERTRAULICH", "VS-VERTRAULICH", null, 20),
+                new ClassificationCatalogEntry("GEHEIM", "GEHEIM", null, 30),
+                new ClassificationCatalogEntry("STRENG_GEHEIM", "STRENG GEHIM", null, 40),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildEuciCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("EU_TS", "TRÈS SECRET UE / EU TOP SECRET", null, 40, "TS-UE / EU-TS"),
+                new ClassificationCatalogEntry("EU_S", "SECRET UE / EU SECRET", null, 30, "S-UE / EU-S"),
+                new ClassificationCatalogEntry("EU_C", "CONFIDENTIEL UE / EU CONFIDENTIAL", null, 20, "C-UE / EU-C"),
+                new ClassificationCatalogEntry("EU_R", "RESTREINT UE / EU RESTRICTED", null, 10, "R-UE / EU-R"),
+            },
+            new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildEuropeanParliamentCatalog() => BuildEuciCatalog();
+        private static ClassificationCatalog BuildEstoniaCatalog() => new(new[] { new ClassificationCatalogEntry("EE_TS", "TÄIESTI SALAJANE", null, 40), new ClassificationCatalogEntry("EE_S", "SALAJANE", null, 30), new ClassificationCatalogEntry("EE_C", "KONFIDENTSIAALNE", null, 20), new ClassificationCatalogEntry("EE_R", "PIIRATUD", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildFranceCatalog() => new(new[] { new ClassificationCatalogEntry("FR_TS", "TRÈS SECRET DÉFENSE", null, 40), new ClassificationCatalogEntry("FR_S", "SECRET DÉFENSE", null, 30), new ClassificationCatalogEntry("FR_C", "CONFIDENTIEL DÉFENSE", null, 20), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildItalyCatalog() => new(new[] { new ClassificationCatalogEntry("IT_TS", "SEGRETISSIMO", null, 40), new ClassificationCatalogEntry("IT_S", "SEGRETO", null, 30), new ClassificationCatalogEntry("IT_C", "RISERVATISSIMO", null, 20), new ClassificationCatalogEntry("IT_R", "RISERVATO", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildPolandCatalog() => new(new[] { new ClassificationCatalogEntry("PL_TS", "ŚCIŚLE TAJNE", null, 40), new ClassificationCatalogEntry("PL_S", "TAJNE", null, 30), new ClassificationCatalogEntry("PL_C", "POUFNE", null, 20), new ClassificationCatalogEntry("PL_R", "ZASTRZEŻONE", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildFinlandCatalog() => new(new[] { new ClassificationCatalogEntry("FI_TS", "ERITTÄIN SALAINEN / YTTERST HEMLIG", null, 40), new ClassificationCatalogEntry("FI_S", "SALAINEN / HEMLIG", null, 30), new ClassificationCatalogEntry("FI_C", "LUOTTAMUKSELLINEN / KONFIDENTIELL", null, 20), new ClassificationCatalogEntry("FI_R", "KÄYTTÖ RAJOITETTU / BEGRÄNSAD TILLGÅNG", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildSwedenCatalog() => new(new[] { new ClassificationCatalogEntry("SE_TS", "HEMLIG/TOP SECRET", null, 40), new ClassificationCatalogEntry("SE_S", "HEMLIG/SECRET", null, 30), new ClassificationCatalogEntry("SE_C", "HEMLIG/CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("SE_R", "HEMLIG/RESTRICTED", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildEsaCatalog() => new(new[] { new ClassificationCatalogEntry("ESA_R", "ESA RESTRICTED", null, 10), new ClassificationCatalogEntry("ESA_C", "ESA CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("ESA_S", "ESA SECRET", null, 30), new ClassificationCatalogEntry("ESA_TS", "ESA TOP SECRET", null, 40), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildOecdCatalog() => new(new[] { new ClassificationCatalogEntry("OECD_C", "OECD CONFIDENTIAL", null, 20, "CONFIDENTIAL"), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildEuratomCatalog() => new(new[] { new ClassificationCatalogEntry("EURA_R", "EURA-RESTRICTED", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildWassenaarCatalog() => new(new[] { new ClassificationCatalogEntry("WASSENAAR_R", "RESTRICTED", null, 10), new ClassificationCatalogEntry("WASSENAAR_C", "CONFIDENTIAL", null, 20), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildOsceCatalog() => new(new[] { new ClassificationCatalogEntry("OSCE_R", "RESTRICTED", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildOpcwCatalog() => new(new[] { new ClassificationCatalogEntry("OPCW_R", "OPCW RESTRICTED", null, 10), new ClassificationCatalogEntry("OPCW_P", "OPCW PROTECTED", null, 20), new ClassificationCatalogEntry("OPCW_HP", "OPCW HIGHLY PROTECTED", null, 30), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildCouncilOfEuropeCatalog() => new(new[] { new ClassificationCatalogEntry("COE_R", "RESTRICTED", null, 10), new ClassificationCatalogEntry("COE_C", "CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("COE_S", "SECRET", null, 30), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildWtoCatalog() => new(new[] { new ClassificationCatalogEntry("WTO_R", "RESTRICTED", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildIccCatalog() => new(new[] { new ClassificationCatalogEntry("ICC_R", "RESTRICTED", null, 10), new ClassificationCatalogEntry("ICC_C", "CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("ICC_S", "SECRET", null, 30), new ClassificationCatalogEntry("ICC_US", "UNDER SEAL", null, 40), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildNsgCatalog() => new(new[] { new ClassificationCatalogEntry("NSG_C", "NSG CONFIDENTIAL", null, 20), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildIctyCatalog() => new(new[] { new ClassificationCatalogEntry("ICTY_C", "CONFIDENTIAL", null, 20), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildAgCatalog() => new(new[] { new ClassificationCatalogEntry("AG_IC", "AG-IN-CONFIDENCE", null, 10), new ClassificationCatalogEntry("AG_C", "AG CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("AG_S", "AG SECRET", null, 30), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildCcebCatalog() => new(new[] { new ClassificationCatalogEntry("CCEB_R", "RESTRICTED", null, 10), new ClassificationCatalogEntry("CCEB_C", "CONFIDENTIAL", null, 20), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildUnCatalog() => new(new[] { new ClassificationCatalogEntry("UN_C", "CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("UN_SC", "STRICTLY CONFIDENTIAL", null, 30), }, new Dictionary<int, string>());
+
+        private static ClassificationCatalog BuildDenmarkCatalog() => new(
+            new[]
+            {
+                new ClassificationCatalogEntry("TIL_TJENESTEBRUG", "TIL TJENESTEBRUG", null, 10),
+                new ClassificationCatalogEntry("FORTROLIGT", "FORTROLIGT", null, 20),
+                new ClassificationCatalogEntry("HEMMELIGT", "HEMMELIGT", null, 30),
+                new ClassificationCatalogEntry("YDERST_HEMMELIGT", "YDERST HEMMELIGT", null, 40),
+            },
+            new Dictionary<int, string>());
+    }
+}
