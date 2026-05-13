@@ -12,14 +12,22 @@ namespace NetBannerNG.Common.AppBar
         /// </summary>
         /// <param name="referenceVisual">A WPF control to help conversion</param>
         /// <returns> A matrix object to Transform() </returns>
-        private static Matrix WpfUnitToPixel(Visual referenceVisual) => PresentationSource.FromVisual(referenceVisual).CompositionTarget.TransformToDevice;
+        private static Matrix WpfUnitToPixel(Visual referenceVisual)
+        {
+            var source = PresentationSource.FromVisual(referenceVisual);
+            return source?.CompositionTarget?.TransformToDevice ?? Matrix.Identity;
+        }
 
         /// <summary>
         /// Transforms a coordinate from Screen space to WPF space
         /// </summary>
         /// <param name="referenceVisual">A WPF control to help conversion</param>
         /// <returns> A matrix object to Transform() </returns>
-        private static Matrix PixelToWpfUnit(Visual referenceVisual) => PresentationSource.FromVisual(referenceVisual).CompositionTarget.TransformFromDevice;
+        private static Matrix PixelToWpfUnit(Visual referenceVisual)
+        {
+            var source = PresentationSource.FromVisual(referenceVisual);
+            return source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+        }
 
         public static Vector Transform(Visual referenceVisual, TransformTarget target, Vector vector) => target == TransformTarget.ToPixel ? WpfUnitToPixel(referenceVisual).Transform(vector) : PixelToWpfUnit(referenceVisual).Transform(vector);
 
