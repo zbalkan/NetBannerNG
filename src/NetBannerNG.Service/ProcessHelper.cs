@@ -37,12 +37,12 @@ namespace NetBannerNG.Service
             {
                 try
                 {
-                    //var process = Process.Start(psi);
-                    //if (process != null)
-                    //{
-                    //    TrackLaunchedProcess(process, pipeName);
-                    //}
-                    //Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
+                    var process = Process.Start(psi);
+                    if (process != null)
+                    {
+                        TrackLaunchedProcess(process, pipeName);
+                    }
+                    Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
                     return true;
                 }
                 catch (Exception ex)

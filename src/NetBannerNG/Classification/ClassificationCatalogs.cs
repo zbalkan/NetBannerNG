@@ -296,7 +296,7 @@ namespace NetBannerNG.Classification
 
         private static ClassificationCatalog BuildSwedenCatalog() => new(new[] { new ClassificationCatalogEntry("SE_TS", "HEMLIG/TOP SECRET", null, 40), new ClassificationCatalogEntry("SE_S", "HEMLIG/SECRET", null, 30), new ClassificationCatalogEntry("SE_C", "HEMLIG/CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("SE_R", "HEMLIG/RESTRICTED", null, 10), }, new Dictionary<int, string>());
 
-        private static ClassificationCatalog BuildTurkeyCatalog() => new(new[] { new ClassificationCatalogEntry("TR_HIZMETE_OZEL", "HİZMETE ÖZEL", null, 10), new ClassificationCatalogEntry("TR_OZEL", "ÖZEL", null, 20), new ClassificationCatalogEntry("TR_GIZLI", "GİZLİ", null, 30), new ClassificationCatalogEntry("TR_COK_GIZLI", "ÇOK GİZLİ", null, 40), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildTurkeyCatalog() => new(new[] { new ClassificationCatalogEntry("TR_HIZMETE_OZEL", "HİZMETE ÖZEL", null, 10), new ClassificationCatalogEntry("TR_TD", "TASNİF DIŞI", null, 20), new ClassificationCatalogEntry("TR_GIZLI", "GİZLİ", null, 30), new ClassificationCatalogEntry("TR_COK_GIZLI", "ÇOK GİZLİ", null, 40), }, new Dictionary<int, string>());
 
         private static ClassificationCatalog BuildUkraineCatalog() => new(new[] { new ClassificationCatalogEntry("UA_DSK", "ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ", null, 10), new ClassificationCatalogEntry("UA_TAYEMNO", "ТАЄМНО", null, 20), new ClassificationCatalogEntry("UA_CILKOM", "ЦІЛКОМ ТАЄМНО", null, 30), new ClassificationCatalogEntry("UA_OSOB", "ОСОБЛИВОЇ ВАЖЛИВОСТІ", null, 40), }, new Dictionary<int, string>());
 
