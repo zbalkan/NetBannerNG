@@ -38,6 +38,7 @@ NetBannerNG provides persistent desktop marking with support for common operatio
 - configurable foreground/background colors
 - configurable font size and banner size
 - optional border display
+- optional full-width **bottom banner** mode (or legacy bottom border when disabled)
 - multi-monitor support
 - service-backed runtime supervision
 
@@ -62,16 +63,20 @@ Supported profile keys:
 - `AU`
 - `DE`
 - `DK`
+- `EE`
 - `EUCI`
 - `EP` (European Parliament)
-- `EE`
+- `FI`
 - `FR`
 - `IT`
+- `LT`
+- `LV`
+- `NO`
+- `NZ`
 - `PL`
-- `FI`
 - `SE`
-- `ESA`, `OECD`, `EURATOM`, `WASSENAAR`, `OSCE`, `OPCW`, `COE`, `WTO`, `ICC`, `NSG`, `ICTY`, `AG`, `CCEB`, `UN`
 - `FVEY`
+- International/intergovernmental catalogs: `AG`, `CCEB`, `COE`, `ESA`, `EURATOM`, `ICC`, `ICTY`, `NSG`, `OECD`, `OPCW`, `OSCE`, `UN`, `WASSENAAR`, `WTO`
 
 Backward compatibility behavior:
 - If `ClassificationProfile` is not configured and legacy `Classification` is `1..4`, NetBannerNG auto-dispatches to the `US` catalog.
@@ -79,7 +84,11 @@ Backward compatibility behavior:
 
 Color handling rule:
 - `NATO` and `US` profiles include built-in color mappings.
-- `EUCI`, `EP`, `UK`, and national-equivalence style profiles are treated as **textual marking presets**; colors remain a local policy decision unless explicitly set by administrators.
+- Most country, EU, and organization profiles are treated as **textual marking presets**; colors remain a local policy decision unless explicitly set by administrators.
+
+Policy/registry paths:
+- Group Policy values are written/read at `HKLM\SOFTWARE\Policies\NetBannerNG`.
+- Local fallback settings are stored at `HKLM\SOFTWARE\NetBannerNG`.
 
 ---
 
@@ -119,8 +128,8 @@ This follows normal Windows session boundaries (service in Session 0, UI in user
 ## Policy templates
 
 Group Policy templates are included under:
-- `GPO/NetBanner.admx`
-- `GPO/EN/NetBanner.adml`
+- `GPO/NetBannerNG.admx`
+- `GPO/en-US/NetBannerNG.adml` (or `GPO/en-GB/NetBannerNG.adml`)
 
 Import into your Group Policy Central Store to manage NetBannerNG settings through GPMC.
 

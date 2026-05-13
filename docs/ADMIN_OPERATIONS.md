@@ -10,8 +10,8 @@ This guide covers day-2 operations for NetBannerNG:
 - Upgrade
 - Rollback
 
-> NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\Software\Policies\Microsoft\NetBanner`.
-> NetBannerNG supports profile-based classification catalogs via policy value `ClassificationProfile` (for example: `NATO`, `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `FVEY`).
+> NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\SOFTWARE\Policies\NetBannerNG`.
+> NetBannerNG supports profile-based classification catalogs via policy value `ClassificationProfile` (for example: `NATO`, `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `EE`, `FI`, `FR`, `IT`, `LT`, `LV`, `NO`, `NZ`, `PL`, `SE`, `EUCI`, `EP`, `FVEY`, plus international-organization catalogs).
 
 ---
 
@@ -62,7 +62,7 @@ Recommended version-change pattern (today):
 ### Pre-upgrade backup examples
 
 ```powershell
-reg export "HKLM\SOFTWARE\Policies\Microsoft\NetBanner" "C:\Temp\NetBanner-policy-backup.reg" /y
+reg export "HKLM\SOFTWARE\Policies\NetBannerNG" "C:\Temp\NetBanner-policy-backup.reg" /y
 reg export "HKLM\SOFTWARE\NetBannerNG" "C:\Temp\NetBannerNG-local-backup.reg" /y
 ```
 
@@ -82,7 +82,7 @@ Operational checks after reinstall/upgrade:
 ### Classification profile verification
 
 ```powershell
-Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\NetBanner" | Select-Object Classification,ClassificationProfile,CustomSettings,CustomDisplayText
+Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText
 ```
 
 Notes:
@@ -137,13 +137,14 @@ Registry backend reminder:
 - Plan for registry tattooing behavior in change/rollback procedures.
 
 ### Where to configure
-1. Import/update `NetBanner.admx` and `EN/NetBanner.adml` into your Central Store.
+1. Import/update `NetBannerNG.admx` and either `en-US/NetBannerNG.adml` or `en-GB/NetBannerNG.adml` into your Central Store.
 2. Open Group Policy Management Editor for the target OU.
 3. Navigate to the NetBanner policy node and configure:
    - `Classification`
    - `ClassificationProfile` (NetBannerNG extension)
    - Optional: `CustomSettings`, `CustomDisplayText`, `Caveats`, `InfoCon`, `FpCon`, `CpCon`
-4. For `EUCI`/`EP`/UK-national-equivalence and international-organization textual schemes (`ESA`, `OPCW`, `OSCE`, `UN`, etc.), define foreground/background colors in local policy if your organization requires specific visual standards.
+4. For non-`NATO`/`US` textual schemes (including country, EU, and international-organization catalogs such as `ESA`, `OPCW`, `OSCE`, `UN`), define foreground/background colors in policy if your organization requires specific visual standards.
+5. Configure `EnableBottomBanner` when you want a full mirrored banner at the bottom edge (otherwise NetBannerNG keeps the legacy bottom border behavior).
 
 ### Recommended profile selection workflow
 1. Start with `ClassificationProfile = NATO` for new deployments.
@@ -156,7 +157,7 @@ Registry backend reminder:
 1. Force policy refresh (`gpupdate /force`) on a pilot endpoint.
 2. Verify effective values:
    ```powershell
-   Get-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\NetBanner" | Select-Object Classification,ClassificationProfile,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon,CpCon
+   Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon,CpCon
    ```
 3. Confirm banner colors/labels match the selected profile catalog.
 4. Expand rollout ring-by-ring after pilot validation.
