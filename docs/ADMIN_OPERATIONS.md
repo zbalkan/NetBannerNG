@@ -150,13 +150,15 @@ Registry backend reminder:
 
 ### Where to configure
 
-1. Import/update `NetBannerNG.admx` and either `en-US/NetBannerNG.adml` or `en-GB/NetBannerNG.adml` into your Central Store.
+1. Import/update `NetBannerNG.admx` and either `en-US/NetBannerNG.adml`, `en-GB/NetBannerNG.adml` or `tr-TR/NetBannerNG.adml` into your Central Store.
 2. Open Group Policy Management Editor for the target OU.
 3. Navigate to the NetBanner policy node and configure:
    - `Classification` (writes `ClassificationSelection`)
    - Optional: `CustomSettings`, `CustomDisplayText`, `Caveats`, `InfoCon`, `FpCon`
 4. For non-`NATO`/`US` textual schemes (including country, EU, and international-organization catalogs such as `ESA`, `OPCW`, `OSCE`, `UN`), define foreground/background colors in policy if your organization requires specific visual standards.
 5. Configure `EnableBottomBanner` when you want a full mirrored banner at the bottom edge (otherwise NetBannerNG keeps the legacy bottom border behavior).
+
+> **NOTE:** If you try to test using `gpedit.mcs` with `Local Group Policy Editor` on a domain-joined computer, the registry changes will still occur after a `gpupdate` connected to a domain. If gpupdate fails, it not only fails to download polciies from the DC but also fails to process local policy as well. If you try it in a computer joined to a `WORKGROUP` instead, then you can promptly test the changes and see the changes via `regedit`.
 
 ### Recommended profile selection workflow
 
