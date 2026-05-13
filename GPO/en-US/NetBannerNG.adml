@@ -54,8 +54,6 @@
       <string id="ng_fontsize_help">NetBannerNG-only policy for FontSize registry value.</string>
       <string id="ng_bannersize_display">Banner Size (NetBannerNG)</string>
       <string id="ng_bannersize_help">NetBannerNG-only policy for BannerSize registry value.</string>
-      <string id="ng_heartbeat_display">Heartbeat Seconds (NetBannerNG)</string>
-      <string id="ng_heartbeat_help">NetBannerNG-only policy for Heartbeat registry value.</string>
       <string id="ng_disableborders_display">Disable Borders (NetBannerNG)</string>
       <string id="ng_disableborders_help">NetBannerNG-only policy for DisableBorders registry value.</string>
       <string id="ng_classificationprofile_display">Classification Catalog Profile (NetBannerNG)</string>
@@ -120,9 +118,6 @@
       <presentation id="ForceProtectionCondition">
         <dropdownList refId="ForceProtection" noSort="true" defaultItem="0">Force Protection</dropdownList>
       </presentation>
-      <presentation id="CyberProtectionCondition">
-        <dropdownList refId="CyberProtection" noSort="true" defaultItem="4">Cyber Protection Condition</dropdownList>
-      </presentation>
       <presentation id="Caveats">
         <textBox refId="SizeMessage"><label>40 Characters Max</label></textBox>
       </presentation>
@@ -131,9 +126,6 @@
       </presentation>
       <presentation id="BannerSize">
         <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true">Banner size (10-100)</decimalTextBox>
-      </presentation>
-      <presentation id="Heartbeat">
-        <decimalTextBox refId="HeartbeatValue" defaultValue="20" spin="true">Heartbeat seconds (1-3600)</decimalTextBox>
       </presentation>
       <presentation id="ClassificationProfile">
         <dropdownList refId="ClassificationProfile" noSort="true" defaultItem="0">Classification Profile</dropdownList>

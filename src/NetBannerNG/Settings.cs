@@ -14,7 +14,6 @@ namespace NetBannerNG
         private const int DefaultBannerSize = 28;
         private const int DefaultClassificationValue = 1;
         private const int DefaultFontSize = 9;
-        private const int DefaultHeartbeat = 20;
         private const string DefaultClassificationProfile = "NATO";
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
@@ -26,7 +25,7 @@ namespace NetBannerNG
         private static readonly string[] ManagedPolicyKeys =
                 {
             "Classification", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
-            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders", "ClassificationProfile", "ShowHostInformation", "EnableBottomBanner",
+            "InfoCon", "FpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "DisableBorders", "ClassificationProfile", "ShowHostInformation", "EnableBottomBanner",
         };
 
         private SettingsSnapshot? _currentSettings;
@@ -45,7 +44,6 @@ namespace NetBannerNG
         public SolidColorBrush? CustomForeColor { get; private set; }
         public bool DisableBorders { get; private set; }
         public int FontSize { get; private set; }
-        public int Heartbeat { get; private set; }
         public bool ShowHostInformation { get; private set; }
         public bool EnableBottomBanner { get; private set; }
         public string? HostInformation { get; private set; }
@@ -63,25 +61,24 @@ namespace NetBannerNG
             CustomForeColor = ParseForegroundBrush(newSettings.CustomForeColor!);
             FontSize = newSettings.FontSize;
             BannerSize = newSettings.BannerSize;
-            Heartbeat = newSettings.Heartbeat;
             DisableBorders = newSettings.DisableBorders;
             ShowHostInformation = newSettings.ShowHostInformation;
             EnableBottomBanner = newSettings.EnableBottomBanner;
             CaveatsText = newSettings.Caveats ?? string.Empty;
-            ConditionMetadata = BuildConditionMetadata(newSettings.InfoCon, newSettings.FpCon, newSettings.CpCon);
+            ConditionMetadata = BuildConditionMetadata(newSettings.InfoCon, newSettings.FpCon);
             HostInformation = ShowHostInformation ? GatherHostInfo() : string.Empty;
 
             _currentSettings = newSettings;
         }
 
-        private static string BuildConditionMetadata(int infoCon, int fpCon, int cpCon)
+        private static string BuildConditionMetadata(int infoCon, int fpCon)
         {
             var values = new List<string>();
-            AppendConditionValues(values, infoCon, fpCon, cpCon);
+            AppendConditionValues(values, infoCon, fpCon);
             return string.Join(" | ", values);
         }
 
-        private static string ComposeClassificationText(string classification, string customDisplayText, int infoCon, int fpCon, int cpCon, string caveats)
+        private static string ComposeClassificationText(string classification, string customDisplayText, int infoCon, int fpCon, string caveats)
         {
             var values = new List<string> { classification };
             if (!string.IsNullOrWhiteSpace(customDisplayText))
@@ -89,7 +86,7 @@ namespace NetBannerNG
                 values.Add(customDisplayText.Trim());
             }
 
-            AppendConditionValues(values, infoCon, fpCon, cpCon);
+            AppendConditionValues(values, infoCon, fpCon);
 
             if (!string.IsNullOrWhiteSpace(caveats))
             {
@@ -157,7 +154,6 @@ namespace NetBannerNG
             Caveats = string.Empty,
             InfoCon = 0,
             FpCon = 0,
-            CpCon = 0,
             CustomBackgroundColor = NormalizeColorValue(
                 GetOrCreateString(localKey, "CustomBackgroundColor", "#007A33"),
                 ToBackgroundHex),
@@ -166,7 +162,6 @@ namespace NetBannerNG
                 ToForegroundHex),
             FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
             BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
-            Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
             DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
             ShowHostInformation = GetOrCreateBool(localKey, "ShowHostInformation", true),
             EnableBottomBanner = GetOrCreateBool(localKey, "EnableBottomBanner", false),
@@ -194,7 +189,7 @@ namespace NetBannerNG
             var fpcon = GetInt(policyKey!, "FpCon", 0);
             var cpcon = GetInt(policyKey!, "CpCon", 0);
             var caveats = caveatsEnabled ? GetString(policyKey!, "Caveats", string.Empty) : string.Empty;
-            var classificationText = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, cpcon, caveats);
+            var classificationText = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, caveats);
 
             var policyBackground = GetInt(policyKey!, "CustomBackgroundColor", (int)CustomBackgroundColors.Green);
             var policyForeground = GetInt(policyKey!, "CustomForeColor", (int)CustomForeColors.White);
@@ -204,12 +199,10 @@ namespace NetBannerNG
                 Caveats = caveats,
                 InfoCon = infocon,
                 FpCon = fpcon,
-                CpCon = cpcon,
                 CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveCatalogBackground(classificationProfile, classificationText),
                 CustomForeColor = customSettings ? ToForegroundHex(policyForeground) : localDefaults.CustomForeColor,
                 FontSize = GetInt(policyKey!, "FontSize", localDefaults.FontSize),
                 BannerSize = GetInt(policyKey!, "BannerSize", localDefaults.BannerSize),
-                Heartbeat = GetInt(policyKey!, "Heartbeat", localDefaults.Heartbeat),
                 DisableBorders = GetBool(policyKey!, "DisableBorders", localDefaults.DisableBorders),
                 ShowHostInformation = GetBool(policyKey!, "ShowHostInformation", false),
                 EnableBottomBanner = GetBool(policyKey!, "EnableBottomBanner", localDefaults.EnableBottomBanner),
@@ -261,6 +254,7 @@ namespace NetBannerNG
 
         private static string MapClassification(int value) => value switch
         {
+            10 => "CUI",
             1 => "UNCLASSIFIED",
             2 => "SECRET",
             3 => "TOP SECRET",
@@ -303,14 +297,13 @@ namespace NetBannerNG
             // If legacy NetBanner-style classification values are configured and no explicit profile is set,
             // prefer US catalog behavior. Otherwise use NATO default.
             var classificationValue = GetInt(policyKey, "Classification", DefaultClassificationValue);
-            return classificationValue >= 1 && classificationValue <= 4 ? "US" : DefaultClassificationProfile;
+            return (classificationValue >= 1 && classificationValue <= 4) || classificationValue == 10 ? "US" : DefaultClassificationProfile;
         }
 
-        private static void AppendConditionValues(List<string> values, int infoCon, int fpCon, int cpCon)
+        private static void AppendConditionValues(List<string> values, int infoCon, int fpCon)
         {
             AddConditionIfEnabled(values, "INFOCON", infoCon);
             AddConditionIfEnabled(values, "FPCON", fpCon);
-            AddConditionIfEnabled(values, "CPCON", cpCon);
         }
 
         private static void AddConditionIfEnabled(List<string> values, string label, int level)
@@ -400,13 +393,11 @@ namespace NetBannerNG
             internal int BannerSize { get; set; }
             internal string? Caveats { get; set; }
             internal string? Classification { get; set; }
-            internal int CpCon { get; set; }
             internal string? CustomBackgroundColor { get; set; }
             internal string? CustomForeColor { get; set; }
             internal bool DisableBorders { get; set; }
             internal int FontSize { get; set; }
             internal int FpCon { get; set; }
-            internal int Heartbeat { get; set; }
             internal int InfoCon { get; set; }
             internal bool ShowHostInformation { get; set; }
             internal bool EnableBottomBanner { get; set; }

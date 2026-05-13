@@ -30,7 +30,7 @@ namespace NetBannerNG.Tests
                 1,
                 "REL TO USA");
 
-            Assert.AreEqual("Secret | NOFORN | INFOCON 3 | FPCON 2 | CPCON 1 | REL TO USA", composed);
+            Assert.AreEqual("Secret | NOFORN | INFOCON 3 | FPCON 2 | REL TO USA", composed);
 
             var minimal = InvokePrivate<string>(
                 "ComposeClassificationText",
