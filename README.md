@@ -5,45 +5,56 @@
 
 NetBannerNG is a free, open-source Windows classification banner utility for managed enterprise endpoints.
 
-It is designed for organizations that need persistent, policy-driven desktop marking without cloud portals, license servers, or feature gating.
+It is designed for organizations that need persistent, policy-driven desktop marking without cloud portals, license servers, usage tracking, or feature gating.
 
 ## What users get
 
-- Persistent top classification banner with optional border rendering
+- Persistent top classification banner with optional screen-border marking
 - Optional full-width bottom banner mode
 - INFOCON / FPCON / CPCON and caveat display support
-- Multi-monitor and fullscreen-aware behavior
-- Group Policy-first management model with local fallback settings
+- Multi-monitor behavior and fullscreen-aware operation
+- Group Policy-first management with local fallback settings
 - Service-supervised runtime for resilient operation
 
 ## Management model
 
-NetBannerNG is intended to fit existing Windows admin workflows:
+NetBannerNG is intended to fit existing Windows administration workflows:
+
 - Deploy with installer-based software distribution
 - Configure with ADMX/ADML-backed Group Policy
 - Support standalone, domain-joined, disconnected, and air-gapped systems
 
-Policy/config registry paths:
+Policy/configuration registry paths:
+
 - Managed policy: `HKLM\SOFTWARE\Policies\NetBannerNG`
 - Local settings fallback: `HKLM\SOFTWARE\NetBannerNG`
 
 ## Classification catalogs
 
 Set `ClassificationProfile` to select a marking catalog. Built-in keys include:
-- `NATO` (default), `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `EE`, `EUCI`, `EP`, `FI`, `FR`, `IT`, `LT`, `LV`, `NO`, `NZ`, `PL`, `SE`, `FVEY`
-- International/intergovernmental: `AG`, `CCEB`, `COE`, `ESA`, `EURATOM`, `ICC`, `ICTY`, `NSG`, `OECD`, `OPCW`, `OSCE`, `UN`, `WASSENAAR`, `WTO`
 
-Notes:
-- If `ClassificationProfile` is unset and legacy `Classification` is `1..4`, NetBannerNG maps to `US` for compatibility.
-- Otherwise, default behavior is `NATO`.
-- `NATO` and `US` include built-in colors; most other profiles are textual presets and should be paired with org-defined colors.
+- `NATO` default
+- `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `EE`, `FI`, `FR`, `IT`, `PL`, `SE`, `TR`, `UA`
+- `EUCI`, `EP`
+- `AG`, `CCEB`, `COE`, `ESA`, `EURATOM`, `ICC`, `ICTY`, `NSG`, `OECD`, `OPCW`, `OSCE`, `UN`, `WASSENAAR`, `WTO`
+
+Compatibility behavior:
+
+- If `ClassificationProfile` is unset and the legacy `Classification` value is `1..4`, NetBannerNG maps the value to the `US` profile for compatibility.
+- Otherwise, the default profile is `NATO`.
+
+Catalog notes:
+
+- `NATO` and `US` include built-in color definitions.
+- Most other profiles provide textual marking presets only.
+- Organizations remain responsible for validating markings, colors, translations, caveats, and policy suitability against their own rules.
 
 ## Documentation
 
-- `docs/ADMIN_OPERATIONS.md` — install/remove/upgrade/rollback runbook
-- `docs/DEVELOPMENT.md` — architecture, internals, build/test guidance
+- `docs/ADMIN_OPERATIONS.md` — install, remove, upgrade, and rollback runbook
+- `docs/DEVELOPMENT.md` — architecture, internals, build, and test guidance
 - `docs/FEATURE_PARITY_MATRIX.md` — NetBannerNG vs NetBanner/SystemBanner capability matrix
 
 ## Security note
 
-NetBannerNG is a display/awareness utility, not an access-control or data-loss-prevention boundary.
+NetBannerNG is a display and awareness utility. It is not an access-control, authorization, information-flow-control, or data-loss-prevention boundary.
