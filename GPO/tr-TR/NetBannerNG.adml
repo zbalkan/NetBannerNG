@@ -13,10 +13,6 @@
       <string id="unknown_24">Bilgi Durumu</string>
       <string id="unknown_31">Kuvvet Koruma Durumu</string>
       <string id="unknown_37">Ek İbareler</string>
-      <string id="unknown_3">TASNİF DIŞI</string>
-      <string id="unknown_4">GİZLİ</string>
-      <string id="unknown_5">ÇOK GİZLİ</string>
-      <string id="unknown_6">SCI</string>
       <string id="unknown_10">Yeşil</string>
       <string id="unknown_11">Mavi</string>
       <string id="unknown_12">Kırmızı</string>
@@ -43,11 +39,8 @@
 Bu ilke Etkin ise NetBannerNG bu ilkedeki özel metin ve renk değerlerini kullanır. Etkin olduğunda, oluşturulan bant metni seçili gizlilik derecesini temel alır ve özel görüntüleme metnini ekler; Ek İbareler ilkesindeki metin eklenmez.
 
 Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG bu ilkedeki özel metin/renk değerlerini kullanmaz ve katalog tabanlı renklere ve standart metin oluşturma davranışına döner.</string>
-      <string id="SizeMessage">En fazla 40 karakter</string>
 
       <!-- NetBannerNG-specific additions for registry values consumed by Settings.cs -->
-      <string id="ng_classification_5">TASNİF DIŞI</string>
-      <string id="ng_classification_not_configured">Gizlilik derecesi yapılandırılmadı</string>
       <string id="ng_class_sel_001">AG - AG CONFIDENTIAL</string>
       <string id="ng_class_sel_002">AG - AG SECRET</string>
       <string id="ng_class_sel_003">AG - AG-IN-CONFIDENCE</string>
@@ -148,11 +141,6 @@ Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG bu ilkedeki öze
       <string id="ng_class_sel_098">WASSENAAR - CONFIDENTIAL</string>
       <string id="ng_class_sel_099">WASSENAAR - RESTRICTED</string>
       <string id="ng_class_sel_100">WTO - RESTRICTED</string>
-      <string id="ng_classification_6">HİZMETE ÖZEL</string>
-      <string id="ng_classification_7">ÖZEL</string>
-      <string id="ng_classification_8">HASSAS</string>
-      <string id="ng_classification_9">HİZMETE ÖZEL</string>
-      <string id="ng_cpcon_display">Siber Koruma Durumu</string>
       <string id="ng_bannersize_display">Bant Boyutu</string>
       <string id="ng_bannersize_help">Bu ilke bant yüksekliğini piksel cinsinden denetler. İzin verilen değerler 16 ile 60 arasındadır.
 
