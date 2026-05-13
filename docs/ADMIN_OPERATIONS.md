@@ -175,7 +175,7 @@ Registry backend reminder:
 2. Verify effective values:
 
 ```powershell
-   Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon,CpCon
+   Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classification,ClassificationProfile,EnableBottomBanner,CustomSettings,CustomDisplayText,Caveats,InfoCon,FpCon
 ```
 
 3. Confirm banner colors/labels match the selected profile catalog.

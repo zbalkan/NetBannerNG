@@ -49,7 +49,6 @@
       <string id="ng_classification_8">Sensitive</string>
       <string id="ng_classification_9">For Official Use Only</string>
       <string id="ng_cpcon_display">Cyber Protection Condition</string>
-      <string id="ng_cpcon_help">NetBannerNG-only policy for CpCon registry value used in classification metadata.</string>
       <string id="ng_fontsize_display">Font Size (NetBannerNG)</string>
       <string id="ng_bannersize_display">Banner Size (NetBannerNG)</string>
       <string id="ng_bannersize_help">NetBannerNG-only policy for BannerSize registry value.</string>
