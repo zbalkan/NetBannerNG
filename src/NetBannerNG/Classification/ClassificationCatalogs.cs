@@ -120,6 +120,8 @@ namespace NetBannerNG.Classification
             ["PL"] = BuildPolandCatalog(),
             ["FI"] = BuildFinlandCatalog(),
             ["SE"] = BuildSwedenCatalog(),
+            ["TR"] = BuildTurkeyCatalog(),
+            ["UA"] = BuildUkraineCatalog(),
             ["ESA"] = BuildEsaCatalog(),
             ["OECD"] = BuildOecdCatalog(),
             ["EURATOM"] = BuildEuratomCatalog(),
@@ -238,6 +240,8 @@ namespace NetBannerNG.Classification
         private static ClassificationCatalog BuildPolandCatalog() => new(new[] { new ClassificationCatalogEntry("PL_TS", "ŚCIŚLE TAJNE", null, 40), new ClassificationCatalogEntry("PL_S", "TAJNE", null, 30), new ClassificationCatalogEntry("PL_C", "POUFNE", null, 20), new ClassificationCatalogEntry("PL_R", "ZASTRZEŻONE", null, 10), }, new Dictionary<int, string>());
         private static ClassificationCatalog BuildFinlandCatalog() => new(new[] { new ClassificationCatalogEntry("FI_TS", "ERITTÄIN SALAINEN / YTTERST HEMLIG", null, 40), new ClassificationCatalogEntry("FI_S", "SALAINEN / HEMLIG", null, 30), new ClassificationCatalogEntry("FI_C", "LUOTTAMUKSELLINEN / KONFIDENTIELL", null, 20), new ClassificationCatalogEntry("FI_R", "KÄYTTÖ RAJOITETTU / BEGRÄNSAD TILLGÅNG", null, 10), }, new Dictionary<int, string>());
         private static ClassificationCatalog BuildSwedenCatalog() => new(new[] { new ClassificationCatalogEntry("SE_TS", "HEMLIG/TOP SECRET", null, 40), new ClassificationCatalogEntry("SE_S", "HEMLIG/SECRET", null, 30), new ClassificationCatalogEntry("SE_C", "HEMLIG/CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("SE_R", "HEMLIG/RESTRICTED", null, 10), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildTurkeyCatalog() => new(new[] { new ClassificationCatalogEntry("TR_HIZMETE_OZEL", "HİZMETE ÖZEL", null, 10), new ClassificationCatalogEntry("TR_OZEL", "ÖZEL", null, 20), new ClassificationCatalogEntry("TR_GIZLI", "GİZLİ", null, 30), new ClassificationCatalogEntry("TR_COK_GIZLI", "ÇOK GİZLİ", null, 40), }, new Dictionary<int, string>());
+        private static ClassificationCatalog BuildUkraineCatalog() => new(new[] { new ClassificationCatalogEntry("UA_DSK", "ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ", null, 10), new ClassificationCatalogEntry("UA_TAYEMNO", "ТАЄМНО", null, 20), new ClassificationCatalogEntry("UA_CILKOM", "ЦІЛКОМ ТАЄМНО", null, 30), new ClassificationCatalogEntry("UA_OSOB", "ОСОБЛИВОЇ ВАЖЛИВОСТІ", null, 40), }, new Dictionary<int, string>());
         private static ClassificationCatalog BuildEsaCatalog() => new(new[] { new ClassificationCatalogEntry("ESA_R", "ESA RESTRICTED", null, 10), new ClassificationCatalogEntry("ESA_C", "ESA CONFIDENTIAL", null, 20), new ClassificationCatalogEntry("ESA_S", "ESA SECRET", null, 30), new ClassificationCatalogEntry("ESA_TS", "ESA TOP SECRET", null, 40), }, new Dictionary<int, string>());
         private static ClassificationCatalog BuildOecdCatalog() => new(new[] { new ClassificationCatalogEntry("OECD_C", "OECD CONFIDENTIAL", null, 20, "CONFIDENTIAL"), }, new Dictionary<int, string>());
         private static ClassificationCatalog BuildEuratomCatalog() => new(new[] { new ClassificationCatalogEntry("EURA_R", "EURA-RESTRICTED", null, 10), }, new Dictionary<int, string>());
