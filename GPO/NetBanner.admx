@@ -147,5 +147,13 @@
         </enum>
       </elements>
     </policy>
+    <policy name="ShowHostInformation" class="Machine" displayName="$(string.ng_showhostinfo_display)" explainText="$(string.ng_showhostinfo_help)" key="Software\Policies\Microsoft\NetBanner" valueName="ShowHostInformation">
+      <parentCategory ref="NetBanner" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
+    </policy>
+    <policy name="EnableBottomBanner" class="Machine" displayName="$(string.ng_enablebottombanner_display)" explainText="$(string.ng_enablebottombanner_help)" key="Software\Policies\Microsoft\NetBanner" valueName="EnableBottomBanner">
+      <parentCategory ref="NetBanner" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
+    </policy>
   </policies>
 </policyDefinitions>
