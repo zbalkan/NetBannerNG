@@ -90,6 +90,10 @@
       <string id="ng_classificationprofile_cceb">CCEB</string>
       <string id="ng_classificationprofile_un">United Nations (UN)</string>
       <string id="ng_classificationprofile_fvey">Five Eyes (FVEY)</string>
+      <string id="ng_showhostinfo_display">Show Computer Info on Banner (NetBannerNG)</string>
+      <string id="ng_showhostinfo_help">Controls host information text (machine name, user, IP) on banners. Disabled policy state forces the host information to be hidden. Default is disabled when managed by GPO.</string>
+      <string id="ng_enablebottombanner_display">Enable Bottom Banner (NetBannerNG)</string>
+      <string id="ng_enablebottombanner_help">When enabled, renders a full bottom banner matching the top banner. This setting is independent from Disable Borders policy.</string>
 
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>

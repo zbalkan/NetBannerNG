@@ -5,11 +5,12 @@ namespace NetBannerNG.Borders
     /// <summary>
     ///     Interaction logic for
     /// </summary>
-    public partial class BottomBar : BorderBase
+    public partial class BottomBanner : BorderBase
     {
-        internal BottomBar()
+        internal BottomBanner()
         {
             InitializeComponent();
+            RefreshDataContext();
         }
 
         internal override void Render(bool needsResize = false)
@@ -20,13 +21,22 @@ namespace NetBannerNG.Borders
                 return;
             }
 
-            this.DockBottom();
+            Height = Settings.Instance.BannerSize;
+            this.DockBottom(RootGrid);
         }
 
         protected override void ReadSettings()
         {
-            Background = Settings.Instance.CustomBackgroundColor;
-            Height = Settings.Instance.BorderSize;
+            RefreshDataContext();
+
+            MinHeight = Settings.Instance.BannerSize;
+            MaxHeight = Settings.Instance.BannerSize;
+        }
+
+        private void RefreshDataContext()
+        {
+            Settings.Instance.Refresh();
+            DataContext = Settings.Instance;
         }
 
         private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)

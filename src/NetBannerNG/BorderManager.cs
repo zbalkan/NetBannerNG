@@ -180,7 +180,7 @@ namespace NetBannerNG
 
                 switch (window)
                 {
-                    case Banner or BottomBar:
+                    case Banner or BottomBanner:
                         window.Width = monitor.Bounds.Width;
                         break;
 
@@ -220,20 +220,35 @@ namespace NetBannerNG
                     IsDocked = !_cleanStart
                 };
 
+                if (Settings.Instance.EnableBottomBanner)
+                {
+                    yield return new BottomBanner
+                    {
+                        Owner = System.Windows.Application.Current.MainWindow,
+                        Top = Monitor.Bounds.Top,
+                        Left = Monitor.Bounds.Left,
+                        Width = Monitor.Bounds.Width,
+                        AppBarMessageKey = BuildMessageKey("BottomBanner"),
+                        IsDocked = !_cleanStart
+                    };
+                }
+                else if (!Settings.Instance.DisableBorders)
+                {
+                    yield return new BottomBar
+                    {
+                        Owner = System.Windows.Application.Current.MainWindow,
+                        Top = Monitor.Bounds.Top,
+                        Left = Monitor.Bounds.Left,
+                        Width = Monitor.Bounds.Width,
+                        AppBarMessageKey = BuildMessageKey("Bottom"),
+                        IsDocked = !_cleanStart
+                    };
+                }
+
                 if (Settings.Instance.DisableBorders)
                 {
                     yield break;
                 }
-
-                yield return new BottomBar
-                {
-                    Owner = System.Windows.Application.Current.MainWindow,
-                    Top = Monitor.Bounds.Top,
-                    Left = Monitor.Bounds.Left,
-                    Width = Monitor.Bounds.Width,
-                    AppBarMessageKey = BuildMessageKey("Bottom"),
-                    IsDocked = !_cleanStart
-                };
 
                 var initialVerticalTop = Monitor.Bounds.Top + Settings.Instance.BannerSize;
                 var initialVerticalHeight = Math.Max(1, Monitor.Bounds.Height - Settings.Instance.BannerSize - Settings.Instance.BorderSize);

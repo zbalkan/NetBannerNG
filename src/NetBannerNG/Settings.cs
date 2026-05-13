@@ -25,7 +25,7 @@ namespace NetBannerNG
         private static readonly string[] ManagedPolicyKeys =
                 {
             "Classification", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
-            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders", "ClassificationProfile",
+            "InfoCon", "FpCon", "CpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "Heartbeat", "DisableBorders", "ClassificationProfile", "ShowHostInformation", "EnableBottomBanner",
         };
 
         private SettingsSnapshot? _currentSettings;
@@ -45,6 +45,8 @@ namespace NetBannerNG
         public bool DisableBorders { get; private set; }
         public int FontSize { get; private set; }
         public int Heartbeat { get; private set; }
+        public bool ShowHostInformation { get; private set; }
+        public bool EnableBottomBanner { get; private set; }
         public string? HostInformation { get; private set; }
         internal static Settings Instance => Lazy.Value;
         internal int BorderSize => Math.Max(MinimumBorderSize, (int)(BannerSize * BorderBannerRatio));
@@ -62,9 +64,11 @@ namespace NetBannerNG
             BannerSize = newSettings.BannerSize;
             Heartbeat = newSettings.Heartbeat;
             DisableBorders = newSettings.DisableBorders;
+            ShowHostInformation = newSettings.ShowHostInformation;
+            EnableBottomBanner = newSettings.EnableBottomBanner;
             CaveatsText = newSettings.Caveats ?? string.Empty;
             ConditionMetadata = BuildConditionMetadata(newSettings.InfoCon, newSettings.FpCon, newSettings.CpCon);
-            HostInformation = GatherHostInfo();
+            HostInformation = ShowHostInformation ? GatherHostInfo() : string.Empty;
 
             _currentSettings = newSettings;
         }
@@ -163,6 +167,8 @@ namespace NetBannerNG
             BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
             Heartbeat = GetOrCreateInt(localKey, "Heartbeat", DefaultHeartbeat),
             DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
+            ShowHostInformation = GetOrCreateBool(localKey, "ShowHostInformation", true),
+            EnableBottomBanner = GetOrCreateBool(localKey, "EnableBottomBanner", false),
         };
 
         private static SettingsSnapshot LoadSettings()
@@ -205,6 +211,8 @@ namespace NetBannerNG
                 BannerSize = GetInt(policyKey, "BannerSize", localDefaults.BannerSize),
                 Heartbeat = GetInt(policyKey, "Heartbeat", localDefaults.Heartbeat),
                 DisableBorders = GetBool(policyKey, "DisableBorders", localDefaults.DisableBorders),
+                ShowHostInformation = GetBool(policyKey, "ShowHostInformation", false),
+                EnableBottomBanner = GetBool(policyKey, "EnableBottomBanner", localDefaults.EnableBottomBanner),
             };
         }
 
@@ -357,6 +365,8 @@ namespace NetBannerNG
             internal int FpCon { get; set; }
             internal int Heartbeat { get; set; }
             internal int InfoCon { get; set; }
+            internal bool ShowHostInformation { get; set; }
+            internal bool EnableBottomBanner { get; set; }
         }
     }
 }
