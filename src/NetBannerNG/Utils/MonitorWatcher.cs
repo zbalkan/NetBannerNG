@@ -7,30 +7,38 @@ namespace NetBannerNG.Utils
 {
     internal static class MonitorWatcher
     {
+        private static readonly object Sync = new();
         private static Action _onDisplaySettingsChanged = () => { };
         private static bool _isWatching;
 
         internal static void Watch(Action onDisplaySettingsChanged)
         {
-            if (_isWatching)
+            lock (Sync)
             {
-                return;
-            }
+                if (_isWatching)
+                {
+                    return;
+                }
 
-            _onDisplaySettingsChanged = onDisplaySettingsChanged ?? (() => { });
-            SystemEvents.DisplaySettingsChanged += ScreenHandler!;
-            _isWatching = true;
+                _onDisplaySettingsChanged = onDisplaySettingsChanged ?? (() => { });
+                SystemEvents.DisplaySettingsChanged += ScreenHandler!;
+                _isWatching = true;
+            }
         }
 
         internal static void Unwatch()
         {
-            if (!_isWatching)
+            lock (Sync)
             {
-                return;
-            }
+                if (!_isWatching)
+                {
+                    return;
+                }
 
-            SystemEvents.DisplaySettingsChanged -= ScreenHandler!;
-            _isWatching = false;
+                SystemEvents.DisplaySettingsChanged -= ScreenHandler!;
+                _isWatching = false;
+                _onDisplaySettingsChanged = () => { };
+            }
         }
 
         private static void ScreenHandler(object sender, EventArgs e)

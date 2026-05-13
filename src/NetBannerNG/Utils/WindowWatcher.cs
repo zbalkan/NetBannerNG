@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
+using Monitor = NetBannerNG.Common.Native.Monitor;
 
 namespace NetBannerNG.Utils
 {
@@ -13,37 +15,45 @@ namespace NetBannerNG.Utils
         private const int EventSystemForeground = 0x0003;
         private const int ObjectIdWindow = 0;
         private static readonly TimeSpan ForegroundDispatchDebounce = TimeSpan.FromMilliseconds(125);
+        private static readonly long ForegroundDispatchDebounceTicks = ForegroundDispatchDebounce.Ticks;
+        private static readonly object HookSync = new();
 
         private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
         private static IntPtr DesktopHandle => NativeMethods.GetDesktopWindow(); //Window handle for the desktop
         private static IntPtr ShellHandle => NativeMethods.GetShellWindow(); //Window handle for the shell
         private static IntPtr TaskbarHandle => NativeMethods.FindWindow("Shell_TrayWnd", null!);
-        private static IntPtr _previousForegroundWindowHandle;
+        private static long _previousForegroundWindowValue;
         private static IntPtr _hookId;
-        private static DateTime _lastDispatchUtc = DateTime.MinValue;
-        private static bool _pendingSendTop;
-        private static bool _pendingSendBottom;
+        private static long _lastDispatchTicks;
+        private static int _pendingSendTop;
+        private static int _pendingSendBottom;
         private static DispatcherTimer? _debounceTimer;
 
         internal static void Watch()
         {
-            if (_hookId != default)
+            lock (HookSync)
             {
-                return;
-            }
+                if (_hookId != default)
+                {
+                    return;
+                }
 
-            _hookId = SetHook(ForegroundWindowHook);
+                _hookId = SetHook(ForegroundWindowHook);
+            }
         }
 
         internal static void Unwatch()
         {
-            if (_hookId == default)
+            lock (HookSync)
             {
-                return;
-            }
+                if (_hookId == default)
+                {
+                    return;
+                }
 
-            _ = NativeMethods.UnhookWinEvent(_hookId);
-            _hookId = default;
+                _ = NativeMethods.UnhookWinEvent(_hookId);
+                _hookId = default;
+            }
 
             if (_debounceTimer != null)
             {
@@ -52,8 +62,8 @@ namespace NetBannerNG.Utils
                 _debounceTimer = null;
             }
 
-            _pendingSendTop = false;
-            _pendingSendBottom = false;
+            Interlocked.Exchange(ref _pendingSendTop, 0);
+            Interlocked.Exchange(ref _pendingSendBottom, 0);
         }
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
@@ -74,12 +84,11 @@ namespace NetBannerNG.Utils
             }
 
             var foregroundWindowHandle = NativeMethods.GetForegroundWindow();
-            if (foregroundWindowHandle == _previousForegroundWindowHandle)
+            var foregroundWindowValue = foregroundWindowHandle.ToInt64();
+            if (Interlocked.Exchange(ref _previousForegroundWindowValue, foregroundWindowValue) == foregroundWindowValue)
             {
                 return;
             }
-
-            _previousForegroundWindowHandle = foregroundWindowHandle;
 
             if (!IsValid(foregroundWindowHandle))
             {
@@ -133,10 +142,10 @@ namespace NetBannerNG.Utils
             }
             if (dispatcher.CheckAccess())
             {
-                return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
+                return !Application.Current!.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
             }
 
-            return !dispatcher.Invoke(() => Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle())));
+            return !dispatcher.Invoke(() => Application.Current!.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle())));
         }
 
         private static bool IsFullScreen(IntPtr current)
@@ -153,25 +162,35 @@ namespace NetBannerNG.Utils
 
         private static void DispatchCoalesced(bool sendBottom)
         {
-            var now = DateTime.UtcNow;
-            var elapsed = now - _lastDispatchUtc;
-            if (elapsed >= ForegroundDispatchDebounce)
+            var nowTicks = DateTime.UtcNow.Ticks;
+            while (true)
             {
-                _lastDispatchUtc = now;
-                var dispatcher = Application.Current?.Dispatcher;
-                if (dispatcher == null)
+                var lastTicks = Interlocked.Read(ref _lastDispatchTicks);
+                var elapsedTicks = nowTicks - lastTicks;
+                if (elapsedTicks >= ForegroundDispatchDebounceTicks)
                 {
+                    if (Interlocked.CompareExchange(ref _lastDispatchTicks, nowTicks, lastTicks) != lastTicks)
+                    {
+                        continue;
+                    }
+
+                    BeginOnUi(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop);
                     return;
                 }
 
-                _ = dispatcher.BeginInvoke(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop, DispatcherPriority.Background);
+                if (sendBottom)
+                {
+                    Interlocked.Exchange(ref _pendingSendBottom, 1);
+                }
+                else
+                {
+                    Interlocked.Exchange(ref _pendingSendTop, 1);
+                }
+
+                var remainingTicks = Math.Max(1, ForegroundDispatchDebounceTicks - elapsedTicks);
+                StartOrResetDebounceTimer(TimeSpan.FromTicks(remainingTicks));
                 return;
             }
-
-            _pendingSendBottom |= sendBottom;
-            _pendingSendTop |= !sendBottom;
-            var remaining = ForegroundDispatchDebounce - elapsed;
-            StartOrResetDebounceTimer(remaining);
         }
 
         private static void StartOrResetDebounceTimer(TimeSpan dueIn)
@@ -198,35 +217,22 @@ namespace NetBannerNG.Utils
                 _debounceTimer.Tick -= OnDebounceTick;
             }
 
-            var dispatchBottom = _pendingSendBottom;
-            var dispatchTop = _pendingSendTop;
-            _pendingSendBottom = false;
-            _pendingSendTop = false;
+            var dispatchBottom = Interlocked.Exchange(ref _pendingSendBottom, 0) == 1;
+            var dispatchTop = Interlocked.Exchange(ref _pendingSendTop, 0) == 1;
+            Interlocked.Exchange(ref _lastDispatchTicks, DateTime.UtcNow.Ticks);
+
             if (!dispatchBottom && !dispatchTop)
             {
                 return;
             }
 
-            _lastDispatchUtc = DateTime.UtcNow;
             if (dispatchBottom)
             {
-                var dispatcher = Application.Current?.Dispatcher;
-                if (dispatcher == null)
-                {
-                    return;
-                }
-
-                _ = dispatcher.BeginInvoke(BorderManager.SendBottom, DispatcherPriority.Background);
+                BeginOnUi(BorderManager.SendBottom);
             }
             if (dispatchTop)
             {
-                var dispatcher = Application.Current?.Dispatcher;
-                if (dispatcher == null)
-                {
-                    return;
-                }
-
-                _ = dispatcher.BeginInvoke(BorderManager.SendTop, DispatcherPriority.Background);
+                BeginOnUi(BorderManager.SendTop);
             }
         }
 
@@ -234,6 +240,17 @@ namespace NetBannerNG.Utils
         {
             _ = NativeMethods.GetWindowRect(current, out var appBounds);
             return (Rect)(appBounds);
+        }
+
+        private static void BeginOnUi(Action action)
+        {
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                return;
+            }
+
+            _ = dispatcher.BeginInvoke(action, DispatcherPriority.Background);
         }
     }
 }
