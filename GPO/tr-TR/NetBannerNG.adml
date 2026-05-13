@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <!-- NetbannerNG-->
+  <displayName>
+  </displayName>
+  <description>
+  </description>
+  <resources>
+    <stringTable>
+      <string id="unknown_0">NetBannerNG</string>
+      <string id="unknown_1">Gizlilik Derecesi</string>
+      <string id="unknown_7">Özel Ayarlar</string>
+      <string id="unknown_24">Bilgi Durumu</string>
+      <string id="unknown_31">Kuvvet Koruma Durumu</string>
+      <string id="unknown_37">Ek İbareler</string>
+      <string id="unknown_3">TASNİF DIŞI</string>
+      <string id="unknown_4">GİZLİ</string>
+      <string id="unknown_5">ÇOK GİZLİ</string>
+      <string id="unknown_6">SCI</string>
+      <string id="unknown_10">Yeşil</string>
+      <string id="unknown_11">Mavi</string>
+      <string id="unknown_12">Kırmızı</string>
+      <string id="unknown_13">Sarı</string>
+      <string id="unknown_14">Beyaz</string>
+      <string id="unknown_15">Siyah</string>
+      <string id="unknown_16">Kahverengi</string>
+      <string id="unknown_17">Mor</string>
+      <string id="unknown_18">Turuncu</string>
+      <string id="unknown_20">Siyah</string>
+      <string id="unknown_21">Beyaz</string>
+      <string id="unknown_22">Kırmızı</string>
+      <string id="unknown_26">1</string>
+      <string id="unknown_27">2</string>
+      <string id="unknown_28">3</string>
+      <string id="unknown_29">4</string>
+      <string id="unknown_30">5</string>
+      <string id="unknown_33">Alpha</string>
+      <string id="unknown_34">Bravo</string>
+      <string id="unknown_35">Charlie</string>
+      <string id="unknown_36">Delta</string>
+      <string id="unknown_8">Bu ilke özel bant metnini ve özel ön plan/arka plan renklerini denetler.
+
+Bu ilke Etkin ise NetBannerNG bu ilkedeki özel metin ve renk değerlerini kullanır. Etkin olduğunda, oluşturulan bant metni seçili gizlilik derecesini temel alır ve özel görüntüleme metnini ekler; Ek İbareler ilkesindeki metin eklenmez.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG bu ilkedeki özel metin/renk değerlerini kullanmaz ve katalog tabanlı renklere ve standart metin oluşturma davranışına döner.</string>
+      <string id="SizeMessage">En fazla 40 karakter</string>
+
+      <!-- NetBannerNG-specific additions for registry values consumed by Settings.cs -->
+      <string id="ng_classification_5">TASNİF DIŞI</string>
+      <string id="ng_classification_not_configured">Gizlilik derecesi yapılandırılmadı</string>
+      <string id="ng_class_sel_001">AG - AG CONFIDENTIAL</string>
+      <string id="ng_class_sel_002">AG - AG SECRET</string>
+      <string id="ng_class_sel_003">AG - AG-IN-CONFIDENCE</string>
+      <string id="ng_class_sel_004">AU - CONFIDENTIAL</string>
+      <string id="ng_class_sel_005">AU - OFFICIAL</string>
+      <string id="ng_class_sel_006">AU - OFFICIAL: SENSITIVE</string>
+      <string id="ng_class_sel_007">AU - SECRET</string>
+      <string id="ng_class_sel_008">AU - TOP SECRET</string>
+      <string id="ng_class_sel_009">AU - UNOFFICIAL</string>
+      <string id="ng_class_sel_010">CA - CONFIDENTIAL</string>
+      <string id="ng_class_sel_011">CA - PROTECTED A</string>
+      <string id="ng_class_sel_012">CA - PROTECTED B</string>
+      <string id="ng_class_sel_013">CA - PROTECTED C</string>
+      <string id="ng_class_sel_014">CA - SECRET</string>
+      <string id="ng_class_sel_015">CA - TOP SECRET</string>
+      <string id="ng_class_sel_016">CCEB - CONFIDENTIAL</string>
+      <string id="ng_class_sel_017">CCEB - RESTRICTED</string>
+      <string id="ng_class_sel_018">COE - CONFIDENTIAL</string>
+      <string id="ng_class_sel_019">COE - RESTRICTED</string>
+      <string id="ng_class_sel_020">COE - SECRET</string>
+      <string id="ng_class_sel_021">DE - GEHEIM</string>
+      <string id="ng_class_sel_022">DE - STRENG GEHIM</string>
+      <string id="ng_class_sel_023">DE - VS-NUR FÜR DEN DIENSTGEBRAUCH</string>
+      <string id="ng_class_sel_024">DE - VS-VERTRAULICH</string>
+      <string id="ng_class_sel_025">DK - FORTROLIGT</string>
+      <string id="ng_class_sel_026">DK - HEMMELIGT</string>
+      <string id="ng_class_sel_027">DK - TIL TJENESTEBRUG</string>
+      <string id="ng_class_sel_028">DK - YDERST HEMMELIGT</string>
+      <string id="ng_class_sel_029">EE - KONFIDENTSIAALNE</string>
+      <string id="ng_class_sel_030">EE - PIIRATUD</string>
+      <string id="ng_class_sel_031">EE - SALAJANE</string>
+      <string id="ng_class_sel_032">EE - TÄIESTI SALAJANE</string>
+      <string id="ng_class_sel_033">ESA - ESA CONFIDENTIAL</string>
+      <string id="ng_class_sel_034">ESA - ESA RESTRICTED</string>
+      <string id="ng_class_sel_035">ESA - ESA SECRET</string>
+      <string id="ng_class_sel_036">ESA - ESA TOP SECRET</string>
+      <string id="ng_class_sel_037">EUCI - CONFIDENTIEL UE / EU CONFIDENTIAL</string>
+      <string id="ng_class_sel_038">EUCI - RESTREINT UE / EU RESTRICTED</string>
+      <string id="ng_class_sel_039">EUCI - SECRET UE / EU SECRET</string>
+      <string id="ng_class_sel_040">EUCI - TRÈS SECRET UE / EU TOP SECRET</string>
+      <string id="ng_class_sel_041">EURATOM - EURA-RESTRICTED</string>
+      <string id="ng_class_sel_042">FI - ERITTÄIN SALAINEN / YTTERST HEMLIG</string>
+      <string id="ng_class_sel_043">FI - KÄYTTÖ RAJOITETTU / BEGRÄNSAD TILLGÅNG</string>
+      <string id="ng_class_sel_044">FI - LUOTTAMUKSELLINEN / KONFIDENTIELL</string>
+      <string id="ng_class_sel_045">FI - SALAINEN / HEMLIG</string>
+      <string id="ng_class_sel_046">FR - CONFIDENTIEL DÉFENSE</string>
+      <string id="ng_class_sel_047">FR - SECRET DÉFENSE</string>
+      <string id="ng_class_sel_048">FR - TRÈS SECRET DÉFENSE</string>
+      <string id="ng_class_sel_049">ICC - CONFIDENTIAL</string>
+      <string id="ng_class_sel_050">ICC - RESTRICTED</string>
+      <string id="ng_class_sel_051">ICC - SECRET</string>
+      <string id="ng_class_sel_052">ICC - UNDER SEAL</string>
+      <string id="ng_class_sel_053">ICTY - CONFIDENTIAL</string>
+      <string id="ng_class_sel_054">IT - RISERVATISSIMO</string>
+      <string id="ng_class_sel_055">IT - RISERVATO</string>
+      <string id="ng_class_sel_056">IT - SEGRETISSIMO</string>
+      <string id="ng_class_sel_057">IT - SEGRETO</string>
+      <string id="ng_class_sel_058">NATO - COSMIC TOP SECRET</string>
+      <string id="ng_class_sel_059">NATO - NATO CONFIDENTIAL</string>
+      <string id="ng_class_sel_060">NATO - NATO RESTRICTED</string>
+      <string id="ng_class_sel_061">NATO - NATO SECRET</string>
+      <string id="ng_class_sel_062">NATO - NATO UNCLASSIFIED</string>
+      <string id="ng_class_sel_063">NSG - NSG CONFIDENTIAL</string>
+      <string id="ng_class_sel_064">OECD - OECD CONFIDENTIAL</string>
+      <string id="ng_class_sel_065">OPCW - OPCW HIGHLY PROTECTED</string>
+      <string id="ng_class_sel_066">OPCW - OPCW PROTECTED</string>
+      <string id="ng_class_sel_067">OPCW - OPCW RESTRICTED</string>
+      <string id="ng_class_sel_068">OSCE - RESTRICTED</string>
+      <string id="ng_class_sel_069">PL - POUFNE</string>
+      <string id="ng_class_sel_070">PL - TAJNE</string>
+      <string id="ng_class_sel_071">PL - ZASTRZEŻONE</string>
+      <string id="ng_class_sel_072">PL - ŚCIŚLE TAJNE</string>
+      <string id="ng_class_sel_073">SE - HEMLIG/CONFIDENTIAL</string>
+      <string id="ng_class_sel_074">SE - HEMLIG/RESTRICTED</string>
+      <string id="ng_class_sel_075">SE - HEMLIG/SECRET</string>
+      <string id="ng_class_sel_076">SE - HEMLIG/TOP SECRET</string>
+      <string id="ng_class_sel_077">TR - GİZLİ</string>
+      <string id="ng_class_sel_078">TR - HİZMETE ÖZEL</string>
+      <string id="ng_class_sel_079">TR - ÇOK GİZLİ</string>
+      <string id="ng_class_sel_080">TR - ÖZEL</string>
+      <string id="ng_class_sel_081">UA - ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ</string>
+      <string id="ng_class_sel_082">UA - ОСОБЛИВОЇ ВАЖЛИВОСТІ</string>
+      <string id="ng_class_sel_083">UA - ТАЄМНО</string>
+      <string id="ng_class_sel_084">UA - ЦІЛКОМ ТАЄМНО</string>
+      <string id="ng_class_sel_085">UK - PROTECTIVE MARKING NOT SET</string>
+      <string id="ng_class_sel_086">UK - UK OFFICIAL</string>
+      <string id="ng_class_sel_087">UK - UK OFFICIAL SENSITIVE</string>
+      <string id="ng_class_sel_088">UK - UK SECRET</string>
+      <string id="ng_class_sel_089">UK - UK TOP SECRET</string>
+      <string id="ng_class_sel_090">UN - CONFIDENTIAL</string>
+      <string id="ng_class_sel_091">UN - STRICTLY CONFIDENTIAL</string>
+      <string id="ng_class_sel_092">US - CONFIDENTIAL</string>
+      <string id="ng_class_sel_093">US - CONTROLLED UNCLASSIFIED INFORMATION</string>
+      <string id="ng_class_sel_094">US - SECRET</string>
+      <string id="ng_class_sel_095">US - TOP SECRET</string>
+      <string id="ng_class_sel_096">US - TOP SECRET//SENSITIVE COMPARTMENT INFORMATION</string>
+      <string id="ng_class_sel_097">US - UNCLASSIFIED</string>
+      <string id="ng_class_sel_098">WASSENAAR - CONFIDENTIAL</string>
+      <string id="ng_class_sel_099">WASSENAAR - RESTRICTED</string>
+      <string id="ng_class_sel_100">WTO - RESTRICTED</string>
+      <string id="ng_classification_6">HİZMETE ÖZEL</string>
+      <string id="ng_classification_7">ÖZEL</string>
+      <string id="ng_classification_8">HASSAS</string>
+      <string id="ng_classification_9">HİZMETE ÖZEL</string>
+      <string id="ng_cpcon_display">Siber Koruma Durumu</string>
+      <string id="ng_bannersize_display">Bant Boyutu</string>
+      <string id="ng_bannersize_help">Bu ilke bant yüksekliğini piksel cinsinden denetler. İzin verilen değerler 16 ile 60 arasındadır.
+
+Bu ilke Etkin ise NetBannerNG bant oluşturma için yapılandırılmış BannerSize değerini kullanır ve kenar kalınlığını bu boyuta göre yeniden hesaplar.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG uygulama varsayılanlarında tanımlı yönetilen varsayılan bant boyutunu kullanır.</string>
+      <string id="ng_disableborders_display">Kenarları Devre Dışı Bırak</string>
+      <string id="ng_disableborders_help">Bu ilke üst banda ek olarak yan kenarların oluşturulup oluşturulmayacağını denetler.
+
+Bu ilke Etkin ise NetBannerNG DisableBorders değerini 1 olarak ayarlar ve kenar pencerelerini bastırır.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG 0 değerini kullanır ve kenarları normal yerleşim davranışına göre oluşturur.</string>
+      <string id="ng_showhostinfo_display">Bilgisayar Bilgilerini Bantta Göster</string>
+      <string id="ng_showhostinfo_help">Bu ilke bilgisayar bilgilerinin (makine adı, kullanıcı adı ve algılanan IP adresi) bant üzerinde gösterilip gösterilmeyeceğini denetler.
+
+Bu ilke Etkin ise NetBannerNG ShowHostInformation değerini 1 olarak ayarlar ve bilgisayar bilgilerini bant görüntüleme alanına ekler.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG 0 değerini ayarlar veya kullanır ve bilgisayar bilgileri gizli kalır.</string>
+      <string id="ng_enablebottombanner_display">Alt Bandı Etkinleştir</string>
+      <string id="ng_enablebottombanner_help">Bu ilke NetBannerNG’nin ek bir tam genişlikli alt bant oluşturup oluşturmayacağını denetler.
+
+Bu ilke Etkin ise NetBannerNG EnableBottomBanner değerini 1 olarak ayarlar ve üst bant içeriği ve biçimiyle eşleşen bir alt bant oluşturur.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG 0 değerini kullanır ve alt bandı oluşturmaz. Bu ayar Kenarları Devre Dışı Bırak ayarından bağımsızdır.</string>
+
+      <string id="ADMXMigrator_UnresolvedString">ADMX Migrator kaynak ADM dize tablosunda bulunmayan bir dizeyle karşılaştı.</string>
+      <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator supportedOn değeri olmayan bir ilkeyle karşılaştı.</string>
+      <string id="Caveats_Help">Bu ilke bant metni dizesine eklenen isteğe bağlı ek ibare metnini denetler. Ek ibareler 40 karakterle sınırlıdır.
+
+Bu ilke Etkin ise ek ibare metin kutusundaki değer bant metnine eklenir. Etkin olup boş bırakılırsa ek ibare metni eklenmez.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise ek ibare metni eklenmez ve NetBannerNG ek ibareleri boş kabul eder.</string>
+      <string id="SUPPORTED_Windows10_AndLater">En az Windows 10 / Windows 11</string>
+      <string id="Classification_Help">Bu ilke birincil bant gizlilik derecesi metnini ve katalog eşlemesini seçer. '&lt;Katalog&gt; - &lt;Gizlilik Derecesi&gt;' biçiminde bir değer seçin.
+
+Bu ilke Etkin ise seçili katalog/gizlilik derecesi değeri yönetilen cihazlar için uygulanır. NetBannerNG bu değeri temel gizlilik derecesi metni olarak kullanır ve Özel Ayarlar etkin değilse varsayılan bant renklerini seçili katalogdan çözümler.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise uygulama NetBannerNG tarafından yazılan yönetilen varsayılan değeri kullanır: NOT CONFIGURED - Classification not configured.</string>
+      <string id="InformationCondition_Help">Bu ilke bant metni üst verisine eklenen INFOCON seviyesini ayarlar. İzin verilen değerler 1-5 arasındadır; varsayılan değer 0’dır (gizli).
+
+Bu ilke Etkin ise seçili INFOCON değeri bant metnine "INFOCON n" olarak eklenir. Değer 0 ise veya eksikse INFOCON etiketi eklenmez.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG yönetilen varsayılan değer olan 0’ı kullanır; bu, INFOCON metninin gösterilmeyeceği anlamına gelir.</string>
+      <string id="ForceProtectionCondition_Help">Bu ilke bant metni üst verisine eklenen FPCON seviyesini ayarlar. İzin verilen değerler 1-4 arasındadır; varsayılan değer 0’dır (gizli).
+
+Bu ilke Etkin ise seçili FPCON değeri bant metnine "FPCON n" olarak eklenir. Değer 0 ise veya eksikse FPCON etiketi eklenmez.
+
+Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG yönetilen varsayılan değer olan 0’ı kullanır; bu, FPCON metninin gösterilmeyeceği anlamına gelir.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="Classification">
+        <dropdownList refId="Classification" noSort="true" defaultItem="0">Classification</dropdownList>
+      </presentation>
+      <presentation id="CustomSettings">
+        <dropdownList refId="BackgroundColor" defaultItem="0">Background Color</dropdownList>
+        <dropdownList refId="TextColor" defaultItem="0">Text Color</dropdownList>
+        <textBox refId="DisplayText"><label>Display Text</label></textBox>
+      </presentation>
+      <presentation id="InformationCondition">
+        <dropdownList refId="InformationCondition" noSort="true" defaultItem="4">Information Condition</dropdownList>
+      </presentation>
+      <presentation id="ForceProtectionCondition">
+        <dropdownList refId="ForceProtection" noSort="true" defaultItem="0">Force Protection</dropdownList>
+      </presentation>
+      <presentation id="Caveats">
+        <textBox refId="SizeMessage"><label>40 Characters Max</label></textBox>
+      </presentation>
+      <presentation id="BannerSize">
+        <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true">Banner size (16-60)</decimalTextBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>
