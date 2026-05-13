@@ -108,6 +108,22 @@ Type: dirifempty; Name: "{app}"
 
 [Code]
 
+const
+  // Explicit service-object DACL baseline for NetBannerNGWatchdog.
+  //
+  // Intention:
+  // - Grant full service control to LocalSystem (SY) and Built-in Administrators (BA).
+  // - Grant read-oriented service access to Authenticated Users (AU) only.
+  //   This avoids broad non-admin service reconfiguration/deletion permissions.
+  //
+  // SDDL rights used:
+  // - SY/BA: CCDCLCSWRPWPDTLOCRSDRCWDWO (full management set).
+  // - AU:    CCLCSWLOCRRC (read/list/query style access).
+  ServiceSecurityDescriptor =
+    'D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)' +
+    '(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)' +
+    '(A;;CCLCSWLOCRRC;;;AU)';
+
 function RunSc(Parameters: string): Integer;
 var
   ResultCode: Integer;
@@ -277,6 +293,14 @@ begin
   RunScChecked(
     'failure "{#MyServiceName}" reset= 86400 actions= restart/60000/restart/60000/none/0',
     'Failed to configure NetBannerNG watchdog service recovery options.'
+  );
+
+
+  // Apply explicit service-object permissions so ACLs do not depend on
+  // OS/service-creation defaults.
+  RunScChecked(
+    'sdset "{#MyServiceName}" "' + ServiceSecurityDescriptor + '"',
+    'Failed to configure NetBannerNG watchdog service permissions.'
   );
 end;
 
