@@ -14,11 +14,13 @@
     <category name="NetBannerNG" displayName="$(string.unknown_0)" />
   </categories>
   <policies>
-    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG">
+    <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG" valueName="ClassificationConfigured">
       <parentCategory ref="NetBannerNG" />
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
       <elements>
-        <enum id="Classification" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection">
+        <enum id="Classification" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection" required="true">
           <item displayName="$(string.ng_class_sel_001)"><value><string>AG - AG CONFIDENTIAL</string></value></item>
           <item displayName="$(string.ng_class_sel_002)"><value><string>AG - AG SECRET</string></value></item>
           <item displayName="$(string.ng_class_sel_003)"><value><string>AG - AG-IN-CONFIDENCE</string></value></item>
@@ -125,6 +127,8 @@
     <policy name="CustomSettings" class="Machine" displayName="$(string.unknown_7)" explainText="$(string.unknown_8)" presentation="$(presentation.CustomSettings)" key="Software\Policies\NetBannerNG" valueName="CustomSettings">
       <parentCategory ref="NetBannerNG" />
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
       <elements>
         <enum id="BackgroundColor" key="Software\Policies\NetBannerNG" valueName="CustomBackgroundColor">
           <item displayName="$(string.unknown_10)"><value><string>#007A33</string></value></item>
@@ -145,45 +149,70 @@
         <text id="DisplayText" key="Software\Policies\NetBannerNG" valueName="CustomDisplayText" />
       </elements>
     </policy>
-    <policy name="InformationCondition" class="Machine" displayName="$(string.unknown_24)" explainText="$(string.InformationCondition_Help)" presentation="$(presentation.InformationCondition)" key="Software\Policies\NetBannerNG">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><enum id="InformationCondition" key="Software\Policies\NetBannerNG" valueName="InfoCon">
+    <policy name="InformationCondition" class="Machine" displayName="$(string.unknown_24)" explainText="$(string.InformationCondition_Help)" presentation="$(presentation.InformationCondition)" key="Software\Policies\NetBannerNG" valueName="InfoConConfigured">
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+      <elements>
+        <enum id="InformationCondition" key="Software\Policies\NetBannerNG" valueName="InfoCon" required="true">
           <item displayName="$(string.unknown_26)"><value><decimal value="1" /></value></item>
           <item displayName="$(string.unknown_27)"><value><decimal value="2" /></value></item>
           <item displayName="$(string.unknown_28)"><value><decimal value="3" /></value></item>
           <item displayName="$(string.unknown_29)"><value><decimal value="4" /></value></item>
           <item displayName="$(string.unknown_30)"><value><decimal value="5" /></value></item>
-      </enum></elements>
+        </enum>
+      </elements>
     </policy>
-    <policy name="ForceProtectionCondition" class="Machine" displayName="$(string.unknown_31)" explainText="$(string.ForceProtectionCondition_Help)" presentation="$(presentation.ForceProtectionCondition)" key="Software\Policies\NetBannerNG">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><enum id="ForceProtection" key="Software\Policies\NetBannerNG" valueName="FpCon">
+    <policy name="ForceProtectionCondition" class="Machine" displayName="$(string.unknown_31)" explainText="$(string.ForceProtectionCondition_Help)" presentation="$(presentation.ForceProtectionCondition)" key="Software\Policies\NetBannerNG" valueName="FpConConfigured">
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+      <elements>
+        <enum id="ForceProtection" key="Software\Policies\NetBannerNG" valueName="FpCon" required="true">
           <item displayName="$(string.unknown_33)"><value><decimal value="1" /></value></item>
           <item displayName="$(string.unknown_34)"><value><decimal value="2" /></value></item>
           <item displayName="$(string.unknown_35)"><value><decimal value="3" /></value></item>
           <item displayName="$(string.unknown_36)"><value><decimal value="4" /></value></item>
-      </enum></elements>
+        </enum>
+      </elements>
     </policy>
     <policy name="Caveats" class="Machine" displayName="$(string.unknown_37)" explainText="$(string.Caveats_Help)" presentation="$(presentation.Caveats)" key="Software\Policies\NetBannerNG" valueName="CaveatsEnabled">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
-      <elements><text id="SizeMessage" key="Software\Policies\NetBannerNG" valueName="Caveats" maxLength="40" /></elements>
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+      <elements>
+        <text id="SizeMessage" key="Software\Policies\NetBannerNG" valueName="Caveats" maxLength="40" />
+      </elements>
     </policy>
-    <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="16" maxValue="60" /></elements>
+    <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG" valueName="BannerSizeConfigured">
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
+      <elements>
+        <decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="16" maxValue="60" required="true" />
+      </elements>
     </policy>
     <policy name="DisableBorders" class="Machine" displayName="$(string.ng_disableborders_display)" explainText="$(string.ng_disableborders_help)" key="Software\Policies\NetBannerNG" valueName="DisableBorders">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
     </policy>
     <policy name="ShowHostInformation" class="Machine" displayName="$(string.ng_showhostinfo_display)" explainText="$(string.ng_showhostinfo_help)" key="Software\Policies\NetBannerNG" valueName="ShowHostInformation">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
     </policy>
     <policy name="EnableBottomBanner" class="Machine" displayName="$(string.ng_enablebottombanner_display)" explainText="$(string.ng_enablebottombanner_help)" key="Software\Policies\NetBannerNG" valueName="EnableBottomBanner">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
+      <parentCategory ref="NetBannerNG" />
+      <supportedOn ref="SUPPORTED_Windows10_AndLater" />
+      <enabledValue><decimal value="1" /></enabledValue>
+      <disabledValue><decimal value="0" /></disabledValue>
     </policy>
   </policies>
 </policyDefinitions>
