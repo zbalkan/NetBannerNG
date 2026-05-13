@@ -18,7 +18,8 @@ namespace NetBannerNG
         private const string DefaultClassificationProfile = "NATO";
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
-        private const string PolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
+        private const string PolicyRegistryPath = @"SOFTWARE\Policies\NetbannerNG";
+        private const string LegacyPolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
         private static readonly BrushConverter BrushConverter = new();
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
 
@@ -176,7 +177,7 @@ namespace NetBannerNG
             using var localMachineKey = OpenLocalMachineKey();
             using var localKey = OpenCurrentUserSettingsKey();
             var localDefaults = LoadOrCreateLocalSettings(localKey);
-            using var policyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, false);
+            using var policyKey = ResolvePolicyKey(localMachineKey);
 
             if (!HasManagedPolicyValues(policyKey))
             {
@@ -216,6 +217,49 @@ namespace NetBannerNG
             };
         }
 
+
+        private static RegistryKey? ResolvePolicyKey(RegistryKey localMachineKey)
+        {
+            var netBannerNgPolicyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, true);
+            if (HasManagedPolicyValues(netBannerNgPolicyKey))
+            {
+                return netBannerNgPolicyKey;
+            }
+
+            using var legacyPolicyKey = localMachineKey.OpenSubKey(LegacyPolicyRegistryPath, false);
+            if (!HasManagedPolicyValues(legacyPolicyKey))
+            {
+                return netBannerNgPolicyKey;
+            }
+
+            using (var writablePolicyKey = localMachineKey.CreateSubKey(PolicyRegistryPath, true))
+            {
+                if (writablePolicyKey == null)
+                {
+                    return netBannerNgPolicyKey;
+                }
+
+                CopyManagedPolicyValues(legacyPolicyKey!, writablePolicyKey);
+            }
+
+            netBannerNgPolicyKey?.Dispose();
+            return localMachineKey.OpenSubKey(PolicyRegistryPath, false);
+        }
+
+        private static void CopyManagedPolicyValues(RegistryKey sourceKey, RegistryKey destinationKey)
+        {
+            foreach (var key in ManagedPolicyKeys)
+            {
+                var value = sourceKey.GetValue(key);
+                if (value == null)
+                {
+                    continue;
+                }
+
+                var valueKind = sourceKey.GetValueKind(key);
+                destinationKey.SetValue(key, value, valueKind);
+            }
+        }
         private static string MapClassification(int value) => value switch
         {
             1 => "UNCLASSIFIED",
