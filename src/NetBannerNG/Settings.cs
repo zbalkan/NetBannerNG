@@ -16,8 +16,7 @@ namespace NetBannerNG
         private const string DefaultClassificationProfile = "NATO";
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
-        private const string PolicyRegistryPath = @"SOFTWARE\Policies\NetbannerNG";
-        private const string LegacyPolicyRegistryPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
+        private const string PolicyRegistryPath = @"SOFTWARE\Policies\NetBannerNG";
         private static readonly BrushConverter BrushConverter = new();
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
 
@@ -166,7 +165,8 @@ namespace NetBannerNG
         private static SettingsSnapshot LoadSettings()
         {
             using var localMachineKey = OpenLocalMachineKey();
-            using var localKey = OpenCurrentUserSettingsKey();
+            using var localKey = OpenLocalMachineSettingsKey(localMachineKey);
+            DeleteUnusedValues(localKey);
             var localDefaults = LoadOrCreateLocalSettings(localKey);
             using var policyKey = ResolvePolicyKey(localMachineKey);
 
@@ -183,7 +183,6 @@ namespace NetBannerNG
             var displayText = customSettings ? GetString(policyKey!, "CustomDisplayText", string.Empty) : string.Empty;
             var infocon = GetInt(policyKey!, "InfoCon", 0);
             var fpcon = GetInt(policyKey!, "FpCon", 0);
-            var cpcon = GetInt(policyKey!, "CpCon", 0);
             var caveats = caveatsEnabled ? GetString(policyKey!, "Caveats", string.Empty) : string.Empty;
             var classificationText = ComposeClassificationText(MapClassification(classification), displayText, infocon, fpcon, caveats);
 
@@ -206,44 +205,65 @@ namespace NetBannerNG
 
         private static RegistryKey? ResolvePolicyKey(RegistryKey localMachineKey)
         {
-            var netBannerNgPolicyKey = localMachineKey.OpenSubKey(PolicyRegistryPath, true);
-            if (HasManagedPolicyValues(netBannerNgPolicyKey))
+            using var writablePolicyKey = localMachineKey.CreateSubKey(PolicyRegistryPath, true);
+            if (writablePolicyKey == null)
             {
-                return netBannerNgPolicyKey;
+                return null;
             }
 
-            using var legacyPolicyKey = localMachineKey.OpenSubKey(LegacyPolicyRegistryPath, false);
-            if (!HasManagedPolicyValues(legacyPolicyKey))
-            {
-                return netBannerNgPolicyKey;
-            }
-
-            using (var writablePolicyKey = localMachineKey.CreateSubKey(PolicyRegistryPath, true))
-            {
-                if (writablePolicyKey == null)
-                {
-                    return netBannerNgPolicyKey;
-                }
-
-                CopyManagedPolicyValues(legacyPolicyKey!, writablePolicyKey);
-            }
-
-            netBannerNgPolicyKey?.Dispose();
+            DeleteUnusedValues(writablePolicyKey);
+            WriteDefaultPolicyValues(writablePolicyKey);
             return localMachineKey.OpenSubKey(PolicyRegistryPath, false);
         }
 
-        private static void CopyManagedPolicyValues(RegistryKey sourceKey, RegistryKey destinationKey)
+        private static void DeleteUnusedValues(RegistryKey key)
+        {
+            key.DeleteValue("CpCon", false);
+            key.DeleteValue("Heartbeat", false);
+        }
+
+        private static void WriteDefaultPolicyValues(RegistryKey policyKey)
         {
             foreach (var key in ManagedPolicyKeys)
             {
-                var value = sourceKey.GetValue(key);
-                if (value == null)
+                if (policyKey.GetValue(key) != null)
                 {
                     continue;
                 }
 
-                var valueKind = sourceKey.GetValueKind(key);
-                destinationKey.SetValue(key, value, valueKind);
+                switch (key)
+                {
+                    case "Classification":
+                        policyKey.SetValue(key, DefaultClassificationValue, RegistryValueKind.DWord);
+                        break;
+                    case "CustomSettings":
+                    case "InfoCon":
+                    case "FpCon":
+                    case "CaveatsEnabled":
+                    case "DisableBorders":
+                    case "EnableBottomBanner":
+                        policyKey.SetValue(key, 0, RegistryValueKind.DWord);
+                        break;
+                    case "ShowHostInformation":
+                        policyKey.SetValue(key, 1, RegistryValueKind.DWord);
+                        break;
+                    case "CustomBackgroundColor":
+                        policyKey.SetValue(key, (int)CustomBackgroundColors.Green, RegistryValueKind.DWord);
+                        break;
+                    case "CustomForeColor":
+                        policyKey.SetValue(key, (int)CustomForeColors.White, RegistryValueKind.DWord);
+                        break;
+                    case "CustomDisplayText":
+                    case "Caveats":
+                        policyKey.SetValue(key, string.Empty, RegistryValueKind.String);
+                        break;
+                    case "BannerSize":
+                        policyKey.SetValue(key, DefaultBannerSize, RegistryValueKind.DWord);
+                        break;
+                    case "ClassificationProfile":
+                        policyKey.SetValue(key, DefaultClassificationProfile, RegistryValueKind.String);
+                        break;
+                }
             }
         }
 
@@ -320,8 +340,8 @@ namespace NetBannerNG
             return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         }
 
-        private static RegistryKey OpenCurrentUserSettingsKey()
-            => Registry.CurrentUser.CreateSubKey(LocalRegistryPath, true) ?? throw new InvalidOperationException($@"Unable to open or create HKCU\{LocalRegistryPath}");
+        private static RegistryKey OpenLocalMachineSettingsKey(RegistryKey localMachineKey)
+            => localMachineKey.CreateSubKey(LocalRegistryPath, true) ?? throw new InvalidOperationException($@"Unable to open or create HKLM\{LocalRegistryPath}");
 
         private static SolidColorBrush ParseBackgroundBrush(string value) => ParseBrushWithFallback(value, ToBackgroundHex((int)CustomBackgroundColors.Green), ToBackgroundHex);
 
