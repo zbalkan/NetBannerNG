@@ -1,6 +1,8 @@
 # NetBannerNG Development Guide
 
-Audience: developers and maintainers.
+Audience: contributors and maintainers.
+
+This guide is intended to explain the current architecture and help contributors set up and work in the development environment.
 
 ## Solution structure
 
@@ -33,7 +35,7 @@ Behavior:
 
 ## Build prerequisites
 
-- Windows
+- Windows 10 or 11
 - Visual Studio 2022 (recommended)
 - .NET Framework 4.8.1 targeting pack
 
@@ -70,13 +72,6 @@ Known design considerations:
 - Session targeting must remain robust for console and RDP-heavy environments.
 - Pipe authorization should remain least-privilege and continuously regression-tested.
 - Single-endpoint pipe design is simple but constrains concurrent multi-session isolation.
-
-## Engineering roadmap (high-value follow-ons)
-
-1. Session selection hardening for multi-session/RDP-first estates (`WTSEnumerateSessions` policy-based selection).
-2. Per-session pipe endpoint model (`netbannerng-pipe-s<SessionId>`) with SID-scoped ACLs.
-3. Structured lifecycle state-machine logging (`NoUser`, `Launching`, `Running`, `Backoff`).
-4. Expanded tests for session transitions and pipe identity/authorization rules.
 
 ## Installer/deployment implementation notes
 

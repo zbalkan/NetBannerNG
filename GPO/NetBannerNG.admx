@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <policyDefinitions revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
-  <!-- NetbannerNG (backwards-compatible with NetBanner 2.0.130) -->
   <policyNamespaces>
     <target prefix="netbannerng" namespace="DeltaZulu.Policies.NetBannerNG" />
   </policyNamespaces>
@@ -15,8 +14,6 @@
     <category name="NetBannerNG" displayName="$(string.unknown_0)" />
   </categories>
   <policies>
-    <!-- Legacy NetBanner policy/value mappings are preserved as-is for backward compatibility. -->
-    <!-- NetBannerNG extensions are explicitly labeled below and use additive values only. -->
     <policy name="Classification" class="Machine" displayName="$(string.unknown_1)" explainText="$(string.Classification_Help)" presentation="$(presentation.Classification)" key="Software\Policies\NetBannerNG" valueName="ClassificationSelection">
       <parentCategory ref="NetBannerNG" />
       <supportedOn ref="SUPPORTED_Windows10_AndLater" />

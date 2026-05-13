@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <policyDefinitionResources revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
-  <!-- NetbannerNG (backwards-compatible with NetBanner 2.0.130) -->
+  <!-- NetbannerNG-->
   <displayName>
   </displayName>
   <description>
   </description>
   <resources>
     <stringTable>
-      <!-- Legacy NetBanner labels/IDs retained for old NetBanner compatibility. -->
       <string id="unknown_0">NetBannerNG</string>
       <string id="unknown_1">Classification</string>
       <string id="unknown_7">Custom Settings</string>
@@ -39,7 +38,11 @@
       <string id="unknown_34">Bravo</string>
       <string id="unknown_35">Charlie</string>
       <string id="unknown_36">Delta</string>
-      <string id="unknown_8">If this policy setting is configured, Classification and Caveats policy settings are ignored.</string>
+      <string id="unknown_8">This policy controls custom banner text and custom foreground/background colors. It writes CustomSettings plus CustomDisplayText, CustomBackgroundColor, and CustomForeColor under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, NetBannerNG uses the custom text and color values from this policy. When enabled, the composed banner text uses the selected classification as a base and appends the custom display text; Caveats text from the Caveats policy is not appended.
+
+If this policy is Disabled or Not Configured, NetBannerNG does not use custom text/colors from this policy and falls back to catalog-based colors and standard text composition.</string>
       <string id="SizeMessage">40 Characters Max</string>
 
       <!-- NetBannerNG-specific additions for registry values consumed by Settings.cs -->
@@ -151,21 +154,53 @@
       <string id="ng_classification_9">For Official Use Only</string>
       <string id="ng_cpcon_display">Cyber Protection Condition</string>
       <string id="ng_bannersize_display">Banner Size</string>
-      <string id="ng_bannersize_help">NetBannerNG-only policy for BannerSize registry value.</string>
+      <string id="ng_bannersize_help">This policy controls banner height in pixels and writes the BannerSize DWORD value under HKLM\SOFTWARE\Policies\NetBannerNG. Allowed values are 10 through 100.
+
+If this policy is Enabled, NetBannerNG uses the configured BannerSize value for banner rendering and recalculates border thickness from that size.
+
+If this policy is Disabled or Not Configured, NetBannerNG uses the managed default banner size defined by the application defaults.</string>
       <string id="ng_disableborders_display">Disable Borders</string>
-      <string id="ng_disableborders_help">NetBannerNG-only policy for DisableBorders registry value.</string>
+      <string id="ng_disableborders_help">This policy controls whether side borders are rendered in addition to the top banner. It writes DisableBorders as a DWORD (1 = hide borders, 0 = show borders) under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, NetBannerNG sets DisableBorders to 1 and suppresses border windows.
+
+If this policy is Disabled or Not Configured, NetBannerNG uses value 0 and renders borders according to normal layout behavior.</string>
       <string id="ng_showhostinfo_display">Show Computer Info on Banner</string>
-      <string id="ng_showhostinfo_help">Controls host information text (machine name, user, IP) on banners. Disabled policy state forces the host information to be hidden. Default is disabled when managed by GPO.</string>
+      <string id="ng_showhostinfo_help">This policy controls whether host information (machine name, user name, and detected IP address) is shown on the banner. It writes ShowHostInformation as a DWORD under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, NetBannerNG sets ShowHostInformation to 1 and appends host information to the banner display area.
+
+If this policy is Disabled or Not Configured, NetBannerNG sets or uses value 0 and host information remains hidden.</string>
       <string id="ng_enablebottombanner_display">Enable Bottom Banner</string>
-      <string id="ng_enablebottombanner_help">When enabled, renders a full bottom banner matching the top banner. This setting is independent from Disable Borders policy.</string>
+      <string id="ng_enablebottombanner_help">This policy controls whether NetBannerNG renders an additional full-width bottom banner. It writes EnableBottomBanner as a DWORD under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, NetBannerNG sets EnableBottomBanner to 1 and renders a bottom banner that matches the top banner content and styling.
+
+If this policy is Disabled or Not Configured, NetBannerNG uses value 0 and does not render the bottom banner. This setting is independent of Disable Borders.</string>
 
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>
-      <string id="Caveats_Help">Allows administrators to enter free form text.</string>
+      <string id="Caveats_Help">This policy controls optional caveat text appended to the banner text string. It writes CaveatsEnabled (1/0) and Caveats (up to 40 characters) under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, the caveat text box value is appended to the banner text. If enabled but left blank, no caveat text is appended.
+
+If this policy is Disabled or Not Configured, caveat text is not appended and NetBannerNG treats caveats as empty.</string>
       <string id="SUPPORTED_Windows10_AndLater">At least Windows 10 / Windows 11</string>
-      <string id="Classification_Help">Select one combined value in the format '&lt;Catalog&gt; - &lt;Classification&gt;'. The list is alphabetically ordered and writes to ClassificationSelection.</string>
-      <string id="InformationCondition_Help">Information condition setting.</string>
-      <string id="ForceProtectionCondition_Help">Force Protection Condition setting.</string>
+      <string id="Classification_Help">This policy selects the primary banner classification text and catalog mapping. Choose one value in the format '&lt;Catalog&gt; - &lt;Classification&gt;'. The selected value is written to the ClassificationSelection registry value under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, the selected catalog/classification value is enforced for managed devices. NetBannerNG uses this value as the base classification text and resolves default banner colors from the selected catalog when Custom Settings is not enabled.
+
+If this policy is Disabled or Not Configured, the application uses the managed default value written by NetBannerNG: NOT CONFIGURED - Classification not configured.</string>
+      <string id="InformationCondition_Help">This policy sets the INFOCON level appended to banner text metadata. It writes the InfoCon DWORD value (1-5) under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, the selected INFOCON value is added to the banner text as "INFOCON n". If the value is 0 or missing, no INFOCON label is appended.
+
+If this policy is Disabled or Not Configured, NetBannerNG uses the managed default value of 0, which means INFOCON text is not shown.</string>
+      <string id="ForceProtectionCondition_Help">This policy sets the FPCON level appended to banner text metadata. It writes the FpCon DWORD value (1-4) under HKLM\SOFTWARE\Policies\NetBannerNG.
+
+If this policy is Enabled, the selected FPCON value is added to the banner text as "FPCON n". If the value is 0 or missing, no FPCON label is appended.
+
+If this policy is Disabled or Not Configured, NetBannerNG uses the managed default value of 0, which means FPCON text is not shown.</string>
     </stringTable>
     <presentationTable>
       <presentation id="Classification">

@@ -1,8 +1,8 @@
 # Feature Parity Matrix
 
-Audience: migration planners, security engineering leads, endpoint platform owners.
+Audience: contributors, migration planners, security engineering leads, endpoint platform owners.
 
-This matrix compares NetBannerNG with Microsoft NetBanner and SystemBanner for practical migration planning.
+This matrix is a contributor-facing reference for current known feature parity between NetBannerNG, Microsoft NetBanner, and SystemBanner to support migration planning and implementation decisions.
 
 ## Legend
 
@@ -16,7 +16,6 @@ This matrix compares NetBannerNG with Microsoft NetBanner and SystemBanner for p
 | Capability | NetBannerNG | Microsoft NetBanner | SystemBanner |
 | --- | ---: | ---: | ---: |
 | Group Policy-based configuration | ✅ | ✅ | ✅ |
-| Primary policy path `HKLM\Software\Policies\NetBannerNG` + legacy compatibility `...\Microsoft\NetBanner` | ✅ | ⚠️ | ⚠️ |
 | Policy-selectable classification profiles/schemes | ✅ (`ClassificationSelection`) | ⚠️ | ℹ️ |
 | Top classification banner | ✅ | ✅ | ✅ |
 | Optional desktop border rendering | ✅ | ⚠️ (varies by implementation/version) | ✅ |
@@ -52,7 +51,7 @@ This matrix compares NetBannerNG with Microsoft NetBanner and SystemBanner for p
 ### Choose NetBannerNG when you need
 
 - service-controlled lifecycle supervision,
-- richer policy composition (INFOCON/FPCON/CPCON + catalogs),
+- richer policy composition (INFOCON/FPCON + catalogs),
 - explicit compatibility path for NetBanner policy migration.
 
 ### Keep/choose SystemBanner when you need
