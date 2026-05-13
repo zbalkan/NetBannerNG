@@ -100,7 +100,7 @@
           <item displayName="$(string.ng_class_sel_077)"><value><string>TR - GİZLİ</string></value></item>
           <item displayName="$(string.ng_class_sel_078)"><value><string>TR - HİZMETE ÖZEL</string></value></item>
           <item displayName="$(string.ng_class_sel_079)"><value><string>TR - ÇOK GİZLİ</string></value></item>
-          <item displayName="$(string.ng_class_sel_080)"><value><string>TR - ÖZEL</string></value></item>
+          <item displayName="$(string.ng_class_sel_080)"><value><string>TR - TASNİF DIŞI</string></value></item>
           <item displayName="$(string.ng_class_sel_081)"><value><string>UA - ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ</string></value></item>
           <item displayName="$(string.ng_class_sel_082)"><value><string>UA - ОСОБЛИВОЇ ВАЖЛИВОСТІ</string></value></item>
           <item displayName="$(string.ng_class_sel_083)"><value><string>UA - ТАЄМНО</string></value></item>
