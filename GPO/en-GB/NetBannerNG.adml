@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <policyDefinitionResources revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
-  <!-- NetBanner 2.0.130 -->
+  <!-- NetbannerNG (backwards-compatible with NetBanner 2.0.130) -->
   <displayName>
   </displayName>
   <description>
@@ -8,7 +8,7 @@
   <resources>
     <stringTable>
       <!-- Legacy NetBanner labels/IDs retained for old NetBanner compatibility. -->
-      <string id="unknown_0">NetBanner</string>
+      <string id="unknown_0">NetBannerNG</string>
       <string id="unknown_1">Classification</string>
       <string id="unknown_7">Custom Settings</string>
       <string id="unknown_24">Information Condition</string>
