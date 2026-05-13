@@ -51,7 +51,6 @@
       <string id="ng_cpcon_display">Cyber Protection Condition</string>
       <string id="ng_cpcon_help">NetBannerNG-only policy for CpCon registry value used in classification metadata.</string>
       <string id="ng_fontsize_display">Font Size (NetBannerNG)</string>
-      <string id="ng_fontsize_help">NetBannerNG-only policy for FontSize registry value.</string>
       <string id="ng_bannersize_display">Banner Size (NetBannerNG)</string>
       <string id="ng_bannersize_help">NetBannerNG-only policy for BannerSize registry value.</string>
       <string id="ng_disableborders_display">Disable Borders (NetBannerNG)</string>
@@ -120,9 +119,6 @@
       </presentation>
       <presentation id="Caveats">
         <textBox refId="SizeMessage"><label>40 Characters Max</label></textBox>
-      </presentation>
-      <presentation id="FontSize">
-        <decimalTextBox refId="FontSizeValue" defaultValue="9" spin="true">Font size (6-48)</decimalTextBox>
       </presentation>
       <presentation id="BannerSize">
         <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true">Banner size (10-100)</decimalTextBox>

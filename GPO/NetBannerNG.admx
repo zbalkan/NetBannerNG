@@ -81,10 +81,6 @@
       <enabledValue><decimal value="1" /></enabledValue><disabledValue><decimal value="0" /></disabledValue>
       <elements><text id="SizeMessage" key="Software\Policies\NetBannerNG" valueName="Caveats" maxLength="40" /></elements>
     </policy>
-    <policy name="FontSize" class="Machine" displayName="$(string.ng_fontsize_display)" explainText="$(string.ng_fontsize_help)" presentation="$(presentation.FontSize)" key="Software\Policies\NetBannerNG" valueName="FontSize">
-      <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
-      <elements><decimal id="FontSizeValue" key="Software\Policies\NetBannerNG" valueName="FontSize" minValue="6" maxValue="48" /></elements>
-    </policy>
     <policy name="BannerSize" class="Machine" displayName="$(string.ng_bannersize_display)" explainText="$(string.ng_bannersize_help)" presentation="$(presentation.BannerSize)" key="Software\Policies\NetBannerNG" valueName="BannerSize">
       <parentCategory ref="NetBannerNG" /><supportedOn ref="SUPPORTED_Windows10_AndLater" />
       <elements><decimal id="BannerSizeValue" key="Software\Policies\NetBannerNG" valueName="BannerSize" minValue="10" maxValue="100" /></elements>

@@ -1,4 +1,5 @@
-﻿using NetBannerNG.Utils;
+﻿using System;
+using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
 {
@@ -31,6 +32,7 @@ namespace NetBannerNG.Borders
 
             MinHeight = Settings.Instance.BannerSize;
             MaxHeight = Settings.Instance.BannerSize;
+            TbClassification.FontSize = Math.Max(1, Settings.Instance.BannerSize - 1);
         }
 
         private void RefreshDataContext()

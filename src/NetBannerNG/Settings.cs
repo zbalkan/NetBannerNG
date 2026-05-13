@@ -13,7 +13,6 @@ namespace NetBannerNG
         private const double BorderBannerRatio = 0.15;
         private const int DefaultBannerSize = 28;
         private const int DefaultClassificationValue = 1;
-        private const int DefaultFontSize = 9;
         private const string DefaultClassificationProfile = "NATO";
         private const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";
         private const int MinimumBorderSize = 2;
@@ -25,7 +24,7 @@ namespace NetBannerNG
         private static readonly string[] ManagedPolicyKeys =
                 {
             "Classification", "CustomSettings", "CustomBackgroundColor", "CustomForeColor", "CustomDisplayText",
-            "InfoCon", "FpCon", "CaveatsEnabled", "Caveats", "FontSize", "BannerSize", "DisableBorders", "ClassificationProfile", "ShowHostInformation", "EnableBottomBanner",
+            "InfoCon", "FpCon", "CaveatsEnabled", "Caveats", "BannerSize", "DisableBorders", "ClassificationProfile", "ShowHostInformation", "EnableBottomBanner",
         };
 
         private SettingsSnapshot? _currentSettings;
@@ -43,7 +42,6 @@ namespace NetBannerNG
         public SolidColorBrush? CustomBackgroundColor { get; private set; }
         public SolidColorBrush? CustomForeColor { get; private set; }
         public bool DisableBorders { get; private set; }
-        public int FontSize { get; private set; }
         public bool ShowHostInformation { get; private set; }
         public bool EnableBottomBanner { get; private set; }
         public string? HostInformation { get; private set; }
@@ -54,12 +52,11 @@ namespace NetBannerNG
         internal void Refresh()
         {
             var newSettings = LoadSettings();
-            _needsResize = _currentSettings == null || newSettings.DisableBorders != _currentSettings.DisableBorders || newSettings.BannerSize != _currentSettings.BannerSize || newSettings.FontSize != _currentSettings.FontSize;
+            _needsResize = _currentSettings == null || newSettings.DisableBorders != _currentSettings.DisableBorders || newSettings.BannerSize != _currentSettings.BannerSize;
 
             Classification = (newSettings.Classification ?? string.Empty).ToUpperInvariant();
             CustomBackgroundColor = ParseBackgroundBrush(newSettings.CustomBackgroundColor!);
             CustomForeColor = ParseForegroundBrush(newSettings.CustomForeColor!);
-            FontSize = newSettings.FontSize;
             BannerSize = newSettings.BannerSize;
             DisableBorders = newSettings.DisableBorders;
             ShowHostInformation = newSettings.ShowHostInformation;
@@ -160,7 +157,6 @@ namespace NetBannerNG
             CustomForeColor = NormalizeColorValue(
                 GetOrCreateString(localKey, "CustomForeColor", "#FFFFFF"),
                 ToForegroundHex),
-            FontSize = GetOrCreateInt(localKey, "FontSize", DefaultFontSize),
             BannerSize = GetOrCreateInt(localKey, "BannerSize", DefaultBannerSize),
             DisableBorders = GetOrCreateBool(localKey, "DisableBorders", false),
             ShowHostInformation = GetOrCreateBool(localKey, "ShowHostInformation", true),
@@ -201,7 +197,6 @@ namespace NetBannerNG
                 FpCon = fpcon,
                 CustomBackgroundColor = customSettings ? ToBackgroundHex(policyBackground) : ResolveCatalogBackground(classificationProfile, classificationText),
                 CustomForeColor = customSettings ? ToForegroundHex(policyForeground) : localDefaults.CustomForeColor,
-                FontSize = GetInt(policyKey!, "FontSize", localDefaults.FontSize),
                 BannerSize = GetInt(policyKey!, "BannerSize", localDefaults.BannerSize),
                 DisableBorders = GetBool(policyKey!, "DisableBorders", localDefaults.DisableBorders),
                 ShowHostInformation = GetBool(policyKey!, "ShowHostInformation", false),
@@ -396,7 +391,6 @@ namespace NetBannerNG
             internal string? CustomBackgroundColor { get; set; }
             internal string? CustomForeColor { get; set; }
             internal bool DisableBorders { get; set; }
-            internal int FontSize { get; set; }
             internal int FpCon { get; set; }
             internal int InfoCon { get; set; }
             internal bool ShowHostInformation { get; set; }
