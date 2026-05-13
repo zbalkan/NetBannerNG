@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+using Microsoft.Win32;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetBannerNG.Tests
@@ -98,6 +99,57 @@ namespace NetBannerNG.Tests
             Assert.AreEqual("#007A33", InvokePrivate<string>("ResolveCatalogBackground", "DK", "HEMMELIGT"));
         }
 
+
+        [TestMethod]
+        public void ResolvePolicyKey_PrefersNetBannerNg_WhenBothPolicyRootsExist()
+        {
+            using var scope = new RegistryTestScope();
+            var netBannerNgPath = scope.ResolveManagedPolicyPath("NetBannerNG");
+            var legacyPath = scope.ResolveManagedPolicyPath("NetBanner");
+
+            using (var netBannerNgKey = Registry.CurrentUser.CreateSubKey(netBannerNgPath, true))
+            using (var legacyKey = Registry.CurrentUser.CreateSubKey(legacyPath, true))
+            {
+                netBannerNgKey!.SetValue("Classification", 2, RegistryValueKind.DWord);
+                netBannerNgKey.SetValue("CustomDisplayText", "FROM_NEW", RegistryValueKind.String);
+                legacyKey!.SetValue("Classification", 3, RegistryValueKind.DWord);
+                legacyKey.SetValue("CustomDisplayText", "FROM_LEGACY", RegistryValueKind.String);
+            }
+
+            using var policyRoot = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
+            using var resolved = InvokePrivate<RegistryKey?>("ResolvePolicyKey", policyRoot);
+
+            Assert.IsNotNull(resolved);
+            Assert.AreEqual(2, Convert.ToInt32(resolved!.GetValue("Classification")));
+            Assert.AreEqual("FROM_NEW", resolved.GetValue("CustomDisplayText")?.ToString());
+        }
+
+        [TestMethod]
+        public void ResolvePolicyKey_MigratesLegacyValues_WhenNetBannerNgValuesMissing()
+        {
+            using var scope = new RegistryTestScope();
+            var netBannerNgPath = scope.ResolveManagedPolicyPath("NetBannerNG");
+            var legacyPath = scope.ResolveManagedPolicyPath("NetBanner");
+
+            using (var legacyKey = Registry.CurrentUser.CreateSubKey(legacyPath, true))
+            {
+                legacyKey!.SetValue("Classification", 4, RegistryValueKind.DWord);
+                legacyKey.SetValue("CustomDisplayText", "LEGACY_ONLY", RegistryValueKind.String);
+            }
+
+            using var policyRoot = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default);
+            using var resolved = InvokePrivate<RegistryKey?>("ResolvePolicyKey", policyRoot);
+
+            Assert.IsNotNull(resolved);
+            Assert.AreEqual(4, Convert.ToInt32(resolved!.GetValue("Classification")));
+            Assert.AreEqual("LEGACY_ONLY", resolved.GetValue("CustomDisplayText")?.ToString());
+
+            using var migratedKey = Registry.CurrentUser.OpenSubKey(netBannerNgPath, false);
+            Assert.IsNotNull(migratedKey);
+            Assert.AreEqual(4, Convert.ToInt32(migratedKey!.GetValue("Classification")));
+            Assert.AreEqual("LEGACY_ONLY", migratedKey.GetValue("CustomDisplayText")?.ToString());
+        }
+
         private static T InvokePrivate<T>(string method, params object[] args)
         {
             var type = Type.GetType("NetBannerNG.Settings, NetBannerNG")
@@ -108,5 +160,27 @@ namespace NetBannerNG.Tests
             return (T)(methodInfo.Invoke(null, args)
                 ?? throw new InvalidOperationException($"Method {method} returned null."));
         }
+
+        private sealed class RegistryTestScope : IDisposable
+        {
+            private const string NetBannerNgPath = @"SOFTWARE\Policies\NetbannerNG";
+            private const string LegacyPath = @"SOFTWARE\Policies\Microsoft\NetBanner";
+
+            internal RegistryTestScope()
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(NetBannerNgPath, false);
+                Registry.CurrentUser.DeleteSubKeyTree(LegacyPath, false);
+            }
+
+            internal string ResolveManagedPolicyPath(string productName)
+                => productName == "NetBannerNG" ? NetBannerNgPath : LegacyPath;
+
+            public void Dispose()
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(NetBannerNgPath, false);
+                Registry.CurrentUser.DeleteSubKeyTree(LegacyPath, false);
+            }
+        }
+
     }
 }

@@ -32,7 +32,7 @@ At a high level:
 
 ### Group Policy path (legacy-compatible)
 
-- `HKLM\Software\Policies\Microsoft\NetBanner`
+- `HKLM\Software\Policies\NetbannerNG`
 
 Notes for Windows administrators:
 - ADMX/ADML is the management plane; registry is the policy backend written by Group Policy Client.
@@ -129,7 +129,7 @@ After reviewing the service, desktop app, shared library, and tests, the runtime
    - `BorderManager` creates per-monitor border groups (top banner + optional bottom/left/right bars), keeps them synced with monitor changes, and applies group health policies to avoid thrashing on repeated failures.
 
 5. **Policy-first settings resolution**
-   - `Settings` loads local defaults from `HKLM\SOFTWARE\NetBannerNG`, then overlays managed policy values from `HKLM\SOFTWARE\Policies\Microsoft\NetBanner` when present.
+   - `Settings` loads local defaults from `HKLM\SOFTWARE\NetBannerNG`, then overlays managed policy values from `HKLM\SOFTWARE\Policies\NetbannerNG` when present, migrating from legacy `HKLM\SOFTWARE\Policies\Microsoft\NetBanner` when needed.
    - Classification text composition includes optional custom display text, INFOCON/FPCON/CPCON values, and caveats.
    - `ClassificationProfile` dispatches into the catalog registry (`ClassificationCatalogs`) so classification schemes are extensible (NATO/US plus EUCI/EP/national/international textual presets).
    - Color semantics are profile-aware: NATO/US have built-in mappings; EUCI/EP and most national/international profiles are textual schemes and rely on local policy colors unless explicitly configured.
