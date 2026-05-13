@@ -178,3 +178,11 @@ Registry backend reminder:
 - Validate multi-monitor and fullscreen app scenarios.
 - Keep one prior installer version for fast rollback.
 - Version and archive exported policy snapshots per deployment wave.
+
+
+## 8) Documentation map
+
+- `README.md`: user-facing purpose and high-level behavior
+- `docs/DEVELOPMENT.md`: architecture, build/test, and developer lifecycle details
+- `docs/FEATURE_PARITY_MATRIX.md`: migration and capability comparison
+
