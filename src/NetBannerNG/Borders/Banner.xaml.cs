@@ -11,7 +11,6 @@ namespace NetBannerNG.Borders
         internal Banner()
         {
             InitializeComponent();
-            RefreshDataContext();
         }
 
         internal override void Render(bool needsResize = false)
