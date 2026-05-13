@@ -117,10 +117,10 @@ Bu ilke Devre Dışı veya Yapılandırılmadı ise NetBannerNG bu ilkedeki öze
       <string id="ng_class_sel_074">SE - HEMLIG/RESTRICTED</string>
       <string id="ng_class_sel_075">SE - HEMLIG/SECRET</string>
       <string id="ng_class_sel_076">SE - HEMLIG/TOP SECRET</string>
-      <string id="ng_class_sel_077">TR - GİZLİ</string>
+      <string id="ng_class_sel_080">TR - TASNİF DIŞI</string>
       <string id="ng_class_sel_078">TR - HİZMETE ÖZEL</string>
+      <string id="ng_class_sel_077">TR - GİZLİ</string>
       <string id="ng_class_sel_079">TR - ÇOK GİZLİ</string>
-      <string id="ng_class_sel_080">TR - ÖZEL</string>
       <string id="ng_class_sel_081">UA - ДЛЯ СЛУЖБОВОГО КОРИСТУВАННЯ</string>
       <string id="ng_class_sel_082">UA - ОСОБЛИВОЇ ВАЖЛИВОСТІ</string>
       <string id="ng_class_sel_083">UA - ТАЄМНО</string>
