@@ -126,7 +126,11 @@ namespace NetBannerNG.Utils
             }
 
             // if window is one of ours, ignore the calculation
-            var dispatcher = Application.Current.Dispatcher;
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                return false;
+            }
             if (dispatcher.CheckAccess())
             {
                 return !Application.Current.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
@@ -154,7 +158,13 @@ namespace NetBannerNG.Utils
             if (elapsed >= ForegroundDispatchDebounce)
             {
                 _lastDispatchUtc = now;
-                _ = Application.Current.Dispatcher.BeginInvoke(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop, DispatcherPriority.Background);
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher == null)
+                {
+                    return;
+                }
+
+                _ = dispatcher.BeginInvoke(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop, DispatcherPriority.Background);
                 return;
             }
 
@@ -166,7 +176,13 @@ namespace NetBannerNG.Utils
 
         private static void StartOrResetDebounceTimer(TimeSpan dueIn)
         {
-            _debounceTimer ??= new DispatcherTimer(DispatcherPriority.Background, Application.Current.Dispatcher);
+            var dispatcher = Application.Current?.Dispatcher;
+            if (dispatcher == null)
+            {
+                return;
+            }
+
+            _debounceTimer ??= new DispatcherTimer(DispatcherPriority.Background, dispatcher);
             _debounceTimer.Stop();
             _debounceTimer.Interval = dueIn;
             _debounceTimer.Tick -= OnDebounceTick;
@@ -194,11 +210,23 @@ namespace NetBannerNG.Utils
             _lastDispatchUtc = DateTime.UtcNow;
             if (dispatchBottom)
             {
-                _ = Application.Current.Dispatcher.BeginInvoke(BorderManager.SendBottom, DispatcherPriority.Background);
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher == null)
+                {
+                    return;
+                }
+
+                _ = dispatcher.BeginInvoke(BorderManager.SendBottom, DispatcherPriority.Background);
             }
             if (dispatchTop)
             {
-                _ = Application.Current.Dispatcher.BeginInvoke(BorderManager.SendTop, DispatcherPriority.Background);
+                var dispatcher = Application.Current?.Dispatcher;
+                if (dispatcher == null)
+                {
+                    return;
+                }
+
+                _ = dispatcher.BeginInvoke(BorderManager.SendTop, DispatcherPriority.Background);
             }
         }
 
