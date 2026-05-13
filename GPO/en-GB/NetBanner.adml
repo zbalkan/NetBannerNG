@@ -1,4 +1,5 @@
-<policyDefinitionResources revision="1.0" schemaVersion="1.0">
+<?xml version="1.0" encoding="utf-8"?>
+<policyDefinitionResources revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
   <!-- NetBanner 2.0.130 -->
   <displayName>
   </displayName>
@@ -93,7 +94,7 @@
       <string id="ADMXMigrator_UnresolvedString">ADMX Migrator encountered a string that is not present in the source ADM string table.</string>
       <string id="ADMXMigrator_NoSupportedOn">ADMX Migrator encountered a policy that does not have a supportedOn value.</string>
       <string id="Caveats_Help">Allows administrators to enter free form text.</string>
-      <string id="SUPPORTED_WindowsXPSP2_Or_WindowsNETSP1">At least Microsoft Windows XP Professional with SP2 or Windows Server 2003 family with SP1</string>
+      <string id="SUPPORTED_Windows10_AndLater">At least Windows 10 / Windows 11</string>
       <string id="Classification_Help">Classification level for the Organizational Unit (OU).</string>
       <string id="InformationCondition_Help">Information condition setting.</string>
       <string id="ForceProtectionCondition_Help">Force Protection Condition setting.</string>
@@ -120,13 +121,13 @@
         <textBox refId="SizeMessage"><label>40 Characters Max</label></textBox>
       </presentation>
       <presentation id="FontSize">
-        <decimalTextBox refId="FontSizeValue" defaultValue="9" spin="true"><label>Font size (6-48)</label></decimalTextBox>
+        <decimalTextBox refId="FontSizeValue" defaultValue="9" spin="true">Font size (6-48)</decimalTextBox>
       </presentation>
       <presentation id="BannerSize">
-        <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true"><label>Banner size (10-100)</label></decimalTextBox>
+        <decimalTextBox refId="BannerSizeValue" defaultValue="28" spin="true">Banner size (10-100)</decimalTextBox>
       </presentation>
       <presentation id="Heartbeat">
-        <decimalTextBox refId="HeartbeatValue" defaultValue="20" spin="true"><label>Heartbeat seconds (1-3600)</label></decimalTextBox>
+        <decimalTextBox refId="HeartbeatValue" defaultValue="20" spin="true">Heartbeat seconds (1-3600)</decimalTextBox>
       </presentation>
       <presentation id="ClassificationProfile">
         <dropdownList refId="ClassificationProfile" noSort="true" defaultItem="0">Classification Profile</dropdownList>
