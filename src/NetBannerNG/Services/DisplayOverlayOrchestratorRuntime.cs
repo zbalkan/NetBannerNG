@@ -35,7 +35,7 @@ namespace NetBannerNG.Services
             System.Windows.Application.Current.MainWindow.Show();
         }
 
-        public void InitiateAllBorders()
+        public void InitiateAllSurfaces()
         {
             if (_isInitiated)
             {
@@ -62,7 +62,7 @@ namespace NetBannerNG.Services
 
         public void BeginShutdown() => _shutdownInProgress = true;
 
-        public void CloseAllBorders()
+        public void CloseAllSurfaces()
         {
             var groups = _surfaceCatalog.Snapshot(clear: true);
             _isInitiated = false;

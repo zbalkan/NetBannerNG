@@ -21,7 +21,7 @@ namespace NetBannerNG.Tests
             suppression.RaiseSuppression(new Dictionary<string, bool> { ["DISPLAY1"] = true });
 
             CollectionAssert.AreEqual(
-                new[] { "Init", "InitiateAllBorders", "ApplyFullscreenSuppressionStates" },
+                new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" },
                 orchestrator.Calls);
             Assert.AreEqual(1, suppression.StartCalls);
             Assert.AreEqual(1, monitorWatcher.WatchCalls);
@@ -40,7 +40,7 @@ namespace NetBannerNG.Tests
             await sut.ShutdownRuntimeAsync();
 
             CollectionAssert.Contains(orchestrator.Calls, "BeginShutdown");
-            CollectionAssert.Contains(orchestrator.Calls, "CloseAllBorders");
+            CollectionAssert.Contains(orchestrator.Calls, "CloseAllSurfaces");
             Assert.AreEqual(1, monitorWatcher.UnwatchCalls);
             Assert.AreEqual(1, suppression.StopCalls);
         }
@@ -54,9 +54,9 @@ namespace NetBannerNG.Tests
                 Calls.Add("Init");
             }
 
-            public void InitiateAllBorders()
+            public void InitiateAllSurfaces()
             {
-                Calls.Add("InitiateAllBorders");
+                Calls.Add("InitiateAllSurfaces");
             }
 
             public void Refresh()
@@ -74,9 +74,9 @@ namespace NetBannerNG.Tests
                 Calls.Add("BeginShutdown");
             }
 
-            public void CloseAllBorders()
+            public void CloseAllSurfaces()
             {
-                Calls.Add("CloseAllBorders");
+                Calls.Add("CloseAllSurfaces");
             }
         }
 

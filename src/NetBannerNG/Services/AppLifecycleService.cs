@@ -99,7 +99,7 @@ namespace NetBannerNG.Services
                     suppressionHooked = true;
 
                     _overlayOrchestrator.Init(IsClearStart());
-                    _overlayOrchestrator.InitiateAllBorders();
+                    _overlayOrchestrator.InitiateAllSurfaces();
                     PinClearStart();
 
                     _fullscreenSuppressionService.Start();
@@ -159,7 +159,7 @@ namespace NetBannerNG.Services
                 _overlayOrchestrator.BeginShutdown();
                 _monitorWatcher.Unwatch();
                 _fullscreenSuppressionService.Stop();
-                _overlayOrchestrator.CloseAllBorders();
+                _overlayOrchestrator.CloseAllSurfaces();
                 PinClearShutdown();
                 if (Client is not null)
                 {
