@@ -37,15 +37,6 @@ namespace NetBannerNG.Common.Native
             AbnWindowarrange = 3
         }
 
-        [Flags]
-        internal enum DwmncRenderingPolicy
-        {
-            UseWindowStyle = 0,
-            Disabled = 1,
-            Enabled = 1 << 1,
-            Last = 1 << 2
-        }
-
         internal enum DWMWINDOWATTRIBUTE
         {
             None = 0,

@@ -66,6 +66,12 @@ namespace NetBannerNG
 
                 var args = e?.Args ?? Array.Empty<string>();
 
+                if (!AppLifecycleService.EnsureParentIsService())
+                {
+                    ShutDownGracefully();
+                    return;
+                }
+
                 // If no debugger is attached and the argument --debug was passed, launch the debugger.
                 AppLifecycleService.TryLaunchDebugger(args);
 
