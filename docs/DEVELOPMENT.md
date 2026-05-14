@@ -85,61 +85,39 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Definition of Done reached**.
+Current phase assessment (as of 2026-05-14): **Phase 6 hardening in progress; redesign is not fully complete against the target architecture.**
 
-Completed:
-- Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
-- Phase 2: `MonitorSurfaceCatalog` is extracted as a first-class component in its own module.
-- Phase 3: core orchestration now runs through an instance-native runtime component (`DisplayOverlayOrchestratorRuntime`) behind adapter interfaces; static usage remains only as a compatibility adapter entrypoint.
+### Why the previous DoD was insufficient
+The earlier DoD validated important progress (catalog extraction, abstraction-first lifecycle wiring, suppression DTOs, layout tests), but it did **not** fully encode Section 4 target-architecture constraints:
+- `DisplayOverlayOrchestrator` still has concrete window knowledge via nested `MonitorSurfaceSet` and explicit `Banner/BottomBanner/BottomBar/LeftBar/RightBar` construction.
+- The orchestrator path still depends on static compatibility entry points as first-class runtime behavior.
+- Layout and surface composition responsibilities are improved but not yet fully separated into a monitor-set contract that is independent from orchestrator internals.
 
-Latest hardening in this change:
-- Introduced explicit monitor abstraction contracts: `IMonitorIdentity`, `IMonitorLayoutPolicy`, and `IMonitorSurfaceCatalog`.
-- Wired catalog reconciliation to consume `IMonitorIdentity` instead of direct static identity utility calls.
-- Wired `DisplayOverlayOrchestrator` to consume monitor identity and monitor layout through provider abstractions, reducing direct static policy coupling in orchestration paths.
-- Completed orchestrator-facing terminology migration from "Borders" to "Surfaces" in instance runtime APIs (`InitiateAllSurfaces`, `CloseAllSurfaces`) and lifecycle call sites.
+### Redefined DoD (aligned to Section 4 target architecture)
+The redesign is complete only when **all** are true:
+1. **Orchestrator purity:** runtime orchestration is instance-based and coordinates lifecycle only (init/refresh/shutdown/suppression apply), with no concrete window type construction or nested monitor-set implementation.
+2. **Catalog boundary:** `MonitorSurfaceCatalog` is standalone, owns monitor-id → monitor-set mapping, and exposes reconciliation through `IMonitorSurfaceCatalog` without references to static orchestrator helpers.
+3. **Per-monitor set abstraction:** monitor-scoped aggregate is represented by an explicit `IMonitorSurfaceSet` contract in its own module, including show/sync/suppression/close responsibilities and health policy hooks.
+4. **Suppression declaration:** fullscreen suppression flows are produced declaratively as typed payloads and applied by orchestrator only (no suppression recomputation inside orchestrator).
+5. **Layout centralization:** monitor-relative geometry decisions live in `IMonitorLayoutPolicy` implementations; surface windows execute render/dock but do not own cross-monitor geometry policy.
+6. **Static isolation:** static classes are adapter/facade only and are not required by core runtime coordination paths.
+7. **Terminology consistency:** public core orchestration APIs consistently use overlay/surface vocabulary (no remaining border-manager-era names in active core API surfaces).
+8. **Test coverage:** dedicated tests exist for catalog reconciliation, monitor-set orchestration behavior, suppression state application, and layout policy invariants.
 
-Latest update (2026-05-14):
-- Began Phase 6 hardening with structured orchestrator diagnostics:
-  - Added reconcile telemetry events for initiate/refresh paths including monitor count, groups-to-show count, and catalog count.
-  - Added suppression telemetry event with total update count and suppressed-group count.
-  - Added shutdown telemetry event for close-all transitions.
-- Added health-policy stress coverage with deterministic repeated disable/cooldown cycles in `GroupHealthPolicyTests`.
+### Updated phase mapping
+- **Phase 0–2:** Completed (baseline characterization, naming/contracts, first-class catalog extraction).
+- **Phase 3:** Partially completed. Instance-native runtime exists (`DisplayOverlayOrchestratorRuntime`), but static compatibility pathways remain prominent and concrete monitor-set implementation remains coupled to orchestrator type.
+- **Phase 4:** Completed for typed suppression payloads and declarative apply flow.
+- **Phase 5:** Substantially completed for layout-policy invariants; additional enforcement is still required to remove residual geometry policy leakage in surface creation paths.
+- **Phase 6:** In progress (telemetry/hardening continues).
 
-Latest update (2026-05-14):
-- Continued Phase 6 hardening with additional structured orchestrator diagnostics:
-  - Added explicit refresh skip telemetry when shutdown is already in progress.
-  - Added shutdown-begin telemetry capturing catalog size and initiation state.
-  - Extended suppression telemetry to include app-tagged suppression count for better diagnostics fidelity.
-  - Added no-op telemetry for group-show pipeline when no groups are scheduled to render.
+### Next phase execution plan (starting now)
+To proceed safely from current state toward the redefined DoD:
+1. Extract `MonitorSurfaceSet` to a top-level component and introduce `IMonitorSurfaceSet`.
+2. Inject monitor-set factory/contracts into catalog so orchestrator runtime no longer instantiates concrete surface types directly.
+3. Reduce static `DisplayOverlayOrchestrator` to a compatibility facade over `DisplayOverlayOrchestratorRuntime` only.
+4. Add unit coverage focused on monitor-set contract behavior independent of static orchestrator.
 
-Definition of Done status:
-- ✅ Catalog is a standalone component and now has dedicated unit coverage for reconcile-add, reconcile-remove, and snapshot-clear semantics (`MonitorSurfaceCatalogTests`).
-- ✅ Core runtime coordination depends on abstractions (`IDisplayOverlayOrchestrator`, `IMonitorTopologyWatcher`, `IFullscreenSuppressionService`) with static implementations constrained to adapter roles.
-- ✅ Fullscreen suppression remains declarative and typed end-to-end (`FullscreenSuppressionState` map events).
-- ✅ Geometry policy is centralized and test-covered via `MonitorLayoutPolicy` tests.
-- ✅ Core API terminology uses overlay/surface semantics in runtime orchestration methods.
-
-Latest update (2026-05-14):
-- Completed Phase 5 layout-policy consolidation checkpoints for geometry invariants:
-  - Added targeted `MonitorLayoutPolicy` unit coverage for vertical top offset and vertical-height calculations, including minimum-height guard behavior on tiny monitor bounds.
-  - Removed residual catalog dependency on `DisplayOverlayOrchestrator.BuildGroupId` by routing monitor identity creation through `IMonitorIdentity` inside `MonitorSurfaceCatalog`, tightening boundary ownership.
-Latest update (2026-05-14):
-- Completed Phase 4 contract hardening by making fullscreen suppression updates typed and metadata-carrying end-to-end:
-  - Added `FullscreenSuppressionState` DTO (`IsSuppressed`, `AppName`).
-  - Updated watcher/service/orchestrator interfaces to exchange `IReadOnlyDictionary<string, FullscreenSuppressionState>`.
-  - Kept orchestration declarative: runtime applies suppression states without recomputing fullscreen ownership.
-
-Latest update (2026-05-14):
-- Continued Phase 3 static-pressure reduction by formalizing watcher terminology around topology concerns:
-  - Renamed lifecycle watcher abstraction from `IMonitorWatcher` to `IMonitorTopologyWatcher`.
-  - Renamed default adapter from `StaticMonitorWatcher` to `StaticMonitorTopologyWatcher`.
-  - Updated lifecycle tests to consume the renamed topology watcher contract.
-
-
-Latest update (2026-05-14):
-- Closed the remaining DoD catalog testing gap by adding dedicated `MonitorSurfaceCatalog` tests for:
-  - reconcile-add behavior (new monitor produces new surface set),
-  - reconcile-remove behavior (missing monitor removes surface set),
-  - snapshot clear semantics (`Snapshot(clear: true)` returns and clears).
-- Marked redesign milestone as complete: all DoD checkpoints are now satisfied in-code and in tests.
-
+### Practical status conclusion
+- We are **after Phase 4 and within Phase 6 hardening**, with remaining architectural work centered on fully decoupling monitor-set composition from orchestrator/static types.
+- Therefore, redesign completion should be tracked against the redefined DoD above rather than the earlier milestone language.

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Runtime.Serialization;
 using System.Windows;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NetBannerNG.Borders;
 using NetBannerNG.Common;
 using NetBannerNG.Services;
 
@@ -18,13 +17,28 @@ namespace NetBannerNG.Tests
             public string BuildGroupId(string monitorName, Rect bounds) => monitorName;
         }
 
+        private sealed class FakeSurfaceSet : IMonitorSurfaceSet
+        {
+            public FakeSurfaceSet(string groupId, Monitor monitor) { GroupId = groupId; Monitor = monitor; }
+            public Monitor Monitor { get; private set; }
+            public string GroupId { get; }
+            public int SyncCount { get; private set; }
+            public IEnumerable<BorderBase> CreateLaunchEntries() => Array.Empty<BorderBase>();
+            public bool MatchesMonitor(Monitor monitor) => monitor.Name == GroupId;
+            public bool HasMonitorLayoutChanged(Monitor monitor) => Monitor.Bounds != monitor.Bounds;
+            public void SyncMonitor(Monitor monitor) { Monitor = monitor; SyncCount++; }
+            public void ApplyPostDockVisualState() { }
+            public void SetTopMost(bool topMost) { }
+            public void SetBarsVisibility(bool isVisible) { }
+            public void Close() { }
+            public bool TryShowWindow(BorderBase window, out Exception? error) { error = null; return true; }
+        }
+
         [TestMethod]
         public void Reconcile_AddsAndSnapshots_WhenNewMonitorsProvided()
         {
-            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => CreateSet(monitor.Name, monitor));
-
+            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => new FakeSurfaceSet(monitor.Name, monitor));
             var toShow = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0), CreateMonitor("DISPLAY2", 1920) }, clean: false);
-
             Assert.HasCount(2, toShow);
             CollectionAssert.AreEquivalent(new[] { "DISPLAY1", "DISPLAY2" }, toShow.ConvertAll(group => group.GroupId));
             Assert.AreEqual(2, catalog.Count);
@@ -33,11 +47,9 @@ namespace NetBannerNG.Tests
         [TestMethod]
         public void Reconcile_RemovesMissingGroups()
         {
-            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => CreateSet(monitor.Name, monitor));
+            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => new FakeSurfaceSet(monitor.Name, monitor));
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0), CreateMonitor("DISPLAY2", 1920) }, clean: true);
-
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0) }, clean: true);
-
             Assert.AreEqual(1, catalog.Count);
             Assert.IsTrue(catalog.TryGet("DISPLAY1", out _));
             Assert.IsFalse(catalog.TryGet("DISPLAY2", out _));
@@ -46,40 +58,24 @@ namespace NetBannerNG.Tests
         [TestMethod]
         public void Snapshot_WithClear_ReturnsCurrentAndClearsCatalog()
         {
-            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => CreateSet(monitor.Name, monitor));
+            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => new FakeSurfaceSet(monitor.Name, monitor));
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0), CreateMonitor("DISPLAY2", 1920) }, clean: true);
-
             var snapshot = catalog.Snapshot(clear: true);
-
             Assert.HasCount(2, snapshot);
             Assert.AreEqual(0, catalog.Count);
         }
 
-        private static Monitor CreateMonitor(string name, double left) => new Monitor(
-            name: name,
-            bounds: new Rect(left, 0, 1920, 1080),
-            workingArea: new Rect(left, 0, 1920, 1040),
-            isPrimary: true);
-
-        private static DisplayOverlayOrchestrator.MonitorSurfaceSet CreateSet(string groupId, Monitor monitor)
+        [TestMethod]
+        public void Reconcile_SyncsExistingSet_WhenLayoutChanged()
         {
-            var set = (DisplayOverlayOrchestrator.MonitorSurfaceSet)FormatterServices.GetUninitializedObject(typeof(DisplayOverlayOrchestrator.MonitorSurfaceSet));
-            SetField(set, "_monitorIdentity", groupId);
-            SetField(set, "_windows", new List<NetBannerNG.Borders.BorderBase>());
-            SetAutoPropertyBackingField(set, "Monitor", monitor);
-            return set;
+            FakeSurfaceSet? set = null;
+            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => set = new FakeSurfaceSet(monitor.Name, monitor));
+            _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0) }, clean: false);
+            _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 100) }, clean: false);
+            Assert.IsNotNull(set);
+            Assert.AreEqual(1, set!.SyncCount);
         }
 
-        private static void SetField(object target, string fieldName, object value)
-        {
-            var field = target.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic)!;
-            field.SetValue(target, value);
-        }
-
-        private static void SetAutoPropertyBackingField(object target, string propertyName, object value)
-        {
-            var field = target.GetType().GetField($"<{propertyName}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            field.SetValue(target, value);
-        }
+        private static Monitor CreateMonitor(string name, double left) => new(name, new Rect(left, 0, 1920, 1080), new Rect(left, 0, 1920, 1040), true);
     }
 }

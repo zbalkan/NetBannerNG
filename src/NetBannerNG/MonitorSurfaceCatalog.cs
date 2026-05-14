@@ -10,15 +10,15 @@ namespace NetBannerNG
 {
     internal interface IMonitorSurfaceCatalog
     {
-        List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean);
-        bool TryGet(string groupId, out DisplayOverlayOrchestrator.MonitorSurfaceSet? group);
+        List<IMonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean);
+        bool TryGet(string groupId, out IMonitorSurfaceSet? group);
         int Count { get; }
-        List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Snapshot(bool clear = false);
+        List<IMonitorSurfaceSet> Snapshot(bool clear = false);
     }
 
     internal sealed class MonitorSurfaceCatalog : IMonitorSurfaceCatalog
     {
-        internal delegate DisplayOverlayOrchestrator.MonitorSurfaceSet SurfaceSetFactory(Monitor monitor, bool clean);
+        internal delegate IMonitorSurfaceSet SurfaceSetFactory(Monitor monitor, bool clean);
 
         private static class EventIds
         {
@@ -29,11 +29,11 @@ namespace NetBannerNG
 
         private readonly IMonitorIdentity _monitorIdentity;
         private readonly SurfaceSetFactory _surfaceSetFactory;
-        private readonly Dictionary<string, DisplayOverlayOrchestrator.MonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, IMonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
         private readonly object _sync = new();
 
         internal MonitorSurfaceCatalog(IMonitorIdentity monitorIdentity)
-            : this(monitorIdentity, (monitor, clean) => new DisplayOverlayOrchestrator.MonitorSurfaceSet(monitor, clean))
+            : this(monitorIdentity, (monitor, clean) => new MonitorSurfaceSet(monitor, clean))
         {
         }
 
@@ -43,15 +43,15 @@ namespace NetBannerNG
             _surfaceSetFactory = surfaceSetFactory;
         }
 
-        public List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
+        public List<IMonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
                 .Select(_monitorIdentity.BuildGroupId)
                 .ToHashSet(StringComparer.Ordinal);
-            var groupsToShow = new List<DisplayOverlayOrchestrator.MonitorSurfaceSet>();
+            var groupsToShow = new List<IMonitorSurfaceSet>();
 
-            List<DisplayOverlayOrchestrator.MonitorSurfaceSet> groupsToRemove;
+            List<IMonitorSurfaceSet> groupsToRemove;
             lock (_sync)
             {
                 groupsToRemove = _surfaces.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
@@ -76,7 +76,7 @@ namespace NetBannerNG
             foreach (var monitor in nextMonitors)
             {
                 var groupId = _monitorIdentity.BuildGroupId(monitor);
-                DisplayOverlayOrchestrator.MonitorSurfaceSet? existingGroup;
+                IMonitorSurfaceSet? existingGroup;
                 var shouldSyncExistingGroup = false;
                 lock (_sync)
                 {
@@ -88,7 +88,7 @@ namespace NetBannerNG
                 {
                     try
                     {
-                        if (DisplayOverlayOrchestrator.HasMonitorLayoutChanged(existingGroup.Monitor, monitor))
+                        if (existingGroup.HasMonitorLayoutChanged(monitor))
                         {
                             existingGroup.SyncMonitor(monitor);
                         }
@@ -120,7 +120,7 @@ namespace NetBannerNG
             return groupsToShow;
         }
 
-        public bool TryGet(string groupId, out DisplayOverlayOrchestrator.MonitorSurfaceSet? group)
+        public bool TryGet(string groupId, out IMonitorSurfaceSet? group)
         {
             lock (_sync)
             {
@@ -139,7 +139,7 @@ namespace NetBannerNG
             }
         }
 
-        public List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Snapshot(bool clear = false)
+        public List<IMonitorSurfaceSet> Snapshot(bool clear = false)
         {
             lock (_sync)
             {

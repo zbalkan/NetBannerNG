@@ -95,7 +95,7 @@ namespace NetBannerNG.Services
             }
         }
 
-        private void ShowGroups(IEnumerable<DisplayOverlayOrchestrator.MonitorSurfaceSet> groups)
+        private void ShowGroups(IEnumerable<IMonitorSurfaceSet> groups)
         {
             var orderedGroups = groups.OrderByDescending(g => g.Monitor.IsPrimary).ThenBy(g => g.Monitor.Bounds.Y).ThenBy(g => g.Monitor.Bounds.X).ToList();
             if (orderedGroups.Count == 0)
