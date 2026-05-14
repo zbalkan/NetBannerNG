@@ -27,10 +27,9 @@ namespace NetBannerNG.Tests
             var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
             var connection = new SidConnection { UserSid = sid };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid, out var userName);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid);
 
             Assert.IsTrue(authorized);
-            Assert.IsNull(userName);
         }
 
         [TestMethod]
@@ -40,7 +39,7 @@ namespace NetBannerNG.Tests
             var otherSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
             var connection = new SidConnection { UserSid = otherSid };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid, out _);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid);
 
             Assert.IsFalse(authorized);
         }
@@ -51,7 +50,7 @@ namespace NetBannerNG.Tests
             var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
             var connection = new SidConnection { UserSid = sid.Value };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid, out _);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid);
 
             Assert.IsTrue(authorized);
         }
@@ -63,7 +62,7 @@ namespace NetBannerNG.Tests
             var systemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
             var connection = new SidConnection { UserSid = systemSid };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, out _);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid);
 
             Assert.IsFalse(authorized);
         }
@@ -75,7 +74,7 @@ namespace NetBannerNG.Tests
             var adminSid = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
             var connection = new SidConnection { UserSid = adminSid };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, out _);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid);
 
             Assert.IsFalse(authorized);
         }
@@ -86,10 +85,9 @@ namespace NetBannerNG.Tests
             var activeUserSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
             var connection = new UserNameConnection { UserName = @"NT AUTHORITY\SYSTEM" };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, out var userName, allowInteractiveUserNameFallback: false);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: false);
 
             Assert.IsFalse(authorized);
-            Assert.IsNull(userName);
         }
 
 
@@ -101,10 +99,9 @@ namespace NetBannerNG.Tests
             var activeUserSid = identity!.User!;
             var connection = new UserNameConnection { UserName = identity.Name };
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, out var userName, allowInteractiveUserNameFallback: true);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsTrue(authorized);
-            Assert.AreEqual(identity.Name, userName);
         }
 
 
@@ -116,10 +113,9 @@ namespace NetBannerNG.Tests
             var activeUserSid = identity!.User!;
             var connection = new EmptyIdentityConnection();
 
-            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, out var userName, allowInteractiveUserNameFallback: true);
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsTrue(authorized);
-            Assert.IsNull(userName);
         }
     }
 }
