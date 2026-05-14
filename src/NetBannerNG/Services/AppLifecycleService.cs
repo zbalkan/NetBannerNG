@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 using NetBannerNG.Common;
 using NetBannerNG.Utils;
 
@@ -12,7 +13,20 @@ namespace NetBannerNG.Services
         private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
         private readonly FullscreenSuppressionService _fullscreenSuppressionService = new();
+        private readonly IDisplayOverlayOrchestrator _overlayOrchestrator;
+        private readonly SemaphoreSlim _runtimeGate = new SemaphoreSlim(1, 1);
+        private bool _runtimeStarted;
 
+
+        internal AppLifecycleService()
+            : this(new StaticDisplayOverlayOrchestrator())
+        {
+        }
+
+        internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator)
+        {
+            _overlayOrchestrator = overlayOrchestrator;
+        }
         internal NamedPipeClient? Client { get; private set; }
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();
@@ -42,34 +56,103 @@ namespace NetBannerNG.Services
             return await Client.InitializeAsync();
         }
 
-        internal Task InitializeRuntimeAsync()
+        internal async Task InitializeRuntimeAsync()
         {
-            _fullscreenSuppressionService.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
-            _fullscreenSuppressionService.SuppressionUpdated += DisplayOverlayOrchestrator.ApplyFullscreenSuppressionStates;
-            DisplayOverlayOrchestrator.Init(IsClearStart());
-            DisplayOverlayOrchestrator.InitiateAllBorders();
-            PinClearStart();
-            _fullscreenSuppressionService.Start();
-            MonitorWatcher.Watch(DisplayOverlayOrchestrator.Refresh);
-            ProcessHelper.Protect();
-            return Task.CompletedTask;
+            await _runtimeGate.WaitAsync();
+            try
+            {
+                if (_runtimeStarted)
+                {
+                    return;
+                }
+
+                var suppressionHooked = false;
+                var suppressionStarted = false;
+                var monitorWatching = false;
+                var processProtected = false;
+
+                try
+                {
+                    _fullscreenSuppressionService.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
+                    _fullscreenSuppressionService.SuppressionUpdated += _overlayOrchestrator.ApplyFullscreenSuppressionStates;
+                    suppressionHooked = true;
+
+                    _overlayOrchestrator.Init(IsClearStart());
+                    _overlayOrchestrator.InitiateAllBorders();
+                    PinClearStart();
+
+                    _fullscreenSuppressionService.Start();
+                    suppressionStarted = true;
+                    MonitorWatcher.Watch(_overlayOrchestrator.Refresh);
+                    monitorWatching = true;
+                    ProcessHelper.Protect();
+                    processProtected = true;
+                    _runtimeStarted = true;
+                }
+                catch
+                {
+                    if (monitorWatching)
+                    {
+                        MonitorWatcher.Unwatch();
+                    }
+
+                    if (suppressionStarted)
+                    {
+                        _fullscreenSuppressionService.Stop();
+                    }
+
+                    if (suppressionHooked)
+                    {
+                        _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
+                    }
+
+                    _fullscreenSuppressionService.EventLogSinkAsync = null;
+
+                    if (processProtected)
+                    {
+                        ProcessHelper.Unprotect();
+                    }
+
+                    _runtimeStarted = false;
+                    throw;
+                }
+            }
+            finally
+            {
+                _runtimeGate.Release();
+            }
         }
 
         internal async Task ShutdownRuntimeAsync()
         {
-            _fullscreenSuppressionService.EventLogSinkAsync = null;
-            _fullscreenSuppressionService.SuppressionUpdated -= DisplayOverlayOrchestrator.ApplyFullscreenSuppressionStates;
-            DisplayOverlayOrchestrator.BeginShutdown();
-            MonitorWatcher.Unwatch();
-            _fullscreenSuppressionService.Stop();
-            DisplayOverlayOrchestrator.CloseAllBorders();
-            PinClearShutdown();
-            if (Client is not null)
+            await _runtimeGate.WaitAsync();
+            try
             {
-                await Client.DisposeAsync();
-            }
+                if (!_runtimeStarted)
+                {
+                    return;
+                }
 
-            ProcessHelper.Unprotect();
+                _fullscreenSuppressionService.EventLogSinkAsync = null;
+                _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
+                _overlayOrchestrator.BeginShutdown();
+                MonitorWatcher.Unwatch();
+                _fullscreenSuppressionService.Stop();
+                _overlayOrchestrator.CloseAllBorders();
+                PinClearShutdown();
+                if (Client is not null)
+                {
+                    await Client.DisposeAsync();
+                    Client = null;
+                }
+
+                ProcessHelper.Unprotect();
+                _runtimeStarted = false;
+            }
+            finally
+            {
+                _runtimeGate.Release();
+            }
         }
 
         private static bool IsClearStart() => !File.Exists(TmpFilePath);
