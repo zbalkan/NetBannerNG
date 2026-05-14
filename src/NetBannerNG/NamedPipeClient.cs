@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using H.Formatters;
 using H.Pipes;
 using H.Pipes.Args;
@@ -41,8 +40,8 @@ namespace NetBannerNG
             _client = new SingleConnectionPipeClient<PipeMessage>(pipeName, formatter: new MessagePackFormatter());
 
             _client.MessageReceived += OnMessageReceived!;
-            _client.Disconnected += OnDisconnected!;
             _client.Connected += OnConnected!;
+            _client.Disconnected += OnDisconnected!;
             _client.ExceptionOccurred += OnExceptionOccurred!;
 
             _timeoutPolicy = Policy
@@ -105,7 +104,7 @@ namespace NetBannerNG
 
             if (message.Length > MaxMessageTextLength)
             {
-                message = message.Substring(0, MaxMessageTextLength);
+                message = message[..MaxMessageTextLength];
             }
 
             try
@@ -141,15 +140,22 @@ namespace NetBannerNG
 
         public async ValueTask DisposeAsync()
         {
+            _client.MessageReceived -= OnMessageReceived!;
+            _client.Connected -= OnConnected!;
+            _client.Disconnected -= OnDisconnected!;
+            _client.ExceptionOccurred -= OnExceptionOccurred!;
+
             await _client.DisposeAsync().ConfigureAwait(false);
             GC.SuppressFinalize(this);
         }
 
-        private void OnConnected(object o, ConnectionEventArgs<PipeMessage> args)
-        {
-        }
 
-        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args) => Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
+        private void OnConnected(object o, ConnectionEventArgs<PipeMessage> args) =>
+            DebugTrace("Connected");
+
+
+        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args) =>
+            DebugTrace("Disconnected");
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
