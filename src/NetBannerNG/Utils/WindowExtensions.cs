@@ -30,14 +30,6 @@ namespace NetBannerNG.Utils
             border.IsDocked = true;
         }
 
-        internal static Common.Native.Monitor GetMonitor(this Window window)
-        {
-            var windowHandle = window.GetHandle();
-            var monitorHandle = Common.Native.Monitor.GetMonitorHandleFromWindow(windowHandle).Handle;
-            var monitor = Common.Native.Monitor.AllMonitors.First(m => m.Handle == monitorHandle);
-            return monitor;
-        }
-
         internal static void HideFromTaskBar(this Window window)
         {
             const int gwlHwndParent = -8;
