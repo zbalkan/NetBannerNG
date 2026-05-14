@@ -11,6 +11,8 @@ namespace NetBannerNG.Services
     {
         private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
+        private readonly FullscreenSuppressionService _fullscreenSuppressionService = new();
+
         internal NamedPipeClient? Client { get; private set; }
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();
@@ -42,12 +44,12 @@ namespace NetBannerNG.Services
 
         internal Task InitializeRuntimeAsync()
         {
-            WindowWatcher.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
-            WindowWatcher.FullscreenSuppressionUpdated += BorderManager.ApplyFullscreenSuppressionStates;
+            _fullscreenSuppressionService.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
+            _fullscreenSuppressionService.SuppressionUpdated += BorderManager.ApplyFullscreenSuppressionStates;
             BorderManager.Init(IsClearStart());
             BorderManager.InitiateAllBorders();
             PinClearStart();
-            WindowWatcher.Watch();
+            _fullscreenSuppressionService.Start();
             MonitorWatcher.Watch(BorderManager.Refresh);
             ProcessHelper.Protect();
             return Task.CompletedTask;
@@ -55,11 +57,11 @@ namespace NetBannerNG.Services
 
         internal async Task ShutdownRuntimeAsync()
         {
-            WindowWatcher.EventLogSinkAsync = null;
-            WindowWatcher.FullscreenSuppressionUpdated -= BorderManager.ApplyFullscreenSuppressionStates;
+            _fullscreenSuppressionService.EventLogSinkAsync = null;
+            _fullscreenSuppressionService.SuppressionUpdated -= BorderManager.ApplyFullscreenSuppressionStates;
             BorderManager.BeginShutdown();
             MonitorWatcher.Unwatch();
-            WindowWatcher.Unwatch();
+            _fullscreenSuppressionService.Stop();
             BorderManager.CloseAllBorders();
             PinClearShutdown();
             if (Client is not null)
