@@ -76,7 +76,7 @@ namespace NetBannerNG.Tests
                 SuppressionUpdated?.Invoke(suppressionByGroup);
         }
 
-        private sealed class FakeMonitorWatcher : IMonitorWatcher
+        private sealed class FakeMonitorWatcher : IMonitorTopologyWatcher
         {
             internal int WatchCalls { get; private set; }
             internal int UnwatchCalls { get; private set; }

@@ -8,13 +8,13 @@ using NetBannerNG.Utils;
 
 namespace NetBannerNG.Services
 {
-    internal interface IMonitorWatcher
+    internal interface IMonitorTopologyWatcher
     {
         void Watch(Action refreshAction);
         void Unwatch();
     }
 
-    internal sealed class StaticMonitorWatcher : IMonitorWatcher
+    internal sealed class StaticMonitorTopologyWatcher : IMonitorTopologyWatcher
     {
         public void Watch(Action refreshAction) => MonitorWatcher.Watch(refreshAction);
 
@@ -26,23 +26,23 @@ namespace NetBannerNG.Services
         private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
         private readonly IFullscreenSuppressionService _fullscreenSuppressionService;
-        private readonly IMonitorWatcher _monitorWatcher;
+        private readonly IMonitorTopologyWatcher _monitorWatcher;
         private readonly IDisplayOverlayOrchestrator _overlayOrchestrator;
         private readonly SemaphoreSlim _runtimeGate = new SemaphoreSlim(1, 1);
         private bool _runtimeStarted;
 
 
         internal AppLifecycleService()
-            : this(new StaticDisplayOverlayOrchestrator(), new FullscreenSuppressionService(), new StaticMonitorWatcher())
+            : this(new StaticDisplayOverlayOrchestrator(), new FullscreenSuppressionService(), new StaticMonitorTopologyWatcher())
         {
         }
 
         internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator)
-            : this(overlayOrchestrator, new FullscreenSuppressionService(), new StaticMonitorWatcher())
+            : this(overlayOrchestrator, new FullscreenSuppressionService(), new StaticMonitorTopologyWatcher())
         {
         }
 
-        internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator, IFullscreenSuppressionService fullscreenSuppressionService, IMonitorWatcher monitorWatcher)
+        internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator, IFullscreenSuppressionService fullscreenSuppressionService, IMonitorTopologyWatcher monitorWatcher)
         {
             _overlayOrchestrator = overlayOrchestrator;
             _fullscreenSuppressionService = fullscreenSuppressionService;

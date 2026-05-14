@@ -120,3 +120,10 @@ Latest update (2026-05-14):
   - Added `FullscreenSuppressionState` DTO (`IsSuppressed`, `AppName`).
   - Updated watcher/service/orchestrator interfaces to exchange `IReadOnlyDictionary<string, FullscreenSuppressionState>`.
   - Kept orchestration declarative: runtime applies suppression states without recomputing fullscreen ownership.
+
+Latest update (2026-05-14):
+- Continued Phase 3 static-pressure reduction by formalizing watcher terminology around topology concerns:
+  - Renamed lifecycle watcher abstraction from `IMonitorWatcher` to `IMonitorTopologyWatcher`.
+  - Renamed default adapter from `StaticMonitorWatcher` to `StaticMonitorTopologyWatcher`.
+  - Updated lifecycle tests to consume the renamed topology watcher contract.
+
