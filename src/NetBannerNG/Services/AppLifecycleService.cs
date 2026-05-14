@@ -45,12 +45,12 @@ namespace NetBannerNG.Services
         internal Task InitializeRuntimeAsync()
         {
             _fullscreenSuppressionService.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
-            _fullscreenSuppressionService.SuppressionUpdated += BorderManager.ApplyFullscreenSuppressionStates;
-            BorderManager.Init(IsClearStart());
-            BorderManager.InitiateAllBorders();
+            _fullscreenSuppressionService.SuppressionUpdated += DisplayOverlayOrchestrator.ApplyFullscreenSuppressionStates;
+            DisplayOverlayOrchestrator.Init(IsClearStart());
+            DisplayOverlayOrchestrator.InitiateAllBorders();
             PinClearStart();
             _fullscreenSuppressionService.Start();
-            MonitorWatcher.Watch(BorderManager.Refresh);
+            MonitorWatcher.Watch(DisplayOverlayOrchestrator.Refresh);
             ProcessHelper.Protect();
             return Task.CompletedTask;
         }
@@ -58,11 +58,11 @@ namespace NetBannerNG.Services
         internal async Task ShutdownRuntimeAsync()
         {
             _fullscreenSuppressionService.EventLogSinkAsync = null;
-            _fullscreenSuppressionService.SuppressionUpdated -= BorderManager.ApplyFullscreenSuppressionStates;
-            BorderManager.BeginShutdown();
+            _fullscreenSuppressionService.SuppressionUpdated -= DisplayOverlayOrchestrator.ApplyFullscreenSuppressionStates;
+            DisplayOverlayOrchestrator.BeginShutdown();
             MonitorWatcher.Unwatch();
             _fullscreenSuppressionService.Stop();
-            BorderManager.CloseAllBorders();
+            DisplayOverlayOrchestrator.CloseAllBorders();
             PinClearShutdown();
             if (Client is not null)
             {

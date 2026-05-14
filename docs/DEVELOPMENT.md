@@ -18,7 +18,7 @@ This guide is intended to explain the current architecture and help contributors
 1. Service runs in Session 0 as watchdog.
 2. Service identifies target interactive session and launches `NetBannerNG.exe` in user context.
 3. Service/UI coordinate over named pipes (`NetBannerNG.Common.NamedPipes`).
-4. UI builds per-monitor banner groups through `BorderManager` and applies policy-driven settings.
+4. UI builds per-monitor banner groups through `DisplayOverlayOrchestrator` and applies policy-driven settings.
 5. On disconnect/failure, service reconciles and relaunches with throttled retries/backoff.
 
 ## Settings and policy resolution

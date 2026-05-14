@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using NetBannerNG.Borders;
-using NetBannerNG.Common;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Services;
 using NetBannerNG.Utils;
@@ -12,7 +11,7 @@ using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG
 {
-    public static class BorderManager
+    public static class DisplayOverlayOrchestrator
     {
         private static class EventIds
         {
