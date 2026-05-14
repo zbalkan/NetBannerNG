@@ -85,7 +85,7 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 5 in progress (Phase 4 completed)**.
+Current phase assessment (as of 2026-05-14): **Phase 5 completed (Phase 6 next)**.
 
 Completed:
 - Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
@@ -99,9 +99,15 @@ Latest hardening in this change:
 - Completed orchestrator-facing terminology migration from "Borders" to "Surfaces" in instance runtime APIs (`InitiateAllSurfaces`, `CloseAllSurfaces`) and lifecycle call sites.
 
 Remaining for Definition of Done:
-- Add standalone unit coverage for catalog reconciliation/snapshot semantics and centralized geometry policy combinations.
+- Add standalone unit coverage for catalog reconciliation/snapshot semantics.
 - Complete migration away from static compatibility entrypoints (`DisplayOverlayOrchestrator`, static watcher implementations) by routing runtime coordination entirely through DI-managed instances.
+- Execute Phase 6 hardening pass (structured reconcile/suppression telemetry and explicit health-policy stress validation).
 
+
+Latest update (2026-05-14):
+- Completed Phase 5 layout-policy consolidation checkpoints for geometry invariants:
+  - Added targeted `MonitorLayoutPolicy` unit coverage for vertical top offset and vertical-height calculations, including minimum-height guard behavior on tiny monitor bounds.
+  - Removed residual catalog dependency on `DisplayOverlayOrchestrator.BuildGroupId` by routing monitor identity creation through `IMonitorIdentity` inside `MonitorSurfaceCatalog`, tightening boundary ownership.
 Latest update (2026-05-14):
 - Completed Phase 4 contract hardening by making fullscreen suppression updates typed and metadata-carrying end-to-end:
   - Added `FullscreenSuppressionState` DTO (`IsSuppressed`, `AppName`).

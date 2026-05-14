@@ -66,7 +66,7 @@ namespace NetBannerNG
 
             foreach (var monitor in nextMonitors)
             {
-                var groupId = DisplayOverlayOrchestrator.BuildGroupId(monitor);
+                var groupId = _monitorIdentity.BuildGroupId(monitor);
                 DisplayOverlayOrchestrator.MonitorSurfaceSet? existingGroup;
                 var shouldSyncExistingGroup = false;
                 lock (_sync)
