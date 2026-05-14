@@ -29,17 +29,6 @@ namespace NetBannerNG
         private static bool _cleanStart;
         private static volatile bool _shutdownInProgress;
 
-        private sealed class BorderLaunchEntry
-
-        {
-            internal BorderBase? Window { get; set; }
-            internal string? GroupId { get; set; }
-            internal bool IsPrimaryMonitor { get; set; }
-            internal double MonitorY { get; set; }
-            internal double MonitorX { get; set; }
-            internal int WindowOrder { get; set; }
-        }
-
         /// <summary>
         /// Per-monitor surface aggregate (banner + bars) with health-guarded operations.
         /// Group orchestrates lifecycle while each window still owns its own render/dock logic.
@@ -63,20 +52,9 @@ namespace NetBannerNG
 
             internal string GroupId => _monitorIdentity;
 
-            internal IEnumerable<BorderLaunchEntry> CreateLaunchEntries()
+            internal IEnumerable<BorderBase> CreateLaunchEntries()
             {
-                for (var i = 0; i < _windows.Count; i++)
-                {
-                    yield return new BorderLaunchEntry
-                    {
-                        Window = _windows[i],
-                        GroupId = GroupId,
-                        IsPrimaryMonitor = Monitor.IsPrimary,
-                        MonitorY = Monitor.Bounds.Y,
-                        MonitorX = Monitor.Bounds.X,
-                        WindowOrder = i
-                    };
-                }
+                return _windows;
             }
 
             internal bool MatchesMonitor(Monitor monitor) => BuildMonitorIdentity(monitor) == GroupId;
@@ -489,35 +467,33 @@ namespace NetBannerNG
 
             foreach (var group in orderedGroups)
             {
-                var launchEntries = group.CreateLaunchEntries()
-                    .OrderBy(entry => entry.WindowOrder)
-                    .ToList();
+                var launchEntries = group.CreateLaunchEntries().ToList();
 
                 AppBarFunctions.BeginBatch();
                 try
                 {
-                    foreach (var launchEntry in launchEntries)
+                    foreach (var window in launchEntries)
                     {
                         Exception? error = null;
-                        if (launchEntry.Window == null || !group.TryShowWindow(launchEntry.Window, out error))
+                        if (!group.TryShowWindow(window, out error))
                         {
                             if (error != null)
                             {
-                                Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={launchEntry!.Window!.GetType().Name} failed: {error}");
+                                Debug.WriteLine($"[EVT:{EventIds.GroupShowFailure}][MonitorGroup][Show][{group.GroupId}] Window={window.GetType().Name} failed: {error}");
                             }
                         }
                     }
 
-                    foreach (var launchEntry in launchEntries)
+                    foreach (var window in launchEntries)
                     {
-                        if (launchEntry.Window == null || !launchEntry.Window.IsVisible)
+                        if (!window.IsVisible)
                         {
                             continue;
                         }
 
-                        launchEntry.Window.Render(true);
+                        window.Render(true);
                         var shownAtMs = stopwatch.ElapsedMilliseconds;
-                        if (firstBannerShownAtMs < 0 && launchEntry.Window is Banner)
+                        if (firstBannerShownAtMs < 0 && window is Banner)
                         {
                             firstBannerShownAtMs = shownAtMs;
                             Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
