@@ -33,7 +33,7 @@ namespace NetBannerNG
         /// Per-monitor surface aggregate (banner + bars) with health-guarded operations.
         /// Group orchestrates lifecycle while each window still owns its own render/dock logic.
         /// </summary>
-        private sealed class MonitorSurfaceSet
+        internal sealed class MonitorSurfaceSet
         {
             private readonly bool _cleanStart;
             private readonly string _monitorIdentity;
@@ -265,121 +265,7 @@ namespace NetBannerNG
             private static string BuildMonitorIdentity(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor.Name, monitor.Bounds);
         }
 
-        private sealed class MonitorSurfaceCatalog
-        {
-            private readonly Dictionary<string, MonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
-            private readonly object _sync = new();
 
-            internal List<MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
-            {
-                var nextMonitors = monitors.ToList();
-                var nextIds = nextMonitors
-                    .Select(MonitorIdentity.BuildGroupId)
-                    .ToHashSet(StringComparer.Ordinal);
-                var groupsToShow = new List<MonitorSurfaceSet>();
-
-                List<MonitorSurfaceSet> groupsToRemove;
-                lock (_sync)
-                {
-                    groupsToRemove = _surfaces.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
-                }
-
-                foreach (var group in groupsToRemove)
-                {
-                    try
-                    {
-                        group.Close();
-                        lock (_sync)
-                        {
-                            _ = _surfaces.Remove(group.GroupId);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", group.GroupId, ex);
-                    }
-                }
-
-                foreach (var monitor in nextMonitors)
-                {
-                    var groupId = BuildGroupId(monitor);
-                    MonitorSurfaceSet? existingGroup;
-                    var shouldSyncExistingGroup = false;
-                    lock (_sync)
-                    {
-                        _ = _surfaces.TryGetValue(groupId, out existingGroup);
-                        shouldSyncExistingGroup = existingGroup != null && existingGroup.MatchesMonitor(monitor);
-                    }
-
-                    if (shouldSyncExistingGroup && existingGroup != null)
-                    {
-                        try
-                        {
-                            if (HasMonitorLayoutChanged(existingGroup.Monitor, monitor))
-                            {
-                                existingGroup.SyncMonitor(monitor);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
-                        }
-
-                        continue;
-                    }
-
-                    try
-                    {
-                        var createdGroup = new MonitorSurfaceSet(monitor, clean);
-                        lock (_sync)
-                        {
-                            _surfaces[groupId] = createdGroup;
-                        }
-
-                        groupsToShow.Add(createdGroup);
-                    }
-                    catch (Exception ex)
-                    {
-                        LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
-                    }
-                }
-
-                return groupsToShow;
-            }
-
-            internal bool TryGet(string groupId, out MonitorSurfaceSet? group)
-            {
-                lock (_sync)
-                {
-                    return _surfaces.TryGetValue(groupId, out group);
-                }
-            }
-
-            internal int Count
-            {
-                get
-                {
-                    lock (_sync)
-                    {
-                        return _surfaces.Count;
-                    }
-                }
-            }
-
-            internal List<MonitorSurfaceSet> Snapshot(bool clear = false)
-            {
-                lock (_sync)
-                {
-                    var groups = _surfaces.Values.ToList();
-                    if (clear)
-                    {
-                        _surfaces.Clear();
-                    }
-
-                    return groups;
-                }
-            }
-        }
 
         internal static void Init(bool clean = true)
         {
@@ -534,8 +420,6 @@ namespace NetBannerNG
             previousWorkingArea != nextWorkingArea ||
             previousIsPrimary != nextIsPrimary;
 
-        private static void LogMonitorGroupFailure(int eventId, string stage, string groupId, Exception ex) =>
-            Debug.WriteLine($"[EVT:{eventId}][MonitorGroup][{stage}][{groupId}] failed: {ex}");
 
         public static string BuildGroupId(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor);
 
