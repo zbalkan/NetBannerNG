@@ -73,6 +73,41 @@ namespace NetBannerNG.Tests
             Assert.IsTrue(ServiceHost.HasSessionChanged(5, 6));
         }
 
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_WhenSidMatches_ReturnsTrueAndSidDisplayImmediately()
+        {
+            var activeSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalSystemSid, null);
+            var connection = new { UserSid = activeSid };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeSid);
+
+            Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_WhenSidStringMatches_ReturnsTrueAndSidText()
+        {
+            var activeSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalServiceSid, null);
+            var connection = new { UserSid = activeSid.Value };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeSid);
+
+            Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_WhenSidMismatches_ReturnsFalse()
+        {
+            var activeSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalServiceSid, null);
+            var otherSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalSystemSid, null);
+            var connection = new { UserSid = otherSid };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeSid);
+
+            Assert.IsFalse(authorized);
+        }
+
         [TestMethod]
         public async Task IsAuthorizedClientConnection_IsStableUnderConcurrentBurstChecks()
         {

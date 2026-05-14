@@ -26,7 +26,6 @@ namespace NetBannerNG.Service
         private sealed class AuthorizedClientContext
         {
             public string PipeName { get; set; } = string.Empty;
-            public string? UserName { get; set; }
             public object? Connection { get; set; }
         }
 
@@ -194,7 +193,7 @@ namespace NetBannerNG.Service
                 return;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, out _, Environment.UserInteractive))
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, Environment.UserInteractive))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundIdentityRevalidationFailed, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
@@ -258,7 +257,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            if (!TryAuthorizeClientIdentity(connection, activeUserSid, out var connectionUserName, Environment.UserInteractive))
+            if (!TryAuthorizeClientIdentity(connection, activeUserSid, Environment.UserInteractive))
             {
                 return false;
             }
@@ -266,7 +265,6 @@ namespace NetBannerNG.Service
             authorizedClient = new AuthorizedClientContext
             {
                 PipeName = connectedPipeName ?? string.Empty,
-                UserName = connectionUserName,
                 Connection = connection
             };
             return true;
@@ -283,19 +281,28 @@ namespace NetBannerNG.Service
             return activeSessionId == expectedSessionId;
         }
 
-        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, out string? connectionUserName, bool allowInteractiveUserNameFallback = false)
+        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, bool allowInteractiveUserNameFallback = false)
         {
-            connectionUserName = null;
             var connectionType = connection.GetType();
             var userSidProperty = connectionType.GetProperty("UserSid", BindingFlags.Instance | BindingFlags.Public);
             if (userSidProperty?.GetValue(connection) is SecurityIdentifier sidValue)
             {
-                return sidValue == activeUserSid;
+                if (sidValue == activeUserSid)
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (userSidProperty?.GetValue(connection) is string sidText && !string.IsNullOrWhiteSpace(sidText))
             {
-                return string.Equals(sidText, activeUserSid.Value, StringComparison.OrdinalIgnoreCase);
+                if (string.Equals(sidText, activeUserSid.Value, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
             }
 
             if (!allowInteractiveUserNameFallback)
@@ -307,7 +314,6 @@ namespace NetBannerNG.Service
                 ?? connectionType.GetProperty("ImpersonationUserName", BindingFlags.Instance | BindingFlags.Public);
             if (userNameProperty?.GetValue(connection) is string userNameValue && !string.IsNullOrWhiteSpace(userNameValue))
             {
-                connectionUserName = userNameValue;
                 var currentUserName = WindowsIdentity.GetCurrent().Name;
                 return string.Equals(currentUserName, userNameValue, StringComparison.OrdinalIgnoreCase);
             }
@@ -316,6 +322,7 @@ namespace NetBannerNG.Service
             // in interactive debugging mode. Keep this fallback scoped to interactive runs only.
             return true;
         }
+
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
     }
