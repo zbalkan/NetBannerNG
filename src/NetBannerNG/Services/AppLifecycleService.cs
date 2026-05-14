@@ -15,6 +15,15 @@ namespace NetBannerNG.Services
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();
 
+        internal static bool EnsureParentIsService()
+        {
+#if DEBUG
+            return true;
+#else
+            return ProcessHelper.EnsureParentIsService();
+#endif
+        }
+
         internal static void TryLaunchDebugger(string[] args)
         {
 #if DEBUG
