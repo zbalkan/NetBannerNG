@@ -83,41 +83,6 @@ Inno Setup currently:
 
 Development changes that affect lifecycle must be validated with installer-driven install/remove flows, not ad-hoc service creation scripts.
 
-## Overlay redesign status
+## Architecture reference
 
-Current phase assessment (as of 2026-05-14): **Phase 6 hardening in progress; redesign is near-complete but not fully complete against the target architecture.**
-
-### Why the previous DoD was insufficient
-The earlier DoD validated important progress (catalog extraction, abstraction-first lifecycle wiring, suppression DTOs, layout tests), but it did **not** fully encode Section 4 target-architecture constraints:
-- `DisplayOverlayOrchestrator` still has concrete window knowledge via nested `MonitorSurfaceSet` and explicit `Banner/BottomBanner/BottomBar/LeftBar/RightBar` construction.
-- The orchestrator path still depends on static compatibility entry points as first-class runtime behavior.
-- Layout and surface composition responsibilities are improved but not yet fully separated into a monitor-set contract that is independent from orchestrator internals.
-
-### Redefined DoD (aligned to Section 4 target architecture)
-The redesign is complete only when **all** are true:
-1. **Orchestrator purity:** runtime orchestration is instance-based and coordinates lifecycle only (init/refresh/shutdown/suppression apply), with no concrete window type construction or nested monitor-set implementation.
-2. **Catalog boundary:** `MonitorSurfaceCatalog` is standalone, owns monitor-id → monitor-set mapping, and exposes reconciliation through `IMonitorSurfaceCatalog` without references to static orchestrator helpers.
-3. **Per-monitor set abstraction:** monitor-scoped aggregate is represented by an explicit `IMonitorSurfaceSet` contract in its own module, including show/sync/suppression/close responsibilities and health policy hooks.
-4. **Suppression declaration:** fullscreen suppression flows are produced declaratively as typed payloads and applied by orchestrator only (no suppression recomputation inside orchestrator).
-5. **Layout centralization:** monitor-relative geometry decisions live in `IMonitorLayoutPolicy` implementations; surface windows execute render/dock but do not own cross-monitor geometry policy.
-6. **Static isolation:** static classes are adapter/facade only and are not required by core runtime coordination paths.
-7. **Terminology consistency:** public core orchestration APIs consistently use overlay/surface vocabulary (no remaining border-manager-era names in active core API surfaces).
-8. **Test coverage:** dedicated tests exist for catalog reconciliation, monitor-set orchestration behavior, suppression state application, and layout policy invariants.
-
-### Updated phase mapping
-- **Phase 0–2:** Completed (baseline characterization, naming/contracts, first-class catalog extraction).
-- **Phase 3:** Completed. Core runtime wiring is instance-based (`DisplayOverlayOrchestratorRuntime`), while static orchestration entry points are now limited to compatibility facades/adapters.
-- **Phase 4:** Completed for typed suppression payloads and declarative apply flow.
-- **Phase 5:** Substantially completed for layout-policy invariants; additional enforcement is still required to remove residual geometry policy leakage in surface creation paths.
-- **Phase 6:** In progress (telemetry/hardening continues).
-
-### Next phase execution plan (starting now)
-To proceed safely from current state toward the redefined DoD:
-1. Add monitor-set focused tests that validate orchestration-facing behavior (`TryShowWindow`, suppression state transitions, and close behavior) without static orchestration dependencies.
-2. Continue hardening GroupHealthPolicy behavior under repetitive window failures and recovery windows.
-3. Preserve and verify startup rendering performance telemetry (`First Banner shown`) across refresh/reconcile transitions.
-4. Expand structured reconcile/suppression logs with test assertions where practical.
-
-### Practical status conclusion
-- We are **after Phase 5 and within Phase 6 hardening**, with remaining work centered on hardening/observability test depth rather than major architectural boundary extraction.
-- Therefore, redesign completion should be tracked against the redefined DoD above rather than the earlier milestone language.
+For current runtime boundaries and monitor-overlay design, see `docs/ARCHITECTURE.md`.
