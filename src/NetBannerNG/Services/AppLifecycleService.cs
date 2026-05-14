@@ -8,24 +8,45 @@ using NetBannerNG.Utils;
 
 namespace NetBannerNG.Services
 {
+    internal interface IMonitorWatcher
+    {
+        void Watch(Action refreshAction);
+        void Unwatch();
+    }
+
+    internal sealed class StaticMonitorWatcher : IMonitorWatcher
+    {
+        public void Watch(Action refreshAction) => MonitorWatcher.Watch(refreshAction);
+
+        public void Unwatch() => MonitorWatcher.Unwatch();
+    }
+
     internal sealed class AppLifecycleService
     {
         private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
-        private readonly FullscreenSuppressionService _fullscreenSuppressionService = new();
+        private readonly IFullscreenSuppressionService _fullscreenSuppressionService;
+        private readonly IMonitorWatcher _monitorWatcher;
         private readonly IDisplayOverlayOrchestrator _overlayOrchestrator;
         private readonly SemaphoreSlim _runtimeGate = new SemaphoreSlim(1, 1);
         private bool _runtimeStarted;
 
 
         internal AppLifecycleService()
-            : this(new StaticDisplayOverlayOrchestrator())
+            : this(new StaticDisplayOverlayOrchestrator(), new FullscreenSuppressionService(), new StaticMonitorWatcher())
         {
         }
 
         internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator)
+            : this(overlayOrchestrator, new FullscreenSuppressionService(), new StaticMonitorWatcher())
+        {
+        }
+
+        internal AppLifecycleService(IDisplayOverlayOrchestrator overlayOrchestrator, IFullscreenSuppressionService fullscreenSuppressionService, IMonitorWatcher monitorWatcher)
         {
             _overlayOrchestrator = overlayOrchestrator;
+            _fullscreenSuppressionService = fullscreenSuppressionService;
+            _monitorWatcher = monitorWatcher;
         }
         internal NamedPipeClient? Client { get; private set; }
 
@@ -73,7 +94,7 @@ namespace NetBannerNG.Services
 
                 try
                 {
-                    _fullscreenSuppressionService.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
+                    SetSuppressionEventLogSink(message => Client?.SendException(message) ?? Task.CompletedTask);
                     _fullscreenSuppressionService.SuppressionUpdated += _overlayOrchestrator.ApplyFullscreenSuppressionStates;
                     suppressionHooked = true;
 
@@ -83,7 +104,7 @@ namespace NetBannerNG.Services
 
                     _fullscreenSuppressionService.Start();
                     suppressionStarted = true;
-                    MonitorWatcher.Watch(_overlayOrchestrator.Refresh);
+                    _monitorWatcher.Watch(_overlayOrchestrator.Refresh);
                     monitorWatching = true;
                     ProcessHelper.Protect();
                     processProtected = true;
@@ -93,7 +114,7 @@ namespace NetBannerNG.Services
                 {
                     if (monitorWatching)
                     {
-                        MonitorWatcher.Unwatch();
+                        _monitorWatcher.Unwatch();
                     }
 
                     if (suppressionStarted)
@@ -106,7 +127,7 @@ namespace NetBannerNG.Services
                         _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
                     }
 
-                    _fullscreenSuppressionService.EventLogSinkAsync = null;
+                    SetSuppressionEventLogSink(null);
 
                     if (processProtected)
                     {
@@ -133,10 +154,10 @@ namespace NetBannerNG.Services
                     return;
                 }
 
-                _fullscreenSuppressionService.EventLogSinkAsync = null;
+                SetSuppressionEventLogSink(null);
                 _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
                 _overlayOrchestrator.BeginShutdown();
-                MonitorWatcher.Unwatch();
+                _monitorWatcher.Unwatch();
                 _fullscreenSuppressionService.Stop();
                 _overlayOrchestrator.CloseAllBorders();
                 PinClearShutdown();
@@ -156,6 +177,14 @@ namespace NetBannerNG.Services
         }
 
         private static bool IsClearStart() => !File.Exists(TmpFilePath);
+
+        private void SetSuppressionEventLogSink(Func<string, Task>? sink)
+        {
+            if (_fullscreenSuppressionService is FullscreenSuppressionService concrete)
+            {
+                concrete.EventLogSinkAsync = sink;
+            }
+        }
 
         private static void PinClearShutdown()
         {
