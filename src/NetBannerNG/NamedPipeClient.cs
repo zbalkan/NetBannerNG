@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using H.Formatters;
 using H.Pipes;
 using H.Pipes.Args;
@@ -154,8 +155,11 @@ namespace NetBannerNG
             DebugTrace("Connected");
 
 
-        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args) =>
+        private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
+        {
             DebugTrace("Disconnected");
+            Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
+        }
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
