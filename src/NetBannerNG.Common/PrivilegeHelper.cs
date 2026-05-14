@@ -143,8 +143,8 @@ namespace NetBannerNG.Common
                 return id;
             }
 
-            var current = (uint)Process.GetCurrentProcess().SessionId;
-            if (current != 0)
+            var processId = NativeMethods.GetCurrentProcessId();
+            if (NativeMethods.ProcessIdToSessionId(processId, out var current) && current != 0)
             {
                 return current;
             }
