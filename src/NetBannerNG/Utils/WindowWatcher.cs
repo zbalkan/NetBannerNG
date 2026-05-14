@@ -30,6 +30,7 @@ namespace NetBannerNG.Utils
         private static IntPtr _hookId;
         private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
         internal static Func<string, Task>? EventLogSinkAsync { get; set; }
+        internal static event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated;
 
         internal static void Watch()
         {
@@ -119,13 +120,13 @@ namespace NetBannerNG.Utils
 
             Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
             BeginOnUi(() => {
+                FullscreenSuppressionUpdated?.Invoke(fullscreenByGroup);
                 foreach (var monitor in monitors)
                 {
                     var groupId = MonitorIdentity.BuildGroupId(monitor);
                     var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
                     var appName = fullscreenAppByGroup.TryGetValue(groupId, out var app) ? app : "Unknown";
                     Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
-                    BorderManager.SetMonitorFullscreenSuppressedState(monitor, isFullscreen);
                     LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(), isFullscreen, appName);
                 }
             });

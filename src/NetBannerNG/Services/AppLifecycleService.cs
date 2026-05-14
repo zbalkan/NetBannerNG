@@ -43,6 +43,7 @@ namespace NetBannerNG.Services
         internal Task InitializeRuntimeAsync()
         {
             WindowWatcher.EventLogSinkAsync = message => Client?.SendException(message) ?? Task.CompletedTask;
+            WindowWatcher.FullscreenSuppressionUpdated += BorderManager.ApplyFullscreenSuppressionStates;
             BorderManager.Init(IsClearStart());
             BorderManager.InitiateAllBorders();
             PinClearStart();
@@ -55,6 +56,7 @@ namespace NetBannerNG.Services
         internal async Task ShutdownRuntimeAsync()
         {
             WindowWatcher.EventLogSinkAsync = null;
+            WindowWatcher.FullscreenSuppressionUpdated -= BorderManager.ApplyFullscreenSuppressionStates;
             BorderManager.BeginShutdown();
             MonitorWatcher.Unwatch();
             WindowWatcher.Unwatch();
