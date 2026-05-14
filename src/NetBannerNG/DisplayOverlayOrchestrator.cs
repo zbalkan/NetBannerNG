@@ -23,7 +23,9 @@ namespace NetBannerNG
             internal const int GroupAddFailure = 4106;
         }
 
-        private static readonly MonitorSurfaceCatalog SurfaceCatalog = new();
+        private static readonly IMonitorIdentity MonitorIdentityProvider = new MonitorIdentityProvider();
+        private static readonly IMonitorLayoutPolicy LayoutPolicy = new MonitorLayoutPolicyProvider();
+        private static readonly MonitorSurfaceCatalog SurfaceCatalog = new(MonitorIdentityProvider);
         private static readonly List<Monitor> PreviousMonitors = new();
         private static bool _isInitiated;
         private static bool _cleanStart;
@@ -71,7 +73,7 @@ namespace NetBannerNG
                 {
                     try
                     {
-                        MonitorLayoutPolicy.ApplyMonitorBounds(window, monitor);
+                        LayoutPolicy.ApplyMonitorBounds(window, monitor);
                         window.Render(true);
                         _healthPolicy.RecordSuccess();
                     }
@@ -236,8 +238,8 @@ namespace NetBannerNG
                     yield break;
                 }
 
-                var initialVerticalTop = MonitorLayoutPolicy.GetVerticalTop(Monitor);
-                var initialVerticalHeight = MonitorLayoutPolicy.GetVerticalHeight(Monitor);
+                var initialVerticalTop = LayoutPolicy.GetVerticalTop(Monitor);
+                var initialVerticalHeight = LayoutPolicy.GetVerticalHeight(Monitor);
 
                 yield return new LeftBar
                 {

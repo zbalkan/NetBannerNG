@@ -82,3 +82,22 @@ Inno Setup currently:
 - stops/deletes service on uninstall
 
 Development changes that affect lifecycle must be validated with installer-driven install/remove flows, not ad-hoc service creation scripts.
+
+## Overlay redesign status
+
+Current phase assessment (as of 2026-05-14): **Phase 3 in progress**.
+
+Completed:
+- Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
+- Phase 2: `MonitorSurfaceCatalog` is extracted as a first-class component in its own module.
+- Phase 3 (partial): static watchers are wrapped behind interfaces (`IMonitorWatcher`, `IForegroundWindowWatcher`) and consumed via services.
+
+Latest hardening in this change:
+- Introduced explicit monitor abstraction contracts: `IMonitorIdentity`, `IMonitorLayoutPolicy`, and `IMonitorSurfaceCatalog`.
+- Wired catalog reconciliation to consume `IMonitorIdentity` instead of direct static identity utility calls.
+- Wired `DisplayOverlayOrchestrator` to consume monitor identity and monitor layout through provider abstractions, reducing direct static policy coupling in orchestration paths.
+
+Remaining for Definition of Done:
+- Convert core orchestration implementation from static singleton-style state to fully instance-native runtime components (static facades allowed only as adapters).
+- Add standalone unit coverage for catalog reconciliation/snapshot semantics and centralized geometry policy combinations.
+- Extend suppression payload contract to carry diagnostic metadata (e.g., app name) in a typed DTO while keeping orchestrator declarative.

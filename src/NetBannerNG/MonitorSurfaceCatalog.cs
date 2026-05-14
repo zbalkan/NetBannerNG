@@ -7,7 +7,15 @@ using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG
 {
-    internal sealed class MonitorSurfaceCatalog
+    internal interface IMonitorSurfaceCatalog
+    {
+        List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean);
+        bool TryGet(string groupId, out DisplayOverlayOrchestrator.MonitorSurfaceSet? group);
+        int Count { get; }
+        List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Snapshot(bool clear = false);
+    }
+
+    internal sealed class MonitorSurfaceCatalog : IMonitorSurfaceCatalog
     {
         private static class EventIds
         {
@@ -16,14 +24,20 @@ namespace NetBannerNG
             internal const int GroupAddFailure = 4106;
         }
 
+        private readonly IMonitorIdentity _monitorIdentity;
         private readonly Dictionary<string, DisplayOverlayOrchestrator.MonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
         private readonly object _sync = new();
 
-        internal List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
+        internal MonitorSurfaceCatalog(IMonitorIdentity monitorIdentity)
+        {
+            _monitorIdentity = monitorIdentity;
+        }
+
+        public List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
-                .Select(MonitorIdentity.BuildGroupId)
+                .Select(_monitorIdentity.BuildGroupId)
                 .ToHashSet(StringComparer.Ordinal);
             var groupsToShow = new List<DisplayOverlayOrchestrator.MonitorSurfaceSet>();
 
@@ -96,7 +110,7 @@ namespace NetBannerNG
             return groupsToShow;
         }
 
-        internal bool TryGet(string groupId, out DisplayOverlayOrchestrator.MonitorSurfaceSet? group)
+        public bool TryGet(string groupId, out DisplayOverlayOrchestrator.MonitorSurfaceSet? group)
         {
             lock (_sync)
             {
@@ -104,7 +118,7 @@ namespace NetBannerNG
             }
         }
 
-        internal int Count
+        public int Count
         {
             get
             {
@@ -115,7 +129,7 @@ namespace NetBannerNG
             }
         }
 
-        internal List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Snapshot(bool clear = false)
+        public List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Snapshot(bool clear = false)
         {
             lock (_sync)
             {
