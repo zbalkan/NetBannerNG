@@ -2,13 +2,13 @@ namespace NetBannerNG.Services
 {
     internal sealed class FullscreenSuppressionState
     {
-        public FullscreenSuppressionState(bool IsSuppressed, string? AppName)
+        public FullscreenSuppressionState(bool isSuppressed, string? appName)
         {
-            this.IsSuppressed = IsSuppressed;
-            this.AppName = AppName;
+            IsSuppressed = isSuppressed;
+            AppName = appName;
         }
 
-        public bool IsSuppressed { get; }
         public string? AppName { get; }
+        public bool IsSuppressed { get; }
     }
 }
