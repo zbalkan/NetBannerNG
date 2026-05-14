@@ -1,0 +1,441 @@
+diff --git a/src/NetBannerNG/BorderManager.cs b/src/NetBannerNG/BorderManager.cs
+index 354f1fa811ca1906f2dc6cd769b286251e51222d..9bd27868c1298de0fc02d6b606224293a2d97a86 100644
+--- a/src/NetBannerNG/BorderManager.cs
++++ b/src/NetBannerNG/BorderManager.cs
+@@ -2,52 +2,51 @@
+ using System.Collections.Generic;
+ using System.Diagnostics;
+ using System.Linq;
+ using System.Windows;
+ using NetBannerNG.Borders;
+ using NetBannerNG.Common;
+ using NetBannerNG.Common.AppBar;
+ using NetBannerNG.Services;
+ using NetBannerNG.Utils;
+ using Monitor = NetBannerNG.Common.Monitor;
+ 
+ namespace NetBannerNG
+ {
+     public static class BorderManager
+     {
+         private static class EventIds
+         {
+             internal const int GroupSyncFailure = 4101;
+             internal const int GroupCloseFailure = 4102;
+             internal const int GroupShowFailure = 4103;
+             internal const int GroupRemoveFailure = 4104;
+             internal const int GroupUpdateFailure = 4105;
+             internal const int GroupAddFailure = 4106;
+         }
+ 
+-        private static readonly Dictionary<string, MonitorSurfaceSet> MonitorSurfaces = new(StringComparer.Ordinal);
+-        private static readonly object MonitorSurfacesSync = new();
++        private static readonly MonitorSurfaceCatalog SurfaceCatalog = new();
+         private static readonly List<Monitor> PreviousMonitors = new();
+         private static bool _isInitiated;
+         private static bool _cleanStart;
+         private static volatile bool _shutdownInProgress;
+ 
+         private sealed class BorderLaunchEntry
+ 
+         {
+             internal BorderBase? Window { get; set; }
+             internal string? GroupId { get; set; }
+             internal bool IsPrimaryMonitor { get; set; }
+             internal double MonitorY { get; set; }
+             internal double MonitorX { get; set; }
+             internal int WindowOrder { get; set; }
+         }
+ 
+         /// <summary>
+         /// Per-monitor surface aggregate (banner + bars) with health-guarded operations.
+         /// Group orchestrates lifecycle while each window still owns its own render/dock logic.
+         /// </summary>
+         private sealed class MonitorSurfaceSet
+         {
+             private readonly bool _cleanStart;
+             private readonly string _monitorIdentity;
+             private readonly List<BorderBase> _windows;
+@@ -285,115 +284,221 @@ namespace NetBannerNG
+                 {
+                     Owner = System.Windows.Application.Current.MainWindow,
+                     Top = initialVerticalTop,
+                     Left = Monitor.Bounds.Left,
+                     Height = initialVerticalHeight,
+                     AppBarMessageKey = BuildMessageKey("Left"),
+                     IsDocked = !_cleanStart
+                 };
+ 
+                 yield return new RightBar
+                 {
+                     Owner = System.Windows.Application.Current.MainWindow,
+                     Top = initialVerticalTop,
+                     Left = Monitor.Bounds.Right - Settings.Instance.BorderSize,
+                     Height = initialVerticalHeight,
+                     AppBarMessageKey = BuildMessageKey("Right"),
+                     IsDocked = !_cleanStart
+                 };
+             }
+ 
+             private string BuildMessageKey(string borderType) => $"NetBannerNG-AppBar-{borderType}-{_monitorIdentity}";
+ 
+             private static string BuildMonitorIdentity(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor.Name, monitor.Bounds);
+         }
+ 
++        private sealed class MonitorSurfaceCatalog
++        {
++            private readonly Dictionary<string, MonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
++            private readonly object _sync = new();
++
++            internal List<MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
++            {
++                var nextMonitors = monitors.ToList();
++                var nextIds = nextMonitors
++                    .Select(MonitorIdentity.BuildGroupId)
++                    .ToHashSet(StringComparer.Ordinal);
++                var groupsToShow = new List<MonitorSurfaceSet>();
++
++                List<MonitorSurfaceSet> groupsToRemove;
++                lock (_sync)
++                {
++                    groupsToRemove = _surfaces.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
++                }
++
++                foreach (var group in groupsToRemove)
++                {
++                    try
++                    {
++                        group.Close();
++                        lock (_sync)
++                        {
++                            _ = _surfaces.Remove(group.GroupId);
++                        }
++                    }
++                    catch (Exception ex)
++                    {
++                        LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", group.GroupId, ex);
++                    }
++                }
++
++                foreach (var monitor in nextMonitors)
++                {
++                    var groupId = BuildGroupId(monitor);
++                    MonitorSurfaceSet? existingGroup;
++                    var shouldSyncExistingGroup = false;
++                    lock (_sync)
++                    {
++                        _ = _surfaces.TryGetValue(groupId, out existingGroup);
++                        shouldSyncExistingGroup = existingGroup != null && existingGroup.MatchesMonitor(monitor);
++                    }
++
++                    if (shouldSyncExistingGroup && existingGroup != null)
++                    {
++                        try
++                        {
++                            if (HasMonitorLayoutChanged(existingGroup.Monitor, monitor))
++                            {
++                                existingGroup.SyncMonitor(monitor);
++                            }
++                        }
++                        catch (Exception ex)
++                        {
++                            LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
++                        }
++
++                        continue;
++                    }
++
++                    try
++                    {
++                        var createdGroup = new MonitorSurfaceSet(monitor, clean);
++                        lock (_sync)
++                        {
++                            _surfaces[groupId] = createdGroup;
++                        }
++
++                        groupsToShow.Add(createdGroup);
++                    }
++                    catch (Exception ex)
++                    {
++                        LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
++                    }
++                }
++
++                return groupsToShow;
++            }
++
++            internal bool TryGet(string groupId, out MonitorSurfaceSet? group)
++            {
++                lock (_sync)
++                {
++                    return _surfaces.TryGetValue(groupId, out group);
++                }
++            }
++
++            internal int Count
++            {
++                get
++                {
++                    lock (_sync)
++                    {
++                        return _surfaces.Count;
++                    }
++                }
++            }
++
++            internal List<MonitorSurfaceSet> Snapshot(bool clear = false)
++            {
++                lock (_sync)
++                {
++                    var groups = _surfaces.Values.ToList();
++                    if (clear)
++                    {
++                        _surfaces.Clear();
++                    }
++
++                    return groups;
++                }
++            }
++        }
++
+         internal static void Init(bool clean = true)
+         {
+             _cleanStart = clean;
+             System.Windows.Application.Current.MainWindow = new Launcher();
+             System.Windows.Application.Current.MainWindow.Show();
+         }
+ 
+         internal static void InitiateAllBorders()
+         {
+             if (_isInitiated)
+             {
+                 return;
+             }
+ 
+             ResetPreviousMonitors();
+-            var groupsToShow = ReconcileMonitorSurfaces(PreviousMonitors, _cleanStart);
++            var groupsToShow = SurfaceCatalog.Reconcile(PreviousMonitors, _cleanStart);
+             ShowGroups(groupsToShow);
+             _isInitiated = true;
+             _cleanStart = true;
+         }
+ 
+         internal static void Refresh()
+         {
+             if (_shutdownInProgress)
+             {
+                 return;
+             }
+ 
+             ResetPreviousMonitors();
+-            var groupsToShow = ReconcileMonitorSurfaces(PreviousMonitors, clean: false);
++            var groupsToShow = SurfaceCatalog.Reconcile(PreviousMonitors, clean: false);
+             ShowGroups(groupsToShow);
+-            lock (MonitorSurfacesSync)
+-            {
+-                _isInitiated = MonitorSurfaces.Count > 0;
+-            }
++            _isInitiated = SurfaceCatalog.Count > 0;
+         }
+ 
+         internal static void BeginShutdown() => _shutdownInProgress = true;
+ 
+         internal static void CloseAllBorders()
+         {
+-            var groupsToClose = SnapshotMonitorSurfaces(clear: true);
+-            lock (MonitorSurfacesSync)
+-            {
+-                _isInitiated = false;
+-            }
++            var groupsToClose = SurfaceCatalog.Snapshot(clear: true);
++            _isInitiated = false;
+ 
+             foreach (var group in groupsToClose)
+             {
+                 group.Close();
+             }
+         }
+ 
+         internal static void SendTop() => SetFullscreenSuppressedState(isFullscreen: false);
+ 
+         internal static void SendBottom() => SetFullscreenSuppressedState(isFullscreen: true);
+ 
+         internal static void SetMonitorFullscreenSuppressedState(Monitor monitor, bool isFullscreen)
+         {
+             var groupId = MonitorIdentity.BuildGroupId(monitor);
+-            MonitorSurfaceSet? group;
+-            lock (MonitorSurfacesSync)
+-            {
+-                _ = MonitorSurfaces.TryGetValue(groupId, out group);
+-            }
++            _ = SurfaceCatalog.TryGet(groupId, out var group);
+ 
+             if (group != null)
+             {
+                 group.SetTopMost(!isFullscreen);
+                 group.SetBarsVisibility(!isFullscreen);
+             }
+         }
+ 
+         private static void ShowGroups(IEnumerable<MonitorSurfaceSet> groups)
+         {
+             var orderedGroups = groups
+                 .OrderByDescending(group => group.Monitor.IsPrimary)
+                 .ThenBy(group => group.Monitor.Bounds.Y)
+                 .ThenBy(group => group.Monitor.Bounds.X)
+                 .ToList();
+ 
+             var stopwatch = Stopwatch.StartNew();
+             long firstBannerShownAtMs = -1;
+ 
+             foreach (var group in orderedGroups)
+             {
+                 var launchEntries = group.CreateLaunchEntries()
+                     .OrderBy(entry => entry.WindowOrder)
+                     .ToList();
+ 
+@@ -419,143 +524,54 @@ namespace NetBannerNG
+                             continue;
+                         }
+ 
+                         launchEntry.Window.Render(true);
+                         var shownAtMs = stopwatch.ElapsedMilliseconds;
+                         if (firstBannerShownAtMs < 0 && launchEntry.Window is Banner)
+                         {
+                             firstBannerShownAtMs = shownAtMs;
+                             Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
+                         }
+                     }
+                 }
+                 finally
+                 {
+                     AppBarFunctions.EndBatch();
+                 }
+ 
+                 group.ApplyPostDockVisualState();
+             }
+ 
+             _cleanStart = true;
+         }
+ 
+         private static void SetFullscreenSuppressedState(bool isFullscreen)
+         {
+-            foreach (var group in SnapshotMonitorSurfaces())
++            foreach (var group in SurfaceCatalog.Snapshot())
+             {
+                 group.SetTopMost(!isFullscreen);
+                 group.SetBarsVisibility(!isFullscreen);
+             }
+         }
+ 
+         private static void ResetPreviousMonitors()
+         {
+             PreviousMonitors.Clear();
+             PreviousMonitors.AddRange(Monitor.AllMonitors);
+         }
+ 
+-        private static List<MonitorSurfaceSet> ReconcileMonitorSurfaces(IEnumerable<Monitor> monitors, bool clean)
+-        {
+-            var nextMonitors = monitors.ToList();
+-            var nextIds = nextMonitors
+-                .Select(MonitorIdentity.BuildGroupId)
+-                .ToHashSet(StringComparer.Ordinal);
+-            var groupsToShow = new List<MonitorSurfaceSet>();
+-
+-            List<MonitorSurfaceSet> groupsToRemove;
+-            lock (MonitorSurfacesSync)
+-            {
+-                groupsToRemove = MonitorSurfaces.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
+-            }
+-
+-            foreach (var group in groupsToRemove)
+-            {
+-                try
+-                {
+-                    group.Close();
+-                    lock (MonitorSurfacesSync)
+-                    {
+-                        _ = MonitorSurfaces.Remove(group.GroupId);
+-                    }
+-                }
+-                catch (Exception ex)
+-                {
+-                    LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", group.GroupId, ex);
+-                }
+-            }
+-
+-            foreach (var monitor in nextMonitors)
+-            {
+-                var groupId = BuildGroupId(monitor);
+-                MonitorSurfaceSet? existingGroup;
+-                var shouldSyncExistingGroup = false;
+-                lock (MonitorSurfacesSync)
+-                {
+-                    _ = MonitorSurfaces.TryGetValue(groupId, out existingGroup);
+-                    shouldSyncExistingGroup = existingGroup != null && existingGroup.MatchesMonitor(monitor);
+-                }
+-
+-                if (shouldSyncExistingGroup && existingGroup != null)
+-                {
+-                    try
+-                    {
+-                        if (HasMonitorLayoutChanged(existingGroup.Monitor, monitor))
+-                        {
+-                            existingGroup.SyncMonitor(monitor);
+-                        }
+-                    }
+-                    catch (Exception ex)
+-                    {
+-                        LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
+-                    }
+-                    continue;
+-                }
+-
+-                try
+-                {
+-                    var createdGroup = new MonitorSurfaceSet(monitor, clean);
+-                    lock (MonitorSurfacesSync)
+-                    {
+-                        MonitorSurfaces[groupId] = createdGroup;
+-                        groupsToShow.Add(createdGroup);
+-                    }
+-                }
+-                catch (Exception ex)
+-                {
+-                    LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
+-                }
+-            }
+-
+-            return groupsToShow;
+-        }
+-
+         public static bool HasMonitorLayoutChanged(Monitor previous, Monitor next) =>
+             HasMonitorLayoutChanged(previous.Bounds, previous.WorkingArea, previous.IsPrimary, next.Bounds, next.WorkingArea, next.IsPrimary);
+ 
+         public static bool HasMonitorLayoutChanged(Rect previousBounds, Rect previousWorkingArea, bool previousIsPrimary, Rect nextBounds, Rect nextWorkingArea, bool nextIsPrimary) =>
+             previousBounds != nextBounds ||
+             previousWorkingArea != nextWorkingArea ||
+             previousIsPrimary != nextIsPrimary;
+ 
+         private static void LogMonitorGroupFailure(int eventId, string stage, string groupId, Exception ex) =>
+             Debug.WriteLine($"[EVT:{eventId}][MonitorGroup][{stage}][{groupId}] failed: {ex}");
+ 
+-        private static List<MonitorSurfaceSet> SnapshotMonitorSurfaces(bool clear = false)
+-        {
+-            lock (MonitorSurfacesSync)
+-            {
+-                var groups = MonitorSurfaces.Values.ToList();
+-                if (clear)
+-                {
+-                    MonitorSurfaces.Clear();
+-                }
+-
+-                return groups;
+-            }
+-        }
+-
+         public static string BuildGroupId(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor);
+ 
+         public static string BuildGroupId(string monitorName, Rect bounds) => MonitorIdentity.BuildGroupId(monitorName, bounds);
+     }
+ }
