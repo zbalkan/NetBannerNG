@@ -14,17 +14,19 @@ namespace NetBannerNG.Services
 
     internal sealed class StaticDisplayOverlayOrchestrator : IDisplayOverlayOrchestrator
     {
-        public void Init(bool clean) => DisplayOverlayOrchestrator.Init(clean);
+        private static readonly DisplayOverlayOrchestratorRuntime Runtime = new();
 
-        public void InitiateAllBorders() => DisplayOverlayOrchestrator.InitiateAllBorders();
+        public void Init(bool clean) => Runtime.Init(clean);
 
-        public void Refresh() => DisplayOverlayOrchestrator.Refresh();
+        public void InitiateAllBorders() => Runtime.InitiateAllBorders();
 
-        public void BeginShutdown() => DisplayOverlayOrchestrator.BeginShutdown();
+        public void Refresh() => Runtime.Refresh();
 
-        public void CloseAllBorders() => DisplayOverlayOrchestrator.CloseAllBorders();
+        public void BeginShutdown() => Runtime.BeginShutdown();
+
+        public void CloseAllBorders() => Runtime.CloseAllBorders();
 
         public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, bool> suppressionByGroup) =>
-            DisplayOverlayOrchestrator.ApplyFullscreenSuppressionStates(suppressionByGroup);
+            Runtime.ApplyFullscreenSuppressionStates(suppressionByGroup);
     }
 }

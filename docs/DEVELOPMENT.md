@@ -85,12 +85,12 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 3 in progress**.
+Current phase assessment (as of 2026-05-14): **Phase 4 in progress**.
 
 Completed:
 - Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
 - Phase 2: `MonitorSurfaceCatalog` is extracted as a first-class component in its own module.
-- Phase 3 (partial): static watchers are wrapped behind interfaces (`IMonitorWatcher`, `IForegroundWindowWatcher`) and consumed via services.
+- Phase 3: core orchestration now runs through an instance-native runtime component (`DisplayOverlayOrchestratorRuntime`) behind adapter interfaces; static usage remains only as a compatibility adapter entrypoint.
 
 Latest hardening in this change:
 - Introduced explicit monitor abstraction contracts: `IMonitorIdentity`, `IMonitorLayoutPolicy`, and `IMonitorSurfaceCatalog`.
@@ -98,6 +98,6 @@ Latest hardening in this change:
 - Wired `DisplayOverlayOrchestrator` to consume monitor identity and monitor layout through provider abstractions, reducing direct static policy coupling in orchestration paths.
 
 Remaining for Definition of Done:
-- Convert core orchestration implementation from static singleton-style state to fully instance-native runtime components (static facades allowed only as adapters).
 - Add standalone unit coverage for catalog reconciliation/snapshot semantics and centralized geometry policy combinations.
 - Extend suppression payload contract to carry diagnostic metadata (e.g., app name) in a typed DTO while keeping orchestrator declarative.
+- Remove remaining legacy "Borders" verb naming in orchestrator-facing APIs (`InitiateAllBorders`, `CloseAllBorders`) once compatibility call sites are migrated.
