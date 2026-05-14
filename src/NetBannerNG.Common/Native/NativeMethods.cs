@@ -111,6 +111,19 @@ namespace NetBannerNG.Common.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         internal static extern IntPtr MonitorFromWindow(IntPtr hWnd, MonitorDefaultTo dwFlags);
 
+
+        [DllImport("dwmapi.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern int DwmGetWindowAttribute(IntPtr hwnd, int dwAttribute, out int pvAttribute, int cbAttribute);
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+        [DllImport("user32.dll")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern bool IsIconic(IntPtr hWnd);
+
         [DllImport("user32.dll", ExactSpelling = true)]
         [ResourceExposure(ResourceScope.None)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -265,23 +278,22 @@ namespace NetBannerNG.Common.Native
             Last = 1 << 2
         }
 
-        [Flags]
         internal enum DWMWINDOWATTRIBUTE
         {
             None = 0,
             DwmaNcrenderingEnabled = 1,
-            DwmaNcrenderingPolicy = 1 << 1,
-            DwmaTransitionsForcedisabled = 1 << 2,
-            DwmaAllowNcpaint = 1 << 3,
-            DwmaCpationButtonBounds = 1 << 4,
-            DwmaNonclientRtlLayout = 1 << 5,
-            DwmaForceIconicRepresentation = 1 << 6,
-            DwmaFlip3DPolicy = 1 << 7,
-            DwmaExtendedFrameBounds = 1 << 8,
-            DwmaHasIconicBitmap = 1 << 9,
-            DwmaDisallowPeek = 1 << 10,
-            DwmaExcludedFromPeek = 1 << 11,
-            DwmaLast = 1 << 12
+            DwmaNcrenderingPolicy = 2,
+            DwmaTransitionsForcedisabled = 3,
+            DwmaAllowNcpaint = 4,
+            DwmaCpationButtonBounds = 5,
+            DwmaNonclientRtlLayout = 6,
+            DwmaForceIconicRepresentation = 7,
+            DwmaFlip3DPolicy = 8,
+            DwmaExtendedFrameBounds = 9,
+            DwmaHasIconicBitmap = 10,
+            DwmaDisallowPeek = 11,
+            DwmaExcludedFromPeek = 12,
+            DwmaLast = 13
         }
 
         [Flags]

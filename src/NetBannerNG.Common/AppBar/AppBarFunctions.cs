@@ -13,6 +13,15 @@ namespace NetBannerNG.Common.AppBar
     /// </summary>
     public static class AppBarFunctions
     {
+        private const int WmSysCommand = 0x0112;
+        private const int ScMinimize = 0xF020;
+        private const int WmSize = 0x0005;
+        private const int SizeMinimized = 1;
+        private const int WmShowWindow = 0x0018;
+        private const int WmWindowPosChanging = 0x0046;
+        private const uint SwpHideWindow = 0x0080;
+        private static readonly IntPtr HwndTopMost = new(-1);
+
         private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo = new();
         private static readonly object RegisteredWindowInfoSync = new();
 
@@ -228,13 +237,72 @@ namespace NetBannerNG.Common.AppBar
             internal Rect? DockedSize { get; set; }
             internal bool IsHandled { get; set; }
             internal string CallbackMessageKey { get; set; } = string.Empty;
+            internal int TaskbarCreatedMessageId { get; set; }
             internal long LastPosChangedHandledAtTicks;
             internal DispatcherOperation? PendingResizeOperation { get; set; }
 
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Values not needed as we filter by call type.")]
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
-                if (msg != CallbackId || wParam.ToInt32() != (int)AbNotify.AbnPoschanged)
+                if (TaskbarCreatedMessageId != 0 && msg == TaskbarCreatedMessageId)
+                {
+                    Debug.WriteLine($"WndProc: received TaskbarCreated for {Window}.");
+                    ReRegisterAfterExplorerRestart(hWnd);
+                    return IntPtr.Zero;
+                }
+
+                if (msg == WmSysCommand && (wParam.ToInt32() & 0xFFF0) == ScMinimize)
+                {
+                    Debug.WriteLine($"WndProc: blocked SC_MINIMIZE for AppBar window {Window}.");
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+
+                if (msg == WmSize && wParam.ToInt32() == SizeMinimized)
+                {
+                    Debug.WriteLine($"WndProc: received SIZE_MINIMIZED for AppBar window {Window}; restoring visibility.");
+                    EnsureVisible();
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+
+
+                if (msg == WmShowWindow && wParam == IntPtr.Zero)
+                {
+                    Debug.WriteLine($"WndProc: received WM_SHOWWINDOW(false) for AppBar window {Window}; enforcing visibility.");
+                    EnsureVisible();
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+
+                if (msg == WmWindowPosChanging && lParam != IntPtr.Zero)
+                {
+                    var windowPos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
+                    if ((windowPos.flags & SwpHideWindow) != 0)
+                    {
+                        windowPos.flags &= ~SwpHideWindow;
+                        Marshal.StructureToPtr(windowPos, lParam, false);
+                        Debug.WriteLine($"WndProc: removed SWP_HIDEWINDOW for AppBar window {Window}.");
+                    }
+                }
+
+                if (msg != CallbackId)
+                {
+                    return IntPtr.Zero;
+                }
+
+                var appBarNotification = wParam.ToInt32();
+                if (appBarNotification == (int)AbNotify.AbnWindowarrange)
+                {
+                    // lParam == TRUE when minimizing all windows, FALSE when restoring them.
+                    // Ensure we recover visibility during repeated Win+D toggle cycles.
+                    Debug.WriteLine($"WndProc: ABN_WINDOWARRANGE for {Window}; enforcing visibility.");
+                    EnsureVisible();
+                    handled = true;
+                    return IntPtr.Zero;
+                }
+
+                if (appBarNotification != (int)AbNotify.AbnPoschanged)
                 {
                     return IntPtr.Zero;
                 }
@@ -271,6 +339,64 @@ namespace NetBannerNG.Common.AppBar
                 Debug.WriteLine($"WndProc hook: {CallbackId} | Window: {Window} | Edge: {Enum.GetName(typeof(DockEdge), Edge)} | DockedSize: {DockedSize ?? new()}");
                 return IntPtr.Zero;
             }
+
+            private void ReRegisterAfterExplorerRestart(IntPtr hWnd)
+            {
+                if (!IsRegistered || Window is null)
+                {
+                    return;
+                }
+
+                var appBarData = new APPBARDATA().WithWindow(Window);
+                appBarData.uCallbackMessage = CallbackId;
+                var registrationResult = SHAppBarMessage((int)AbMsg.AbmNew, ref appBarData);
+                if (registrationResult == 0)
+                {
+                    throw new InvalidOperationException($"Failed to re-register AppBar after Explorer restart for {Window}.");
+                }
+                AbSetPos(this, Window, ChildElement);
+                Window.Topmost = true;
+                Debug.WriteLine($"Re-registered AppBar after Explorer restart for {Window}.");
+            }
+
+            private void EnsureVisible()
+            {
+                if (Window is null)
+                {
+                    return;
+                }
+
+                if (Window.WindowState == WindowState.Minimized)
+                {
+                    Window.WindowState = WindowState.Normal;
+                }
+
+                var windowHandle = Window.GetHandle();
+                Debug.WriteLine($"EnsureVisible: restoring topmost/show state for {Window} (HWND: {windowHandle}).");
+                _ = SetWindowPos(
+                    windowHandle,
+                    HwndTopMost,
+                    0,
+                    0,
+                    0,
+                    0,
+                    SetWindowPosFlags.IgnoreMove
+                    | SetWindowPosFlags.IgnoreResize
+                    | SetWindowPosFlags.DoNotActivate
+                    | SetWindowPosFlags.ShowWindow);
+            }
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WINDOWPOS
+        {
+            public IntPtr hwnd;
+            public IntPtr hwndInsertAfter;
+            public int x;
+            public int y;
+            public int cx;
+            public int cy;
+            public uint flags;
         }
 
         #region ExtensionMethods
@@ -338,16 +464,25 @@ namespace NetBannerNG.Common.AppBar
 
         private static void NormalizeHideBehavior(this APPBARDATA appBarData)
         {
-            var renderPolicy = (int)DwmncRenderingPolicy.UseWindowStyle;
-            _ = DwmSetWindowAttribute(appBarData.hWnd, (int)DWMWINDOWATTRIBUTE.DwmaExcludedFromPeek, ref renderPolicy, sizeof(int));
-            _ = DwmSetWindowAttribute(appBarData.hWnd, (int)DWMWINDOWATTRIBUTE.DwmaDisallowPeek, ref renderPolicy, sizeof(int));
+            SetDwmBoolAttribute(appBarData.hWnd, DWMWINDOWATTRIBUTE.DwmaExcludedFromPeek, false);
+            SetDwmBoolAttribute(appBarData.hWnd, DWMWINDOWATTRIBUTE.DwmaDisallowPeek, false);
         }
 
         private static void PreventHideOnPeek(this APPBARDATA appBarData)
         {
-            var renderPolicy = (int)DwmncRenderingPolicy.Enabled;
-            _ = DwmSetWindowAttribute(appBarData.hWnd, (int)DWMWINDOWATTRIBUTE.DwmaExcludedFromPeek, ref renderPolicy, sizeof(int));
-            _ = DwmSetWindowAttribute(appBarData.hWnd, (int)DWMWINDOWATTRIBUTE.DwmaDisallowPeek, ref renderPolicy, sizeof(int));
+            SetDwmBoolAttribute(appBarData.hWnd, DWMWINDOWATTRIBUTE.DwmaExcludedFromPeek, true);
+            SetDwmBoolAttribute(appBarData.hWnd, DWMWINDOWATTRIBUTE.DwmaDisallowPeek, true);
+        }
+
+        private static void SetDwmBoolAttribute(IntPtr hWnd, DWMWINDOWATTRIBUTE attribute, bool enabled)
+        {
+            var value = enabled ? 1 : 0;
+            var hr = DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int));
+            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{hr:X8}");
+            if (hr < 0)
+            {
+                throw new ExternalException($"Failed to set DWM attribute {attribute} to {enabled} for HWND {hWnd}. HRESULT=0x{hr:X8}", hr);
+            }
         }
 
         private static APPBARDATA Register(this APPBARDATA abd, RegisterInfo info)
@@ -359,8 +494,18 @@ namespace NetBannerNG.Common.AppBar
 
             info.IsRegistered = true;
             info.CallbackId = RegisterWindowMessage(info.CallbackMessageKey);
+            if (info.CallbackId == 0)
+            {
+                throw new InvalidOperationException($"Failed to register AppBar callback message '{info.CallbackMessageKey}'.");
+            }
+            info.TaskbarCreatedMessageId = RegisterWindowMessage("TaskbarCreated");
+            if (info.TaskbarCreatedMessageId == 0)
+            {
+                throw new InvalidOperationException("Failed to register TaskbarCreated message.");
+            }
             abd.uCallbackMessage = info.CallbackId;
             abd = SendNewAppBarToShell(abd);
+            Debug.WriteLine($"Registered AppBar window {info.Window} with callback id {info.CallbackId} and TaskbarCreated id {info.TaskbarCreatedMessageId}.");
 
             var source = HwndSource.FromHwnd(abd.hWnd);
             source?.AddHook(info.WndProc);
