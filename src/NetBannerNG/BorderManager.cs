@@ -23,8 +23,8 @@ namespace NetBannerNG
             internal const int GroupAddFailure = 4106;
         }
 
-        private static readonly Dictionary<string, MonitorBorderGroup> MonitorGroups = new(StringComparer.Ordinal);
-        private static readonly object MonitorGroupsSync = new();
+        private static readonly Dictionary<string, MonitorSurfaceSet> MonitorSurfaces = new(StringComparer.Ordinal);
+        private static readonly object MonitorSurfacesSync = new();
         private static readonly List<Monitor> PreviousMonitors = new();
         private static bool _isInitiated;
         private static bool _cleanStart;
@@ -41,14 +41,18 @@ namespace NetBannerNG
             internal int WindowOrder { get; set; }
         }
 
-        private sealed class MonitorBorderGroup
+        /// <summary>
+        /// Per-monitor surface aggregate (banner + bars) with health-guarded operations.
+        /// Group orchestrates lifecycle while each window still owns its own render/dock logic.
+        /// </summary>
+        private sealed class MonitorSurfaceSet
         {
             private readonly bool _cleanStart;
             private readonly string _monitorIdentity;
             private readonly List<BorderBase> _windows;
             private readonly GroupHealthPolicy _healthPolicy = new(disableThreshold: 3, disableDuration: TimeSpan.FromSeconds(30));
 
-            internal MonitorBorderGroup(Monitor monitor, bool cleanStart)
+            internal MonitorSurfaceSet(Monitor monitor, bool cleanStart)
             {
                 Monitor = monitor;
                 _cleanStart = cleanStart;
@@ -317,7 +321,7 @@ namespace NetBannerNG
             }
 
             ResetPreviousMonitors();
-            var groupsToShow = ReconcileMonitorGroups(PreviousMonitors, _cleanStart);
+            var groupsToShow = ReconcileMonitorSurfaces(PreviousMonitors, _cleanStart);
             ShowGroups(groupsToShow);
             _isInitiated = true;
             _cleanStart = true;
@@ -331,11 +335,11 @@ namespace NetBannerNG
             }
 
             ResetPreviousMonitors();
-            var groupsToShow = ReconcileMonitorGroups(PreviousMonitors, clean: false);
+            var groupsToShow = ReconcileMonitorSurfaces(PreviousMonitors, clean: false);
             ShowGroups(groupsToShow);
-            lock (MonitorGroupsSync)
+            lock (MonitorSurfacesSync)
             {
-                _isInitiated = MonitorGroups.Count > 0;
+                _isInitiated = MonitorSurfaces.Count > 0;
             }
         }
 
@@ -343,8 +347,8 @@ namespace NetBannerNG
 
         internal static void CloseAllBorders()
         {
-            var groupsToClose = SnapshotMonitorGroups(clear: true);
-            lock (MonitorGroupsSync)
+            var groupsToClose = SnapshotMonitorSurfaces(clear: true);
+            lock (MonitorSurfacesSync)
             {
                 _isInitiated = false;
             }
@@ -362,10 +366,10 @@ namespace NetBannerNG
         internal static void SetMonitorFullscreenSuppressedState(Monitor monitor, bool isFullscreen)
         {
             var groupId = BuildGroupId(monitor);
-            MonitorBorderGroup? group;
-            lock (MonitorGroupsSync)
+            MonitorSurfaceSet? group;
+            lock (MonitorSurfacesSync)
             {
-                _ = MonitorGroups.TryGetValue(groupId, out group);
+                _ = MonitorSurfaces.TryGetValue(groupId, out group);
             }
 
             if (group != null)
@@ -375,7 +379,7 @@ namespace NetBannerNG
             }
         }
 
-        private static void ShowGroups(IEnumerable<MonitorBorderGroup> groups)
+        private static void ShowGroups(IEnumerable<MonitorSurfaceSet> groups)
         {
             var orderedGroups = groups
                 .OrderByDescending(group => group.Monitor.IsPrimary)
@@ -436,7 +440,7 @@ namespace NetBannerNG
 
         private static void SetFullscreenSuppressedState(bool isFullscreen)
         {
-            foreach (var group in SnapshotMonitorGroups())
+            foreach (var group in SnapshotMonitorSurfaces())
             {
                 group.SetTopMost(!isFullscreen);
                 group.SetBarsVisibility(!isFullscreen);
@@ -449,18 +453,18 @@ namespace NetBannerNG
             PreviousMonitors.AddRange(Monitor.AllMonitors);
         }
 
-        private static List<MonitorBorderGroup> ReconcileMonitorGroups(IEnumerable<Monitor> monitors, bool clean)
+        private static List<MonitorSurfaceSet> ReconcileMonitorSurfaces(IEnumerable<Monitor> monitors, bool clean)
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
                 .Select(BuildGroupId)
                 .ToHashSet(StringComparer.Ordinal);
-            var groupsToShow = new List<MonitorBorderGroup>();
+            var groupsToShow = new List<MonitorSurfaceSet>();
 
-            List<MonitorBorderGroup> groupsToRemove;
-            lock (MonitorGroupsSync)
+            List<MonitorSurfaceSet> groupsToRemove;
+            lock (MonitorSurfacesSync)
             {
-                groupsToRemove = MonitorGroups.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
+                groupsToRemove = MonitorSurfaces.Where(entry => !nextIds.Contains(entry.Key)).Select(entry => entry.Value).ToList();
             }
 
             foreach (var group in groupsToRemove)
@@ -468,9 +472,9 @@ namespace NetBannerNG
                 try
                 {
                     group.Close();
-                    lock (MonitorGroupsSync)
+                    lock (MonitorSurfacesSync)
                     {
-                        _ = MonitorGroups.Remove(group.GroupId);
+                        _ = MonitorSurfaces.Remove(group.GroupId);
                     }
                 }
                 catch (Exception ex)
@@ -482,11 +486,11 @@ namespace NetBannerNG
             foreach (var monitor in nextMonitors)
             {
                 var groupId = BuildGroupId(monitor);
-                MonitorBorderGroup? existingGroup;
+                MonitorSurfaceSet? existingGroup;
                 var shouldSyncExistingGroup = false;
-                lock (MonitorGroupsSync)
+                lock (MonitorSurfacesSync)
                 {
-                    _ = MonitorGroups.TryGetValue(groupId, out existingGroup);
+                    _ = MonitorSurfaces.TryGetValue(groupId, out existingGroup);
                     shouldSyncExistingGroup = existingGroup != null && existingGroup.MatchesMonitor(monitor);
                 }
 
@@ -508,10 +512,10 @@ namespace NetBannerNG
 
                 try
                 {
-                    var createdGroup = new MonitorBorderGroup(monitor, clean);
-                    lock (MonitorGroupsSync)
+                    var createdGroup = new MonitorSurfaceSet(monitor, clean);
+                    lock (MonitorSurfacesSync)
                     {
-                        MonitorGroups[groupId] = createdGroup;
+                        MonitorSurfaces[groupId] = createdGroup;
                         groupsToShow.Add(createdGroup);
                     }
                 }
@@ -535,14 +539,14 @@ namespace NetBannerNG
         private static void LogMonitorGroupFailure(int eventId, string stage, string groupId, Exception ex) =>
             Debug.WriteLine($"[EVT:{eventId}][MonitorGroup][{stage}][{groupId}] failed: {ex}");
 
-        private static List<MonitorBorderGroup> SnapshotMonitorGroups(bool clear = false)
+        private static List<MonitorSurfaceSet> SnapshotMonitorSurfaces(bool clear = false)
         {
-            lock (MonitorGroupsSync)
+            lock (MonitorSurfacesSync)
             {
-                var groups = MonitorGroups.Values.ToList();
+                var groups = MonitorSurfaces.Values.ToList();
                 if (clear)
                 {
-                    MonitorGroups.Clear();
+                    MonitorSurfaces.Clear();
                 }
 
                 return groups;
