@@ -49,35 +49,17 @@ namespace NetBannerNG.Tests
         {
             internal List<string> Calls { get; } = new();
 
-            public void Init(bool clean)
-            {
-                Calls.Add("Init");
-            }
+            public void Init(bool clean) => Calls.Add("Init");
 
-            public void InitiateAllSurfaces()
-            {
-                Calls.Add("InitiateAllSurfaces");
-            }
+            public void InitiateAllSurfaces() => Calls.Add("InitiateAllSurfaces");
 
-            public void Refresh()
-            {
-                Calls.Add("Refresh");
-            }
+            public void Refresh() => Calls.Add("Refresh");
 
-            public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
-            {
-                Calls.Add("ApplyFullscreenSuppressionStates");
-            }
+            public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup) => Calls.Add("ApplyFullscreenSuppressionStates");
 
-            public void BeginShutdown()
-            {
-                Calls.Add("BeginShutdown");
-            }
+            public void BeginShutdown() => Calls.Add("BeginShutdown");
 
-            public void CloseAllSurfaces()
-            {
-                Calls.Add("CloseAllSurfaces");
-            }
+            public void CloseAllSurfaces() => Calls.Add("CloseAllSurfaces");
         }
 
         private sealed class FakeSuppressionService : IFullscreenSuppressionService
@@ -106,10 +88,7 @@ namespace NetBannerNG.Tests
                 RefreshAction = refreshAction;
             }
 
-            public void Unwatch()
-            {
-                UnwatchCalls++;
-            }
+            public void Unwatch() => UnwatchCalls++;
         }
     }
 }

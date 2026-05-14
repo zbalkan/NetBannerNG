@@ -43,7 +43,9 @@ namespace NetBannerNG.Services
             }
 
             ResetPreviousMonitors();
-            ShowGroups(_surfaceCatalog.Reconcile(_previousMonitors, _cleanStart));
+            var groupsToShow = _surfaceCatalog.Reconcile(_previousMonitors, _cleanStart);
+            Debug.WriteLine($"[EVT:4201][OverlayOrchestrator][Reconcile][Initiate] MonitorCount={_previousMonitors.Count} GroupsToShow={groupsToShow.Count} CleanStart={_cleanStart}");
+            ShowGroups(groupsToShow);
             _isInitiated = true;
             _cleanStart = true;
         }
@@ -56,7 +58,9 @@ namespace NetBannerNG.Services
             }
 
             ResetPreviousMonitors();
-            ShowGroups(_surfaceCatalog.Reconcile(_previousMonitors, clean: false));
+            var groupsToShow = _surfaceCatalog.Reconcile(_previousMonitors, clean: false);
+            Debug.WriteLine($"[EVT:4202][OverlayOrchestrator][Reconcile][Refresh] MonitorCount={_previousMonitors.Count} GroupsToShow={groupsToShow.Count} CatalogCount={_surfaceCatalog.Count}");
+            ShowGroups(groupsToShow);
             _isInitiated = _surfaceCatalog.Count > 0;
         }
 
@@ -65,6 +69,7 @@ namespace NetBannerNG.Services
         public void CloseAllSurfaces()
         {
             var groups = _surfaceCatalog.Snapshot(clear: true);
+            Debug.WriteLine($"[EVT:4203][OverlayOrchestrator][Shutdown][CloseAll] Groups={groups.Count}");
             _isInitiated = false;
             foreach (var g in groups)
             {
@@ -74,6 +79,8 @@ namespace NetBannerNG.Services
 
         public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
         {
+            var suppressedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed);
+            Debug.WriteLine($"[EVT:4204][OverlayOrchestrator][Suppression][Apply] Updates={suppressionByGroup.Count} Suppressed={suppressedCount}");
             foreach (var group in _surfaceCatalog.Snapshot())
             {
                 var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var state) && state.IsSuppressed;

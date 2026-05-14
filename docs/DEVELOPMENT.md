@@ -85,7 +85,7 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 5 completed (Phase 6 next)**.
+Current phase assessment (as of 2026-05-14): **Phase 6 in progress**.
 
 Completed:
 - Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
@@ -98,10 +98,17 @@ Latest hardening in this change:
 - Wired `DisplayOverlayOrchestrator` to consume monitor identity and monitor layout through provider abstractions, reducing direct static policy coupling in orchestration paths.
 - Completed orchestrator-facing terminology migration from "Borders" to "Surfaces" in instance runtime APIs (`InitiateAllSurfaces`, `CloseAllSurfaces`) and lifecycle call sites.
 
+Latest update (2026-05-14):
+- Began Phase 6 hardening with structured orchestrator diagnostics:
+  - Added reconcile telemetry events for initiate/refresh paths including monitor count, groups-to-show count, and catalog count.
+  - Added suppression telemetry event with total update count and suppressed-group count.
+  - Added shutdown telemetry event for close-all transitions.
+- Added health-policy stress coverage with deterministic repeated disable/cooldown cycles in `GroupHealthPolicyTests`.
+
 Remaining for Definition of Done:
 - Add standalone unit coverage for catalog reconciliation/snapshot semantics.
 - Complete migration away from static compatibility entrypoints (`DisplayOverlayOrchestrator`, static watcher implementations) by routing runtime coordination entirely through DI-managed instances.
-- Execute Phase 6 hardening pass (structured reconcile/suppression telemetry and explicit health-policy stress validation).
+- Complete Phase 6 hardening pass with broader structured logging coverage and health behavior validation under real orchestrator surface-failure scenarios.
 
 
 Latest update (2026-05-14):
