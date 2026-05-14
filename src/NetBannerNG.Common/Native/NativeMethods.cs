@@ -160,7 +160,6 @@ namespace NetBannerNG.Common.Native
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern int GetWindowRect(IntPtr hWnd, out MonitorRect rc);
 
-
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
@@ -168,6 +167,11 @@ namespace NetBannerNG.Common.Native
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern int GetWindowTextLength(IntPtr hWnd);
+
+        [CLSCompliant(false)]
+        [DllImport("user32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]

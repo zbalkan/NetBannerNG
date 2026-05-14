@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using NetBannerNG.Common.AppBar;
@@ -25,6 +26,8 @@ namespace NetBannerNG.Utils
         private static readonly object WindowCacheSync = new();
         private static readonly Dictionary<IntPtr, (MonitorRect Rect, long Ticks)> WindowRectCache = new();
         private static IntPtr _hookId;
+        private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
+        internal static Func<string, Task>? EventLogSinkAsync { get; set; }
 
         internal static void Watch()
         {
@@ -51,7 +54,7 @@ namespace NetBannerNG.Utils
                 _ = NativeMethods.UnhookWinEvent(_hookId);
                 _hookId = default;
             }
-
+            LastSuppressionStateByGroup.Clear();
         }
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
@@ -110,6 +113,7 @@ namespace NetBannerNG.Utils
             var ownWindowHandles = SnapshotOwnWindowHandles();
             var windows = SnapshotWindowsInZOrder();
             var fullscreenByGroup = FullscreenSuppressionEvaluator.EvaluateByGroup(monitors, ownWindowHandles, windows);
+            var fullscreenAppByGroup = ResolveFullscreenAppsByGroup(monitors, ownWindowHandles, windows);
 
             Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
             BeginOnUi(() => {
@@ -117,11 +121,87 @@ namespace NetBannerNG.Utils
                 {
                     var groupId = BorderManager.BuildGroupId(monitor);
                     var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
+                    var appName = fullscreenAppByGroup.TryGetValue(groupId, out var app) ? app : "Unknown";
                     Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
                     BorderManager.SetMonitorFullscreenSuppressedState(monitor, isFullscreen);
+                    LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(), isFullscreen, appName);
                 }
             });
         }
+
+        private static Dictionary<string, string> ResolveFullscreenAppsByGroup(IReadOnlyList<Monitor> monitors, HashSet<IntPtr> ownWindowHandles, IReadOnlyList<FullscreenSuppressionEvaluator.WindowSnapshot> windows)
+        {
+            var boundsGroupToActualGroup = monitors.ToDictionary(
+                monitor => BorderManager.BuildGroupId(string.Empty, monitor.Bounds),
+                BorderManager.BuildGroupId,
+                StringComparer.Ordinal);
+            var results = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var window in windows)
+            {
+                if (!window.IsVisible || ownWindowHandles.Contains(window.Handle))
+                {
+                    continue;
+                }
+
+                var boundsGroupId = BorderManager.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
+                if (!boundsGroupToActualGroup.TryGetValue(boundsGroupId, out var groupId) || results.ContainsKey(groupId))
+                {
+                    continue;
+                }
+
+                if (!FullscreenSuppressionEvaluator.IsFullscreen(window.Bounds, window.MonitorBounds))
+                {
+                    continue;
+                }
+
+                results[groupId] = ResolveWindowProcessName(window.Handle);
+            }
+
+            return results;
+        }
+
+        private static string ResolveWindowProcessName(IntPtr handle)
+        {
+            _ = NativeMethods.GetWindowThreadProcessId(handle, out var processId);
+            if (processId == 0)
+            {
+                return "Unknown";
+            }
+
+            try
+            {
+                using var process = Process.GetProcessById((int)processId);
+                return process.ProcessName;
+            }
+            catch (ArgumentException)
+            {
+                return $"PID:{processId}";
+            }
+            catch (InvalidOperationException)
+            {
+                return $"PID:{processId}";
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                return $"PID:{processId}";
+            }
+        }
+
+        private static void LogSuppressionStateTransition(string groupId, string monitorBounds, bool isSuppressed, string appName)
+        {
+            if (LastSuppressionStateByGroup.TryGetValue(groupId, out var lastState) && lastState.IsSuppressed == isSuppressed)
+            {
+                return;
+            }
+
+            var previousAppName = lastState.AppName;
+            LastSuppressionStateByGroup[groupId] = (isSuppressed, appName);
+            var message = isSuppressed
+                ? $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Suppressed FullscreenApp={appName} Behavior=Bars stay behind fullscreen app."
+                : $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Normal FullscreenApp={(!string.IsNullOrWhiteSpace(previousAppName) ? previousAppName : appName)} Behavior=Fullscreen closed; bars restored.";
+            _ = EventLogSinkAsync?.Invoke(message);
+        }
+
 
         private static HashSet<IntPtr> SnapshotOwnWindowHandles()
         {
