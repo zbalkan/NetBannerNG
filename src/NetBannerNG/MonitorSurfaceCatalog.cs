@@ -18,6 +18,8 @@ namespace NetBannerNG
 
     internal sealed class MonitorSurfaceCatalog : IMonitorSurfaceCatalog
     {
+        internal delegate DisplayOverlayOrchestrator.MonitorSurfaceSet SurfaceSetFactory(Monitor monitor, bool clean);
+
         private static class EventIds
         {
             internal const int GroupRemoveFailure = 4104;
@@ -26,12 +28,19 @@ namespace NetBannerNG
         }
 
         private readonly IMonitorIdentity _monitorIdentity;
+        private readonly SurfaceSetFactory _surfaceSetFactory;
         private readonly Dictionary<string, DisplayOverlayOrchestrator.MonitorSurfaceSet> _surfaces = new(StringComparer.Ordinal);
         private readonly object _sync = new();
 
         internal MonitorSurfaceCatalog(IMonitorIdentity monitorIdentity)
+            : this(monitorIdentity, (monitor, clean) => new DisplayOverlayOrchestrator.MonitorSurfaceSet(monitor, clean))
+        {
+        }
+
+        internal MonitorSurfaceCatalog(IMonitorIdentity monitorIdentity, SurfaceSetFactory surfaceSetFactory)
         {
             _monitorIdentity = monitorIdentity;
+            _surfaceSetFactory = surfaceSetFactory;
         }
 
         public List<DisplayOverlayOrchestrator.MonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean)
@@ -94,7 +103,7 @@ namespace NetBannerNG
 
                 try
                 {
-                    var createdGroup = new DisplayOverlayOrchestrator.MonitorSurfaceSet(monitor, clean);
+                    var createdGroup = _surfaceSetFactory(monitor, clean);
                     lock (_sync)
                     {
                         _surfaces[groupId] = createdGroup;

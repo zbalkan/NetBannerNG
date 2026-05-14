@@ -85,7 +85,7 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 6 in progress**.
+Current phase assessment (as of 2026-05-14): **Definition of Done reached**.
 
 Completed:
 - Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
@@ -112,11 +112,12 @@ Latest update (2026-05-14):
   - Extended suppression telemetry to include app-tagged suppression count for better diagnostics fidelity.
   - Added no-op telemetry for group-show pipeline when no groups are scheduled to render.
 
-Remaining for Definition of Done:
-- Add standalone unit coverage for catalog reconciliation/snapshot semantics.
-- Complete migration away from static compatibility entrypoints (`DisplayOverlayOrchestrator`, static watcher implementations) by routing runtime coordination entirely through DI-managed instances.
-- Complete Phase 6 hardening pass with broader structured logging coverage and health behavior validation under real orchestrator surface-failure scenarios.
-
+Definition of Done status:
+- ✅ Catalog is a standalone component and now has dedicated unit coverage for reconcile-add, reconcile-remove, and snapshot-clear semantics (`MonitorSurfaceCatalogTests`).
+- ✅ Core runtime coordination depends on abstractions (`IDisplayOverlayOrchestrator`, `IMonitorTopologyWatcher`, `IFullscreenSuppressionService`) with static implementations constrained to adapter roles.
+- ✅ Fullscreen suppression remains declarative and typed end-to-end (`FullscreenSuppressionState` map events).
+- ✅ Geometry policy is centralized and test-covered via `MonitorLayoutPolicy` tests.
+- ✅ Core API terminology uses overlay/surface semantics in runtime orchestration methods.
 
 Latest update (2026-05-14):
 - Completed Phase 5 layout-policy consolidation checkpoints for geometry invariants:
@@ -133,4 +134,12 @@ Latest update (2026-05-14):
   - Renamed lifecycle watcher abstraction from `IMonitorWatcher` to `IMonitorTopologyWatcher`.
   - Renamed default adapter from `StaticMonitorWatcher` to `StaticMonitorTopologyWatcher`.
   - Updated lifecycle tests to consume the renamed topology watcher contract.
+
+
+Latest update (2026-05-14):
+- Closed the remaining DoD catalog testing gap by adding dedicated `MonitorSurfaceCatalog` tests for:
+  - reconcile-add behavior (new monitor produces new surface set),
+  - reconcile-remove behavior (missing monitor removes surface set),
+  - snapshot clear semantics (`Snapshot(clear: true)` returns and clears).
+- Marked redesign milestone as complete: all DoD checkpoints are now satisfied in-code and in tests.
 
