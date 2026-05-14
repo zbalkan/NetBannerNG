@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System;
+using System.ComponentModel;
+using System.Windows;
 using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
@@ -12,7 +14,46 @@ namespace NetBannerNG.Borders
 
         protected abstract void ReadSettings();
 
+        protected void RenderWindow(bool needsResize, Action layoutAction)
+        {
+            ReadSettings();
+            if (!needsResize)
+            {
+                return;
+            }
+
+            layoutAction();
+        }
+
+        protected void RefreshSettings()
+        {
+            Settings.Instance.Refresh();
+            DataContext = Settings.Instance;
+        }
+
+        protected static double CalculateFontSize(
+            double barHeight,
+            double topMargin,
+            double bottomMargin,
+            double minFontSize = 8,
+            double maxFontSize = 72,
+            double fontScale = 0.8)
+        {
+            var usableHeight = Math.Max(0, barHeight - topMargin - bottomMargin);
+            var fontSize = usableHeight * fontScale;
+
+            return Math.Max(minFontSize, Math.Min(maxFontSize, fontSize));
+        }
+
         internal void ApplyPostDockVisualState() => this.HideFromTaskBar();
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            Width = 0;
+            Height = 0;
+            this.Undock();
+            base.OnClosing(e);
+        }
 
         /// <summary>
         /// <para>    Base event for Window_Loaded event. Override this way:</para>
