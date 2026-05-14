@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 using System.Windows;
 using System.Windows.Threading;
 using NetBannerNG.Common.AppBar;
@@ -154,7 +155,9 @@ namespace NetBannerNG.Utils
                     continue;
                 }
 
-                results[groupId] = ResolveWindowProcessName(window.Handle);
+                var processName = ResolveWindowProcessName(window.Handle);
+                Debug.WriteLine($"[Fullscreen][Candidate] Group={groupId} HWND={window.Handle} Class={GetClassNameSafe(window.Handle)} Process={processName} Bounds={window.Bounds} Monitor={window.MonitorBounds}");
+                results[groupId] = processName;
             }
 
             return results;
@@ -226,7 +229,7 @@ namespace NetBannerNG.Utils
             var current = NativeMethods.GetTopWindow(IntPtr.Zero);
             while (current != IntPtr.Zero)
             {
-                if (IsValid(current))
+                if (IsValid(current) && ShouldConsiderForFullscreen(current))
                 {
                     var monitorBounds = Monitor.GetMonitorBounds(current);
                     var windowBounds = GetWindowBounds(current);
@@ -237,6 +240,55 @@ namespace NetBannerNG.Utils
             }
 
             return windows;
+        }
+
+
+        private static bool ShouldConsiderForFullscreen(IntPtr windowHandle)
+        {
+            if (windowHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            if (IsShellOrDesktopWindow(windowHandle))
+            {
+                Debug.WriteLine($"[Fullscreen][Ignore] HWND={windowHandle} Reason=ShellOrDesktop Class={GetClassNameSafe(windowHandle)}");
+                return false;
+            }
+
+            if (!NativeMethods.IsWindowVisible(windowHandle) || NativeMethods.IsIconic(windowHandle))
+            {
+                return false;
+            }
+
+            const int dwmaCloaked = 14;
+            if (NativeMethods.DwmGetWindowAttribute(windowHandle, dwmaCloaked, out int isCloaked, sizeof(int)) == 0 && isCloaked != 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsShellOrDesktopWindow(IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero || hwnd == DesktopHandle || hwnd == ShellHandle || hwnd == TaskbarHandle)
+            {
+                return true;
+            }
+
+            var className = GetClassNameSafe(hwnd);
+            return string.Equals(className, "Progman", StringComparison.Ordinal)
+                || string.Equals(className, "WorkerW", StringComparison.Ordinal)
+                || string.Equals(className, "SHELLDLL_DefView", StringComparison.Ordinal)
+                || string.Equals(className, "Shell_TrayWnd", StringComparison.Ordinal)
+                || string.Equals(className, "Shell_SecondaryTrayWnd", StringComparison.Ordinal);
+        }
+
+        private static string GetClassNameSafe(IntPtr hwnd)
+        {
+            var builder = new StringBuilder(256);
+            return NativeMethods.GetClassName(hwnd, builder, builder.Capacity) > 0 ? builder.ToString() : string.Empty;
         }
 
         private static MonitorRect GetWindowBounds(IntPtr current)
@@ -253,7 +305,7 @@ namespace NetBannerNG.Utils
             }
 
             MonitorRect bounds;
-            if (NativeMethods.DwmGetWindowAttribute(current, dwmaExtendedFrameBounds, out var dwmBounds, System.Runtime.InteropServices.Marshal.SizeOf<MonitorRect>()) == 0)
+            if (NativeMethods.DwmGetWindowAttribute(current, dwmaExtendedFrameBounds, out MonitorRect dwmBounds, System.Runtime.InteropServices.Marshal.SizeOf<MonitorRect>()) == 0)
             {
                 bounds = dwmBounds;
             }
