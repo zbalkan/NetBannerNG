@@ -105,6 +105,13 @@ Latest update (2026-05-14):
   - Added shutdown telemetry event for close-all transitions.
 - Added health-policy stress coverage with deterministic repeated disable/cooldown cycles in `GroupHealthPolicyTests`.
 
+Latest update (2026-05-14):
+- Continued Phase 6 hardening with additional structured orchestrator diagnostics:
+  - Added explicit refresh skip telemetry when shutdown is already in progress.
+  - Added shutdown-begin telemetry capturing catalog size and initiation state.
+  - Extended suppression telemetry to include app-tagged suppression count for better diagnostics fidelity.
+  - Added no-op telemetry for group-show pipeline when no groups are scheduled to render.
+
 Remaining for Definition of Done:
 - Add standalone unit coverage for catalog reconciliation/snapshot semantics.
 - Complete migration away from static compatibility entrypoints (`DisplayOverlayOrchestrator`, static watcher implementations) by routing runtime coordination entirely through DI-managed instances.

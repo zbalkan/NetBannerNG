@@ -54,6 +54,7 @@ namespace NetBannerNG.Services
         {
             if (_shutdownInProgress)
             {
+                Debug.WriteLine("[EVT:4207][OverlayOrchestrator][Refresh][Skipped] Reason=ShutdownInProgress");
                 return;
             }
 
@@ -64,7 +65,11 @@ namespace NetBannerNG.Services
             _isInitiated = _surfaceCatalog.Count > 0;
         }
 
-        public void BeginShutdown() => _shutdownInProgress = true;
+        public void BeginShutdown()
+        {
+            _shutdownInProgress = true;
+            Debug.WriteLine($"[EVT:4208][OverlayOrchestrator][Shutdown][Begin] CatalogCount={_surfaceCatalog.Count} Initiated={_isInitiated}");
+        }
 
         public void CloseAllSurfaces()
         {
@@ -80,7 +85,8 @@ namespace NetBannerNG.Services
         public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
         {
             var suppressedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed);
-            Debug.WriteLine($"[EVT:4204][OverlayOrchestrator][Suppression][Apply] Updates={suppressionByGroup.Count} Suppressed={suppressedCount}");
+            var appTaggedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed && !string.IsNullOrWhiteSpace(kv.Value.AppName));
+            Debug.WriteLine($"[EVT:4204][OverlayOrchestrator][Suppression][Apply] Updates={suppressionByGroup.Count} Suppressed={suppressedCount} Tagged={appTaggedCount}");
             foreach (var group in _surfaceCatalog.Snapshot())
             {
                 var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var state) && state.IsSuppressed;
@@ -92,6 +98,11 @@ namespace NetBannerNG.Services
         private void ShowGroups(IEnumerable<DisplayOverlayOrchestrator.MonitorSurfaceSet> groups)
         {
             var orderedGroups = groups.OrderByDescending(g => g.Monitor.IsPrimary).ThenBy(g => g.Monitor.Bounds.Y).ThenBy(g => g.Monitor.Bounds.X).ToList();
+            if (orderedGroups.Count == 0)
+            {
+                Debug.WriteLine("[EVT:4209][OverlayOrchestrator][ShowGroups][NoOp] Reason=NoGroups");
+                return;
+            }
             var stopwatch = Stopwatch.StartNew();
             long firstBannerShownAtMs = -1;
 
