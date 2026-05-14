@@ -4,6 +4,33 @@ using NetBannerNG.Utils;
 
 namespace NetBannerNG.Services
 {
+    internal interface IForegroundWindowWatcher
+    {
+        event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated;
+        Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync { get; set; }
+        void Watch();
+        void Unwatch();
+    }
+
+    internal sealed class StaticForegroundWindowWatcher : IForegroundWindowWatcher
+    {
+        public event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated
+        {
+            add => WindowWatcher.FullscreenSuppressionUpdated += value;
+            remove => WindowWatcher.FullscreenSuppressionUpdated -= value;
+        }
+
+        public Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync
+        {
+            get => WindowWatcher.EventLogSinkAsync;
+            set => WindowWatcher.EventLogSinkAsync = value;
+        }
+
+        public void Watch() => WindowWatcher.Watch();
+
+        public void Unwatch() => WindowWatcher.Unwatch();
+    }
+
     internal interface IFullscreenSuppressionService
     {
         event Action<IReadOnlyDictionary<string, bool>>? SuppressionUpdated;
@@ -13,24 +40,36 @@ namespace NetBannerNG.Services
 
     internal sealed class FullscreenSuppressionService : IFullscreenSuppressionService
     {
+        private readonly IForegroundWindowWatcher _foregroundWindowWatcher;
+
+        internal FullscreenSuppressionService()
+            : this(new StaticForegroundWindowWatcher())
+        {
+        }
+
+        internal FullscreenSuppressionService(IForegroundWindowWatcher foregroundWindowWatcher)
+        {
+            _foregroundWindowWatcher = foregroundWindowWatcher;
+        }
+
         internal Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync
         {
-            get => WindowWatcher.EventLogSinkAsync;
-            set => WindowWatcher.EventLogSinkAsync = value;
+            get => _foregroundWindowWatcher.EventLogSinkAsync;
+            set => _foregroundWindowWatcher.EventLogSinkAsync = value;
         }
 
         public event Action<IReadOnlyDictionary<string, bool>>? SuppressionUpdated;
 
         public void Start()
         {
-            WindowWatcher.FullscreenSuppressionUpdated += OnFullscreenSuppressionUpdated;
-            WindowWatcher.Watch();
+            _foregroundWindowWatcher.FullscreenSuppressionUpdated += OnFullscreenSuppressionUpdated;
+            _foregroundWindowWatcher.Watch();
         }
 
         public void Stop()
         {
-            WindowWatcher.FullscreenSuppressionUpdated -= OnFullscreenSuppressionUpdated;
-            WindowWatcher.Unwatch();
+            _foregroundWindowWatcher.FullscreenSuppressionUpdated -= OnFullscreenSuppressionUpdated;
+            _foregroundWindowWatcher.Unwatch();
         }
 
         private void OnFullscreenSuppressionUpdated(IReadOnlyDictionary<string, bool> suppressionByGroup) =>
