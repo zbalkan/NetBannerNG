@@ -30,10 +30,10 @@ namespace NetBannerNG.Utils
             IEnumerable<WindowSnapshot> windows)
         {
             var boundsGroupToActualGroup = monitors.ToDictionary(
-                monitor => BorderManager.BuildGroupId(string.Empty, monitor.Bounds),
-                BorderManager.BuildGroupId,
+                monitor => MonitorIdentity.BuildGroupId(string.Empty, monitor.Bounds),
+                MonitorIdentity.BuildGroupId,
                 StringComparer.Ordinal);
-            var groups = monitors.Select(BorderManager.BuildGroupId).ToHashSet(StringComparer.Ordinal);
+            var groups = monitors.Select(MonitorIdentity.BuildGroupId).ToHashSet(StringComparer.Ordinal);
             return EvaluateByGroup(groups, boundsGroupToActualGroup, ownWindowHandles, windows);
         }
 
@@ -53,7 +53,7 @@ namespace NetBannerNG.Utils
                     continue;
                 }
 
-                var boundsGroupId = BorderManager.BuildGroupId(string.Empty, (System.Windows.Rect)window.MonitorBounds);
+                var boundsGroupId = MonitorIdentity.BuildGroupId(string.Empty, (System.Windows.Rect)window.MonitorBounds);
                 if (!boundsGroupToActualGroup.TryGetValue(boundsGroupId, out var groupId) || resolvedGroups.Contains(groupId))
                 {
                     continue;

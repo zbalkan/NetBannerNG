@@ -5,9 +5,10 @@ using System.Linq;
 using System.Windows;
 using NetBannerNG.Borders;
 using NetBannerNG.Common;
-using Monitor = NetBannerNG.Common.Monitor;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Services;
+using NetBannerNG.Utils;
+using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG
 {
@@ -303,7 +304,7 @@ namespace NetBannerNG
 
             private string BuildMessageKey(string borderType) => $"NetBannerNG-AppBar-{borderType}-{_monitorIdentity}";
 
-            private static string BuildMonitorIdentity(Monitor monitor) => BuildGroupId(monitor.Name, monitor.Bounds);
+            private static string BuildMonitorIdentity(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor.Name, monitor.Bounds);
         }
 
         internal static void Init(bool clean = true)
@@ -365,7 +366,7 @@ namespace NetBannerNG
 
         internal static void SetMonitorFullscreenSuppressedState(Monitor monitor, bool isFullscreen)
         {
-            var groupId = BuildGroupId(monitor);
+            var groupId = MonitorIdentity.BuildGroupId(monitor);
             MonitorSurfaceSet? group;
             lock (MonitorSurfacesSync)
             {
@@ -457,7 +458,7 @@ namespace NetBannerNG
         {
             var nextMonitors = monitors.ToList();
             var nextIds = nextMonitors
-                .Select(BuildGroupId)
+                .Select(MonitorIdentity.BuildGroupId)
                 .ToHashSet(StringComparer.Ordinal);
             var groupsToShow = new List<MonitorSurfaceSet>();
 
@@ -553,16 +554,8 @@ namespace NetBannerNG
             }
         }
 
-        public static string BuildGroupId(Monitor monitor) => BuildGroupId(monitor.Name, monitor.Bounds);
+        public static string BuildGroupId(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor);
 
-        public static string BuildGroupId(string monitorName, Rect bounds)
-        {
-            if (!string.IsNullOrWhiteSpace(monitorName))
-            {
-                return monitorName;
-            }
-
-            return $"{bounds.X},{bounds.Y},{bounds.Width},{bounds.Height}";
-        }
+        public static string BuildGroupId(string monitorName, Rect bounds) => MonitorIdentity.BuildGroupId(monitorName, bounds);
     }
 }

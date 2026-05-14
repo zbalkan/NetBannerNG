@@ -121,7 +121,7 @@ namespace NetBannerNG.Utils
             BeginOnUi(() => {
                 foreach (var monitor in monitors)
                 {
-                    var groupId = BorderManager.BuildGroupId(monitor);
+                    var groupId = MonitorIdentity.BuildGroupId(monitor);
                     var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
                     var appName = fullscreenAppByGroup.TryGetValue(groupId, out var app) ? app : "Unknown";
                     Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
@@ -134,8 +134,8 @@ namespace NetBannerNG.Utils
         private static Dictionary<string, string> ResolveFullscreenAppsByGroup(IReadOnlyList<Monitor> monitors, HashSet<IntPtr> ownWindowHandles, IReadOnlyList<FullscreenSuppressionEvaluator.WindowSnapshot> windows)
         {
             var boundsGroupToActualGroup = monitors.ToDictionary(
-                monitor => BorderManager.BuildGroupId(string.Empty, monitor.Bounds),
-                BorderManager.BuildGroupId,
+                monitor => MonitorIdentity.BuildGroupId(string.Empty, monitor.Bounds),
+                MonitorIdentity.BuildGroupId,
                 StringComparer.Ordinal);
             var results = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var window in windows)
@@ -145,7 +145,7 @@ namespace NetBannerNG.Utils
                     continue;
                 }
 
-                var boundsGroupId = BorderManager.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
+                var boundsGroupId = MonitorIdentity.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
                 if (!boundsGroupToActualGroup.TryGetValue(boundsGroupId, out var groupId) || results.ContainsKey(groupId))
                 {
                     continue;
