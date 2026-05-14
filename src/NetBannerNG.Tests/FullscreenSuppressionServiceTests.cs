@@ -13,15 +13,15 @@ namespace NetBannerNG.Tests
         {
             var watcher = new FakeForegroundWindowWatcher();
             var sut = new FullscreenSuppressionService(watcher);
-            IReadOnlyDictionary<string, bool>? received = null;
+            IReadOnlyDictionary<string, FullscreenSuppressionState>? received = null;
             sut.SuppressionUpdated += map => received = map;
 
             sut.Start();
-            watcher.RaiseSuppression(new Dictionary<string, bool> { ["GROUP1"] = true });
+            watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(true, "Game") });
 
             Assert.AreEqual(1, watcher.WatchCalls);
             Assert.IsNotNull(received);
-            Assert.IsTrue(received!["GROUP1"]);
+            Assert.IsTrue(received!["GROUP1"].IsSuppressed);
         }
 
         [TestMethod]
@@ -34,7 +34,7 @@ namespace NetBannerNG.Tests
 
             sut.Start();
             sut.Stop();
-            watcher.RaiseSuppression(new Dictionary<string, bool> { ["GROUP1"] = false });
+            watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(false, null) });
 
             Assert.AreEqual(1, watcher.UnwatchCalls);
             Assert.AreEqual(0, raisedCount);
@@ -42,7 +42,7 @@ namespace NetBannerNG.Tests
 
         private sealed class FakeForegroundWindowWatcher : IForegroundWindowWatcher
         {
-            public event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated;
+            public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
 
             public Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync { get; set; }
 
@@ -53,7 +53,7 @@ namespace NetBannerNG.Tests
 
             public void Unwatch() => UnwatchCalls++;
 
-            internal void RaiseSuppression(IReadOnlyDictionary<string, bool> map) =>
+            internal void RaiseSuppression(IReadOnlyDictionary<string, FullscreenSuppressionState> map) =>
                 FullscreenSuppressionUpdated?.Invoke(map);
         }
     }

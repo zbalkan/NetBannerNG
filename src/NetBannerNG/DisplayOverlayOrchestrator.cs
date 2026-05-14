@@ -332,11 +332,11 @@ namespace NetBannerNG
             }
         }
 
-        internal static void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, bool> suppressionByGroup)
+        internal static void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, Services.FullscreenSuppressionState> suppressionByGroup)
         {
             foreach (var group in SurfaceCatalog.Snapshot())
             {
-                var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var suppressed) && suppressed;
+                var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var state) && state.IsSuppressed;
                 group.SetTopMost(!isFullscreen);
                 group.SetBarsVisibility(!isFullscreen);
             }

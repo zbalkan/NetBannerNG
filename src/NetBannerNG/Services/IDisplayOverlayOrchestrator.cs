@@ -9,7 +9,7 @@ namespace NetBannerNG.Services
         void Refresh();
         void BeginShutdown();
         void CloseAllSurfaces();
-        void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, bool> suppressionByGroup);
+        void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup);
     }
 
     internal sealed class StaticDisplayOverlayOrchestrator : IDisplayOverlayOrchestrator
@@ -26,7 +26,7 @@ namespace NetBannerNG.Services
 
         public void CloseAllSurfaces() => Runtime.CloseAllSurfaces();
 
-        public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, bool> suppressionByGroup) =>
+        public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup) =>
             Runtime.ApplyFullscreenSuppressionStates(suppressionByGroup);
     }
 }

@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Threading;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
+using NetBannerNG.Services;
 using Monitor = NetBannerNG.Common.Monitor;
 using NetBannerNG.Common;
 
@@ -30,7 +31,7 @@ namespace NetBannerNG.Utils
         private static IntPtr _hookId;
         private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
         internal static Func<string, Task>? EventLogSinkAsync { get; set; }
-        internal static event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated;
+        internal static event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
 
         internal static void Watch()
         {
@@ -120,7 +121,11 @@ namespace NetBannerNG.Utils
 
             Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
             BeginOnUi(() => {
-                FullscreenSuppressionUpdated?.Invoke(fullscreenByGroup);
+                var suppressionStateByGroup = fullscreenByGroup.ToDictionary(
+                    pair => pair.Key,
+                    pair => new FullscreenSuppressionState(pair.Value, fullscreenAppByGroup.TryGetValue(pair.Key, out var appName) ? appName : null),
+                    StringComparer.Ordinal);
+                FullscreenSuppressionUpdated?.Invoke(suppressionStateByGroup);
                 foreach (var monitor in monitors)
                 {
                     var groupId = MonitorIdentity.BuildGroupId(monitor);

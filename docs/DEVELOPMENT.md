@@ -85,7 +85,7 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 5 in progress**.
+Current phase assessment (as of 2026-05-14): **Phase 5 in progress (Phase 4 completed)**.
 
 Completed:
 - Phase 1: Naming/contracts for orchestration are in place (`DisplayOverlayOrchestrator`, `MonitorSurfaceSet`) and explicit service interfaces exist for orchestrator/suppression flows.
@@ -100,5 +100,10 @@ Latest hardening in this change:
 
 Remaining for Definition of Done:
 - Add standalone unit coverage for catalog reconciliation/snapshot semantics and centralized geometry policy combinations.
-- Extend suppression payload contract to carry diagnostic metadata (e.g., app name) in a typed DTO while keeping orchestrator declarative.
 - Complete migration away from static compatibility entrypoints (`DisplayOverlayOrchestrator`, static watcher implementations) by routing runtime coordination entirely through DI-managed instances.
+
+Latest update (2026-05-14):
+- Completed Phase 4 contract hardening by making fullscreen suppression updates typed and metadata-carrying end-to-end:
+  - Added `FullscreenSuppressionState` DTO (`IsSuppressed`, `AppName`).
+  - Updated watcher/service/orchestrator interfaces to exchange `IReadOnlyDictionary<string, FullscreenSuppressionState>`.
+  - Kept orchestration declarative: runtime applies suppression states without recomputing fullscreen ownership.

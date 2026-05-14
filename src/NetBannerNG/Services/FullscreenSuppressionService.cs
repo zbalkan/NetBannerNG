@@ -6,7 +6,7 @@ namespace NetBannerNG.Services
 {
     internal interface IForegroundWindowWatcher
     {
-        event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated;
+        event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
         Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync { get; set; }
         void Watch();
         void Unwatch();
@@ -14,7 +14,7 @@ namespace NetBannerNG.Services
 
     internal sealed class StaticForegroundWindowWatcher : IForegroundWindowWatcher
     {
-        public event Action<IReadOnlyDictionary<string, bool>>? FullscreenSuppressionUpdated
+        public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated
         {
             add => WindowWatcher.FullscreenSuppressionUpdated += value;
             remove => WindowWatcher.FullscreenSuppressionUpdated -= value;
@@ -33,7 +33,7 @@ namespace NetBannerNG.Services
 
     internal interface IFullscreenSuppressionService
     {
-        event Action<IReadOnlyDictionary<string, bool>>? SuppressionUpdated;
+        event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? SuppressionUpdated;
         void Start();
         void Stop();
     }
@@ -58,7 +58,7 @@ namespace NetBannerNG.Services
             set => _foregroundWindowWatcher.EventLogSinkAsync = value;
         }
 
-        public event Action<IReadOnlyDictionary<string, bool>>? SuppressionUpdated;
+        public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? SuppressionUpdated;
 
         public void Start()
         {
@@ -72,7 +72,7 @@ namespace NetBannerNG.Services
             _foregroundWindowWatcher.Unwatch();
         }
 
-        private void OnFullscreenSuppressionUpdated(IReadOnlyDictionary<string, bool> suppressionByGroup) =>
+        private void OnFullscreenSuppressionUpdated(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup) =>
             SuppressionUpdated?.Invoke(suppressionByGroup);
     }
 }

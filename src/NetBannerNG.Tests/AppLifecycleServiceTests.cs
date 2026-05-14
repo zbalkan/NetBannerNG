@@ -18,7 +18,7 @@ namespace NetBannerNG.Tests
             var sut = new AppLifecycleService(orchestrator, suppression, monitorWatcher);
 
             await sut.InitializeRuntimeAsync();
-            suppression.RaiseSuppression(new Dictionary<string, bool> { ["DISPLAY1"] = true });
+            suppression.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["DISPLAY1"] = new FullscreenSuppressionState(true, "VideoPlayer") });
 
             CollectionAssert.AreEqual(
                 new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" },
@@ -64,7 +64,7 @@ namespace NetBannerNG.Tests
                 Calls.Add("Refresh");
             }
 
-            public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, bool> suppressionByGroup)
+            public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
             {
                 Calls.Add("ApplyFullscreenSuppressionStates");
             }
@@ -82,7 +82,7 @@ namespace NetBannerNG.Tests
 
         private sealed class FakeSuppressionService : IFullscreenSuppressionService
         {
-            public event Action<IReadOnlyDictionary<string, bool>>? SuppressionUpdated;
+            public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? SuppressionUpdated;
             internal int StartCalls { get; private set; }
             internal int StopCalls { get; private set; }
 
@@ -90,7 +90,7 @@ namespace NetBannerNG.Tests
 
             public void Stop() => StopCalls++;
 
-            internal void RaiseSuppression(IReadOnlyDictionary<string, bool> suppressionByGroup) =>
+            internal void RaiseSuppression(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup) =>
                 SuppressionUpdated?.Invoke(suppressionByGroup);
         }
 
