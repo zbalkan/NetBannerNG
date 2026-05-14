@@ -17,15 +17,21 @@ namespace NetBannerNG.Tests
             var monitorWatcher = new FakeMonitorWatcher();
             var sut = new AppLifecycleService(orchestrator, suppression, monitorWatcher);
 
-            await sut.InitializeRuntimeAsync();
-            suppression.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["DISPLAY1"] = new FullscreenSuppressionState(true, "VideoPlayer") });
-
-            CollectionAssert.AreEqual(
-                new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" },
-                orchestrator.Calls);
-            Assert.AreEqual(1, suppression.StartCalls);
-            Assert.AreEqual(1, monitorWatcher.WatchCalls);
-            Assert.IsNotNull(monitorWatcher.RefreshAction);
+            try
+            {
+                await sut.InitializeRuntimeAsync();
+                suppression.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["DISPLAY1"] = new FullscreenSuppressionState(true, "VideoPlayer") });
+                CollectionAssert.AreEqual(
+                    new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" },
+                    orchestrator.Calls);
+                Assert.AreEqual(1, suppression.StartCalls);
+                Assert.AreEqual(1, monitorWatcher.WatchCalls);
+                Assert.IsNotNull(monitorWatcher.RefreshAction);
+            }
+            finally
+            {
+                await sut.ShutdownRuntimeAsync();
+            }
         }
 
         [TestMethod]
