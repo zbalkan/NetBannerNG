@@ -3,8 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using NetBannerNG.Common.Native;
-using static NetBannerNG.Common.Native.NativeMethods;
+using static NetBannerNG.Common.Native.User32;
+using static NetBannerNG.Common.Native.Shell32;
+using static NetBannerNG.Common.Native.DwmApi;
+using static NetBannerNG.Common.Native.NativeTypes;
 
 namespace NetBannerNG.Common.AppBar
 {
@@ -181,7 +183,7 @@ namespace NetBannerNG.Common.AppBar
         private static Rect GetActualWorkArea(RegisterInfo info)
         {
             var hWnd = info.Window?.GetHandle() ?? IntPtr.Zero;
-            var cwa = Native.Monitor.GetMonitorWorkArea(hWnd);
+            var cwa = Monitor.GetMonitorWorkArea(hWnd);
 
             var wa = new Rect(new Point(cwa.Left, cwa.Top), new Point(cwa.Right, cwa.Bottom));
 

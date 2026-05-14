@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace NetBannerNG.Common.Native
+namespace NetBannerNG.Common
 {
     /// <summary>
     /// A utility class to determine a process parent.

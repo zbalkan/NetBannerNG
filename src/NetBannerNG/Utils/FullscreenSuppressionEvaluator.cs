@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using NetBannerNG.Common.Native;
+using NetBannerNG.Common;
+using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG.Utils
 {

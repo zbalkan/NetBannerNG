@@ -2,8 +2,9 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
+using NetBannerNG.Common.Native;
 
-namespace NetBannerNG.Common.Native
+namespace NetBannerNG.Common
 {
     public sealed class Monitor : IEquatable<Monitor>
     {
@@ -17,7 +18,7 @@ namespace NetBannerNG.Common.Native
             }
 
             var info = new MonitorInfoEx();
-            _ = NativeMethods.GetMonitorInfo(new HandleRef(null, monitor), info);
+            _ = User32.GetMonitorInfo(new HandleRef(null, monitor), info);
             Bounds = new Rect(
                 info.rcMonitor.Left, info.rcMonitor.Top,
                 info.rcMonitor.Right - info.rcMonitor.Left,
@@ -26,7 +27,7 @@ namespace NetBannerNG.Common.Native
                 info.rcWork.Left, info.rcWork.Top,
                 info.rcWork.Right - info.rcWork.Left,
                 info.rcWork.Bottom - info.rcWork.Top);
-            IsPrimary = (info.dwFlags & (int)NativeMethods.MonitorDefaultTo.Primary) != 0;
+            IsPrimary = (info.dwFlags & (int)NativeTypes.MonitorDefaultTo.Primary) != 0;
             Name = new string(info.szDevice).TrimEnd((char)0);
             Handle = monitor;
 
@@ -37,7 +38,7 @@ namespace NetBannerNG.Common.Native
             get {
                 var closure = new MonitorEnumCallback();
                 var proc = new MonitorEnumProc(closure.Callback);
-                _ = NativeMethods.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);
+                _ = User32.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);
                 var monitors = closure.Monitors.Cast<Monitor>().ToList();
                 if (monitors.Count > 0)
                 {
@@ -56,7 +57,7 @@ namespace NetBannerNG.Common.Native
 
         public static HandleRef GetMonitorHandleFromWindow(IntPtr hWnd)
         {
-            var ptrMonitor = NativeMethods.MonitorFromWindow(hWnd, NativeMethods.MonitorDefaultTo.Nearest);
+            var ptrMonitor = User32.MonitorFromWindow(hWnd, NativeTypes.MonitorDefaultTo.Nearest);
             return new HandleRef(null, ptrMonitor);
         }
 
@@ -64,7 +65,7 @@ namespace NetBannerNG.Common.Native
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
-            _ = NativeMethods.GetMonitorInfo(hMonitor, monitorInfoEx);
+            _ = User32.GetMonitorInfo(hMonitor, monitorInfoEx);
             return monitorInfoEx.rcWork;
         }
 
@@ -72,7 +73,7 @@ namespace NetBannerNG.Common.Native
         {
             var monitorInfoEx = new MonitorInfoEx();
             var hMonitor = GetMonitorHandleFromWindow(hWindow);
-            _ = NativeMethods.GetMonitorInfo(hMonitor, monitorInfoEx);
+            _ = User32.GetMonitorInfo(hMonitor, monitorInfoEx);
             return monitorInfoEx.rcMonitor;
         }
 
@@ -94,8 +95,8 @@ namespace NetBannerNG.Common.Native
 
         private static Monitor CreateFallbackPrimaryMonitor()
         {
-            var desktopWindow = NativeMethods.GetDesktopWindow();
-            var desktopMonitorHandle = NativeMethods.MonitorFromWindow(desktopWindow, NativeMethods.MonitorDefaultTo.Primary);
+            var desktopWindow = User32.GetDesktopWindow();
+            var desktopMonitorHandle = User32.MonitorFromWindow(desktopWindow, NativeTypes.MonitorDefaultTo.Primary);
             return new Monitor(desktopMonitorHandle, IntPtr.Zero);
         }
 

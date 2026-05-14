@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using Microsoft.Win32;
-using NetBannerNG.Common.Native;
+using NetBannerNG.Common;
 
 namespace NetBannerNG.Utils
 {
