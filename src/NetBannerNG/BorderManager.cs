@@ -124,6 +124,27 @@ namespace NetBannerNG
                 }
             }
 
+            internal void SetBarsVisibility(bool isVisible)
+            {
+                foreach (var window in _windows)
+                {
+                    if (window is not LeftBar and not RightBar and not BottomBar)
+                    {
+                        continue;
+                    }
+
+                    if (isVisible)
+                    {
+                        ShowWindowIfNeeded(window);
+                        window.Render(true);
+                    }
+                    else if (window.IsVisible)
+                    {
+                        window.Hide();
+                    }
+                }
+            }
+
             internal void Close()
             {
                 foreach (var window in _windows.ToList())
@@ -333,9 +354,25 @@ namespace NetBannerNG
             }
         }
 
-        internal static void SendTop() => SetTopMost(true);
+        internal static void SendTop() => SetFullscreenSuppressedState(isFullscreen: false);
 
-        internal static void SendBottom() => SetTopMost(false);
+        internal static void SendBottom() => SetFullscreenSuppressedState(isFullscreen: true);
+
+        internal static void SetMonitorFullscreenSuppressedState(Monitor monitor, bool isFullscreen)
+        {
+            var groupId = BuildGroupId(monitor);
+            MonitorBorderGroup? group;
+            lock (MonitorGroupsSync)
+            {
+                _ = MonitorGroups.TryGetValue(groupId, out group);
+            }
+
+            if (group != null)
+            {
+                group.SetTopMost(!isFullscreen);
+                group.SetBarsVisibility(!isFullscreen);
+            }
+        }
 
         private static void ShowGroups(IEnumerable<MonitorBorderGroup> groups)
         {
@@ -396,11 +433,12 @@ namespace NetBannerNG
             _cleanStart = true;
         }
 
-        private static void SetTopMost(bool topMost)
+        private static void SetFullscreenSuppressedState(bool isFullscreen)
         {
             foreach (var group in SnapshotMonitorGroups())
             {
-                group.SetTopMost(topMost);
+                group.SetTopMost(!isFullscreen);
+                group.SetBarsVisibility(!isFullscreen);
             }
         }
 

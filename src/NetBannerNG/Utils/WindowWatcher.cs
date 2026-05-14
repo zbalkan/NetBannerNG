@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Windows;
@@ -14,8 +15,6 @@ namespace NetBannerNG.Utils
     {
         private const int EventSystemForeground = 0x0003;
         private const int ObjectIdWindow = 0;
-        private static readonly TimeSpan ForegroundDispatchDebounce = TimeSpan.FromMilliseconds(125);
-        private static readonly long ForegroundDispatchDebounceTicks = ForegroundDispatchDebounce.Ticks;
         private static readonly object HookSync = new();
 
         private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
@@ -23,11 +22,9 @@ namespace NetBannerNG.Utils
         private static IntPtr ShellHandle => NativeMethods.GetShellWindow(); //Window handle for the shell
         private static IntPtr TaskbarHandle => NativeMethods.FindWindow("Shell_TrayWnd", null!);
         private static long _previousForegroundWindowValue;
+        private static readonly object WindowCacheSync = new();
+        private static readonly Dictionary<IntPtr, (MonitorRect Rect, long Ticks)> WindowRectCache = new();
         private static IntPtr _hookId;
-        private static long _lastDispatchTicks;
-        private static int _pendingSendTop;
-        private static int _pendingSendBottom;
-        private static DispatcherTimer? _debounceTimer;
 
         internal static void Watch()
         {
@@ -55,15 +52,6 @@ namespace NetBannerNG.Utils
                 _hookId = default;
             }
 
-            if (_debounceTimer != null)
-            {
-                _debounceTimer.Stop();
-                _debounceTimer.Tick -= OnDebounceTick;
-                _debounceTimer = null;
-            }
-
-            Interlocked.Exchange(ref _pendingSendTop, 0);
-            Interlocked.Exchange(ref _pendingSendBottom, 0);
         }
 
         private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
@@ -90,28 +78,7 @@ namespace NetBannerNG.Utils
                 return;
             }
 
-            if (!IsValid(foregroundWindowHandle))
-            {
-                return;
-            }
-
-            var windowBounds = GetWindowBounds(foregroundWindowHandle);
-
-            var isFullScreen = IsFullScreen(foregroundWindowHandle);
-            var monitorBounds = Monitor.GetMonitorBounds(foregroundWindowHandle);
-            Debug.WriteLine($"Window handle: {foregroundWindowHandle} | Full screen: {isFullScreen} | Window Bounds: {windowBounds} | Monitor bounds: {monitorBounds}");
-
-            if (isFullScreen)
-            {
-                DispatchCoalesced(sendBottom: true);
-                //var newBounds = GetModifiedFullscreenBound(foregroundWindowHandle);
-                //ResizeForegroundWindow(foregroundWindowHandle, newBounds);
-                //BorderManager.InitiateAllBorders(true, true);
-            }
-            else
-            {
-                DispatchCoalesced(sendBottom: false);
-            }
+            ApplyPerMonitorFullscreenSuppression();
         }
 
         private static bool IsValid(IntPtr windowHandle)
@@ -134,114 +101,94 @@ namespace NetBannerNG.Utils
                 return false;
             }
 
-            // if window is one of ours, ignore the calculation
+            return true;
+        }
+
+        private static void ApplyPerMonitorFullscreenSuppression()
+        {
+            var monitors = Monitor.AllMonitors.ToList();
+            var ownWindowHandles = SnapshotOwnWindowHandles();
+            var windows = SnapshotWindowsInZOrder();
+            var fullscreenByGroup = FullscreenSuppressionEvaluator.EvaluateByGroup(monitors, ownWindowHandles, windows);
+
+            Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
+            BeginOnUi(() => {
+                foreach (var monitor in monitors)
+                {
+                    var groupId = BorderManager.BuildGroupId(monitor);
+                    var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
+                    Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
+                    BorderManager.SetMonitorFullscreenSuppressedState(monitor, isFullscreen);
+                }
+            });
+        }
+
+        private static HashSet<IntPtr> SnapshotOwnWindowHandles()
+        {
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher == null)
             {
-                return false;
+                return new HashSet<IntPtr>();
             }
+
             if (dispatcher.CheckAccess())
             {
-                return !Application.Current!.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle()));
+                return Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet();
             }
 
-            return !dispatcher.Invoke(() => Application.Current!.Windows.Cast<Window>().Any(window => windowHandle.Equals(window.GetHandle())));
+            return dispatcher.Invoke(() => Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet());
         }
 
-        private static bool IsFullScreen(IntPtr current)
+        private static List<FullscreenSuppressionEvaluator.WindowSnapshot> SnapshotWindowsInZOrder()
         {
-            // Determine if the window is fullscreen
-            var windowBounds = GetWindowBounds(current);
-            var screenBounds = Monitor.GetMonitorBounds(current);
-            const double tolerance = 2.0;
-            return Math.Abs(windowBounds.Left - screenBounds.Left) <= tolerance
-                   && Math.Abs(windowBounds.Top - screenBounds.Top) <= tolerance
-                   && Math.Abs(windowBounds.Right - screenBounds.Right) <= tolerance
-                   && Math.Abs(windowBounds.Bottom - screenBounds.Bottom) <= tolerance;
+            const uint gwHwndNext = 2;
+            var windows = new List<FullscreenSuppressionEvaluator.WindowSnapshot>();
+            var current = NativeMethods.GetTopWindow(IntPtr.Zero);
+            while (current != IntPtr.Zero)
+            {
+                if (IsValid(current))
+                {
+                    var monitorBounds = Monitor.GetMonitorBounds(current);
+                    var windowBounds = GetWindowBounds(current);
+                    windows.Add(new FullscreenSuppressionEvaluator.WindowSnapshot(current, windowBounds, monitorBounds, NativeMethods.IsWindowVisible(current)));
+                }
+
+                current = NativeMethods.GetWindow(current, gwHwndNext);
+            }
+
+            return windows;
         }
 
-        private static void DispatchCoalesced(bool sendBottom)
+        private static MonitorRect GetWindowBounds(IntPtr current)
         {
             var nowTicks = DateTime.UtcNow.Ticks;
-            while (true)
+            const long cacheTicks = TimeSpan.TicksPerMillisecond * 200;
+            const int dwmaExtendedFrameBounds = 9;
+            lock (WindowCacheSync)
             {
-                var lastTicks = Interlocked.Read(ref _lastDispatchTicks);
-                var elapsedTicks = nowTicks - lastTicks;
-                if (elapsedTicks >= ForegroundDispatchDebounceTicks)
+                if (WindowRectCache.TryGetValue(current, out var cached) && nowTicks - cached.Ticks <= cacheTicks)
                 {
-                    if (Interlocked.CompareExchange(ref _lastDispatchTicks, nowTicks, lastTicks) != lastTicks)
-                    {
-                        continue;
-                    }
-
-                    BeginOnUi(sendBottom ? BorderManager.SendBottom : BorderManager.SendTop);
-                    return;
+                    return cached.Rect;
                 }
-
-                if (sendBottom)
-                {
-                    Interlocked.Exchange(ref _pendingSendBottom, 1);
-                }
-                else
-                {
-                    Interlocked.Exchange(ref _pendingSendTop, 1);
-                }
-
-                var remainingTicks = Math.Max(1, ForegroundDispatchDebounceTicks - elapsedTicks);
-                StartOrResetDebounceTimer(TimeSpan.FromTicks(remainingTicks));
-                return;
             }
+
+            MonitorRect bounds;
+            if (NativeMethods.DwmGetWindowAttribute(current, dwmaExtendedFrameBounds, out var dwmBounds, System.Runtime.InteropServices.Marshal.SizeOf<MonitorRect>()) == 0)
+            {
+                bounds = dwmBounds;
+            }
+            else
+            {
+                _ = NativeMethods.GetWindowRect(current, out var appBounds);
+                bounds = appBounds;
+            }
+            lock (WindowCacheSync)
+            {
+                WindowRectCache[current] = (bounds, nowTicks);
+            }
+
+            return bounds;
         }
-
-        private static void StartOrResetDebounceTimer(TimeSpan dueIn)
-        {
-            var dispatcher = Application.Current?.Dispatcher;
-            if (dispatcher == null)
-            {
-                return;
-            }
-
-            _debounceTimer ??= new DispatcherTimer(DispatcherPriority.Background, dispatcher);
-            _debounceTimer.Stop();
-            _debounceTimer.Interval = dueIn;
-            _debounceTimer.Tick -= OnDebounceTick;
-            _debounceTimer.Tick += OnDebounceTick;
-            _debounceTimer.Start();
-        }
-
-        private static void OnDebounceTick(object? sender, EventArgs e)
-        {
-            if (_debounceTimer != null)
-            {
-                _debounceTimer.Stop();
-                _debounceTimer.Tick -= OnDebounceTick;
-            }
-
-            var dispatchBottom = Interlocked.Exchange(ref _pendingSendBottom, 0) == 1;
-            var dispatchTop = Interlocked.Exchange(ref _pendingSendTop, 0) == 1;
-            Interlocked.Exchange(ref _lastDispatchTicks, DateTime.UtcNow.Ticks);
-
-            if (!dispatchBottom && !dispatchTop)
-            {
-                return;
-            }
-
-            if (dispatchBottom)
-            {
-                BeginOnUi(BorderManager.SendBottom);
-            }
-            if (dispatchTop)
-            {
-                BeginOnUi(BorderManager.SendTop);
-            }
-        }
-
-        private static Rect GetWindowBounds(IntPtr current)
-        {
-            _ = NativeMethods.GetWindowRect(current, out var appBounds);
-            return (Rect)(appBounds);
-        }
-
         private static void BeginOnUi(Action action)
         {
             var dispatcher = Application.Current?.Dispatcher;
