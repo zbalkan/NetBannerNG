@@ -104,7 +104,7 @@ namespace NetBannerNG
 
             if (message.Length > MaxMessageTextLength)
             {
-                message = message[..MaxMessageTextLength];
+                message = message.Substring(0, MaxMessageTextLength);
             }
 
             try
