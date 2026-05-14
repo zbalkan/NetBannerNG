@@ -94,7 +94,7 @@ namespace NetBannerNG
                 {
                     try
                     {
-                        ApplyMonitorBounds(window, monitor);
+                        MonitorLayoutPolicy.ApplyMonitorBounds(window, monitor);
                         window.Render(true);
                         _healthPolicy.RecordSuccess();
                     }
@@ -199,24 +199,6 @@ namespace NetBannerNG
                 window.Show();
             }
 
-            private static void ApplyMonitorBounds(BorderBase window, Monitor monitor)
-            {
-                window.Top = monitor.Bounds.Top;
-                window.Left = monitor.Bounds.Left;
-
-                switch (window)
-                {
-                    case Banner or BottomBanner:
-                        window.Width = monitor.Bounds.Width;
-                        break;
-
-                    case LeftBar or RightBar:
-                        window.Top = monitor.Bounds.Top + Settings.Instance.BannerSize;
-                        window.Height = Math.Max(1, monitor.Bounds.Height - Settings.Instance.BannerSize - Settings.Instance.BorderSize);
-                        break;
-                }
-            }
-
             private void MarkFailure(string stage, string windowType, Exception ex)
             {
                 _healthPolicy.RecordFailure(DateTime.UtcNow);
@@ -277,8 +259,8 @@ namespace NetBannerNG
                     yield break;
                 }
 
-                var initialVerticalTop = Monitor.Bounds.Top + Settings.Instance.BannerSize;
-                var initialVerticalHeight = Math.Max(1, Monitor.Bounds.Height - Settings.Instance.BannerSize - Settings.Instance.BorderSize);
+                var initialVerticalTop = MonitorLayoutPolicy.GetVerticalTop(Monitor);
+                var initialVerticalHeight = MonitorLayoutPolicy.GetVerticalHeight(Monitor);
 
                 yield return new LeftBar
                 {
