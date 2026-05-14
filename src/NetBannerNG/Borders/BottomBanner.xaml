@@ -4,7 +4,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:borders="clr-namespace:NetBannerNG.Borders"
     Title="BottomBanner"
-    Closing="BorderBase_Closing"
     ResizeMode="NoResize"
     ScrollViewer.CanContentScroll="False"
     ScrollViewer.HorizontalScrollBarVisibility="Hidden"

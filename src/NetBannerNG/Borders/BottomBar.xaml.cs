@@ -12,16 +12,8 @@ namespace NetBannerNG.Borders
             InitializeComponent();
         }
 
-        internal override void Render(bool needsResize = false)
-        {
-            ReadSettings();
-            if (!needsResize)
-            {
-                return;
-            }
-
-            this.DockBottom();
-        }
+        internal override void Render(bool needsResize = false) =>
+            RenderWindow(needsResize, () => this.DockBottom());
 
         protected override void ReadSettings()
         {
@@ -29,11 +21,5 @@ namespace NetBannerNG.Borders
             Height = Settings.Instance.BorderSize;
         }
 
-        private void BorderBase_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            Width = 0;
-            Height = 0;
-            this.Undock();
-        }
     }
 }
