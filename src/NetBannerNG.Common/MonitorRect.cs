@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 
-namespace NetBannerNG.Common.Native
+namespace NetBannerNG.Common
 {
     [StructLayout(LayoutKind.Sequential)]
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]

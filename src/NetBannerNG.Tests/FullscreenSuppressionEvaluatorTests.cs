@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetBannerNG.Common.Native;
+using NetBannerNG.Common;
 using NetBannerNG.Utils;
 
 namespace NetBannerNG.Tests

@@ -4,8 +4,9 @@ using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using NetBannerNG.Common.Native;
 
-namespace NetBannerNG.Common.Native
+namespace NetBannerNG.Common
 {
     public static class ProcessHelper
     {
@@ -46,7 +47,7 @@ namespace NetBannerNG.Common.Native
         public static void Protect()
         {
             // Get the current process handle
-            var hProcess = NativeMethods.GetCurrentProcess();
+            var hProcess = Kernel32.GetCurrentProcess();
             // Read the DACL
             var dacl = GetProcessSecurityDescriptor(hProcess);
 
@@ -69,7 +70,7 @@ namespace NetBannerNG.Common.Native
             }
 
             // Get the current process handle
-            var hProcess = NativeMethods.GetCurrentProcess();
+            var hProcess = Kernel32.GetCurrentProcess();
             // Read the DACL
             var dacl = GetProcessSecurityDescriptor(hProcess);
 
@@ -107,7 +108,7 @@ namespace NetBannerNG.Common.Native
 
             var hToken = IntPtr.Zero;
 
-            var token = NativeMethods.OpenProcessToken(process.Handle, TokenAccessRights.TokenQuery |
+            var token = Advapi32.OpenProcessToken(process.Handle, TokenAccessRights.TokenQuery |
                                                                       TokenAccessRights.TokenImpersonate |
                                                                       TokenAccessRights.TokenDuplicate, ref hToken) == 0
                 ? throw new SecurityException($"Failed to access the token of the owner of {process.ProcessName}")
@@ -124,13 +125,13 @@ namespace NetBannerNG.Common.Native
 
             var psd = Array.Empty<byte>();
             // Call with 0 size to obtain the actual size needed in bufSizeNeeded
-            _ = NativeMethods.GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd, 0, out var bufSizeNeeded);
+            _ = Advapi32.GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd, 0, out var bufSizeNeeded);
             if (bufSizeNeeded > short.MaxValue)
             {
                 throw new Win32Exception();
             }
             // Allocate the required bytes and obtain the DACL
-            if (!NativeMethods.GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd = new byte[bufSizeNeeded], bufSizeNeeded, out _))
+            if (!Advapi32.GetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, psd = new byte[bufSizeNeeded], bufSizeNeeded, out _))
             {
                 throw new Win32Exception();
             }
@@ -147,7 +148,7 @@ namespace NetBannerNG.Common.Native
 
             var pSecurityDescriptor = new byte[dacl.BinaryLength];
             dacl.GetBinaryForm(pSecurityDescriptor, 0);
-            if (!NativeMethods.SetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, pSecurityDescriptor))
+            if (!Advapi32.SetKernelObjectSecurity(processHandle, DACL_SECURITY_INFORMATION, pSecurityDescriptor))
             {
                 throw new Win32Exception();
             }
@@ -272,7 +273,7 @@ namespace NetBannerNG.Common.Native
             }
 
             var parentProcessUtil = new ParentProcessUtilities();
-            var status = NativeMethods.NtQueryInformationProcess(handle, 0, ref parentProcessUtil, Marshal.SizeOf(parentProcessUtil), out _);
+            var status = NtDll.NtQueryInformationProcess(handle, 0, ref parentProcessUtil, Marshal.SizeOf(parentProcessUtil), out _);
             if (status != 0)
             {
                 throw new Win32Exception(status);

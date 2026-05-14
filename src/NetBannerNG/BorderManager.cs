@@ -4,8 +4,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using NetBannerNG.Borders;
+using NetBannerNG.Common;
+using Monitor = NetBannerNG.Common.Monitor;
 using NetBannerNG.Common.AppBar;
-using NetBannerNG.Common.Native;
 using NetBannerNG.Services;
 
 namespace NetBannerNG

@@ -4,7 +4,8 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
-using static NetBannerNG.Common.Native.NativeMethods;
+using static NetBannerNG.Common.Native.User32;
+using static NetBannerNG.Common.Native.Kernel32;
 
 namespace NetBannerNG.Utils
 {

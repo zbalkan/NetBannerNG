@@ -1,4 +1,4 @@
-﻿namespace NetBannerNG.Common.Native
+﻿namespace NetBannerNG.Common
 {
     [System.Flags]
     internal enum TokenAccessRights

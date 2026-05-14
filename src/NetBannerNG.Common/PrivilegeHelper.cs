@@ -65,16 +65,16 @@ namespace NetBannerNG.Common
         public static bool GetActiveUser(out WindowsIdentity? user)
         {
             var session = GetActiveSessionId();
-            if (!NativeMethods.WTSQueryUserToken(session, out var userToken))
+            if (!Wtsapi32.WTSQueryUserToken(session, out var userToken))
             {
                 Debug.WriteLine($"Failed to query user token (Error no: {Marshal.GetLastWin32Error()})");
                 user = null;
-                NativeMethods.CloseHandle(userToken);
+                Kernel32.CloseHandle(userToken);
                 return false;
             }
 
             user = new WindowsIdentity(userToken);
-            NativeMethods.CloseHandle(userToken);
+            Kernel32.CloseHandle(userToken);
             return true;
         }
 
@@ -137,14 +137,14 @@ namespace NetBannerNG.Common
         [CLSCompliant(false)]
         public static uint GetInteractiveSessionId()
         {
-            var id = NativeMethods.WTSGetActiveConsoleSessionId();
+            var id = Kernel32.WTSGetActiveConsoleSessionId();
             if (id != 0xFFFFFFFF && id != 0)
             {
                 return id;
             }
 
-            var processId = NativeMethods.GetCurrentProcessId();
-            if (NativeMethods.ProcessIdToSessionId(processId, out var current) && current != 0)
+            var processId = Kernel32.GetCurrentProcessId();
+            if (Kernel32.ProcessIdToSessionId(processId, out var current) && current != 0)
             {
                 return current;
             }

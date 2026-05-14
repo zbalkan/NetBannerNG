@@ -9,7 +9,8 @@ using System.Windows;
 using System.Windows.Threading;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
-using Monitor = NetBannerNG.Common.Native.Monitor;
+using Monitor = NetBannerNG.Common.Monitor;
+using NetBannerNG.Common;
 
 namespace NetBannerNG.Utils
 {
@@ -19,10 +20,10 @@ namespace NetBannerNG.Utils
         private const int ObjectIdWindow = 0;
         private static readonly object HookSync = new();
 
-        private static readonly NativeMethods.WinEventHook ForegroundWindowHook = HookCallback;
-        private static IntPtr DesktopHandle => NativeMethods.GetDesktopWindow(); //Window handle for the desktop
-        private static IntPtr ShellHandle => NativeMethods.GetShellWindow(); //Window handle for the shell
-        private static IntPtr TaskbarHandle => NativeMethods.FindWindow("Shell_TrayWnd", null!);
+        private static readonly NativeTypes.WinEventHook ForegroundWindowHook = HookCallback;
+        private static IntPtr DesktopHandle => User32.GetDesktopWindow(); //Window handle for the desktop
+        private static IntPtr ShellHandle => User32.GetShellWindow(); //Window handle for the shell
+        private static IntPtr TaskbarHandle => User32.FindWindow("Shell_TrayWnd", null!);
         private static long _previousForegroundWindowValue;
         private static readonly object WindowCacheSync = new();
         private static readonly Dictionary<IntPtr, (MonitorRect Rect, long Ticks)> WindowRectCache = new();
@@ -52,20 +53,20 @@ namespace NetBannerNG.Utils
                     return;
                 }
 
-                _ = NativeMethods.UnhookWinEvent(_hookId);
+                _ = User32.UnhookWinEvent(_hookId);
                 _hookId = default;
             }
             LastSuppressionStateByGroup.Clear();
         }
 
-        private static IntPtr SetHook(NativeMethods.WinEventHook hookProc) => NativeMethods.SetWinEventHook(
+        private static IntPtr SetHook(NativeTypes.WinEventHook hookProc) => User32.SetWinEventHook(
                 EventSystemForeground,
                 EventSystemForeground,
                 IntPtr.Zero,
                 hookProc,
                 0,
                 0,
-                (int)(NativeMethods.SetWinEventHookFlags.SkipOwnProcess | NativeMethods.SetWinEventHookFlags.OutOfContext));
+                (int)(NativeTypes.SetWinEventHookFlags.SkipOwnProcess | NativeTypes.SetWinEventHookFlags.OutOfContext));
 
         private static void HookCallback(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
@@ -75,7 +76,7 @@ namespace NetBannerNG.Utils
                 return;
             }
 
-            var foregroundWindowHandle = NativeMethods.GetForegroundWindow();
+            var foregroundWindowHandle = User32.GetForegroundWindow();
             var foregroundWindowValue = foregroundWindowHandle.ToInt64();
             if (Interlocked.Exchange(ref _previousForegroundWindowValue, foregroundWindowValue) == foregroundWindowValue)
             {
@@ -165,7 +166,7 @@ namespace NetBannerNG.Utils
 
         private static string ResolveWindowProcessName(IntPtr handle)
         {
-            _ = NativeMethods.GetWindowThreadProcessId(handle, out var processId);
+            _ = User32.GetWindowThreadProcessId(handle, out var processId);
             if (processId == 0)
             {
                 return "Unknown";
@@ -226,17 +227,17 @@ namespace NetBannerNG.Utils
         {
             const uint gwHwndNext = 2;
             var windows = new List<FullscreenSuppressionEvaluator.WindowSnapshot>();
-            var current = NativeMethods.GetTopWindow(IntPtr.Zero);
+            var current = User32.GetTopWindow(IntPtr.Zero);
             while (current != IntPtr.Zero)
             {
                 if (IsValid(current) && ShouldConsiderForFullscreen(current))
                 {
                     var monitorBounds = Monitor.GetMonitorBounds(current);
                     var windowBounds = GetWindowBounds(current);
-                    windows.Add(new FullscreenSuppressionEvaluator.WindowSnapshot(current, windowBounds, monitorBounds, NativeMethods.IsWindowVisible(current)));
+                    windows.Add(new FullscreenSuppressionEvaluator.WindowSnapshot(current, windowBounds, monitorBounds, User32.IsWindowVisible(current)));
                 }
 
-                current = NativeMethods.GetWindow(current, gwHwndNext);
+                current = User32.GetWindow(current, gwHwndNext);
             }
 
             return windows;
@@ -256,13 +257,13 @@ namespace NetBannerNG.Utils
                 return false;
             }
 
-            if (!NativeMethods.IsWindowVisible(windowHandle) || NativeMethods.IsIconic(windowHandle))
+            if (!User32.IsWindowVisible(windowHandle) || User32.IsIconic(windowHandle))
             {
                 return false;
             }
 
             const int dwmaCloaked = 14;
-            if (NativeMethods.DwmGetWindowAttribute(windowHandle, dwmaCloaked, out int isCloaked, sizeof(int)) == 0 && isCloaked != 0)
+            if (DwmApi.DwmGetWindowAttribute(windowHandle, dwmaCloaked, out int isCloaked, sizeof(int)) == 0 && isCloaked != 0)
             {
                 return false;
             }
@@ -288,7 +289,7 @@ namespace NetBannerNG.Utils
         private static string GetClassNameSafe(IntPtr hwnd)
         {
             var builder = new StringBuilder(256);
-            return NativeMethods.GetClassName(hwnd, builder, builder.Capacity) > 0 ? builder.ToString() : string.Empty;
+            return User32.GetClassName(hwnd, builder, builder.Capacity) > 0 ? builder.ToString() : string.Empty;
         }
 
         private static MonitorRect GetWindowBounds(IntPtr current)
@@ -305,13 +306,13 @@ namespace NetBannerNG.Utils
             }
 
             MonitorRect bounds;
-            if (NativeMethods.DwmGetWindowAttribute(current, dwmaExtendedFrameBounds, out MonitorRect dwmBounds, System.Runtime.InteropServices.Marshal.SizeOf<MonitorRect>()) == 0)
+            if (DwmApi.DwmGetWindowAttribute(current, dwmaExtendedFrameBounds, out MonitorRect dwmBounds, System.Runtime.InteropServices.Marshal.SizeOf<MonitorRect>()) == 0)
             {
                 bounds = dwmBounds;
             }
             else
             {
-                _ = NativeMethods.GetWindowRect(current, out var appBounds);
+                _ = User32.GetWindowRect(current, out var appBounds);
                 bounds = appBounds;
             }
             lock (WindowCacheSync)

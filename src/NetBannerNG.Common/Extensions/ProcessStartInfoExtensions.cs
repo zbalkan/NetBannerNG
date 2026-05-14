@@ -76,14 +76,14 @@ namespace NetBannerNG.Common.Extensions
             var environmentBlock = IntPtr.Zero;
             try
             {
-                if (!NativeMethods.CreateEnvironmentBlock(out environmentBlock, userToken, false))
+                if (!UserEnv.CreateEnvironmentBlock(out environmentBlock, userToken, false))
                 {
                     var envError = Marshal.GetLastWin32Error();
                     Debug.WriteLine($"Failed to create environment block for user {userIdentity.Name}. Error code: {envError}");
                     return false;
                 }
 
-                if (!NativeMethods.CreateProcessAsUser(userToken, // user token
+                if (!Advapi32.CreateProcessAsUser(userToken, // user token
                     path, // executable path
                     BuildCommandLine(path, psi.Arguments), // command line
                     ref sa, // process security attributes ( none )
@@ -107,15 +107,15 @@ namespace NetBannerNG.Common.Extensions
                 }
                 finally
                 {
-                    _ = NativeMethods.CloseHandle(processInformation.hThread);
-                    _ = NativeMethods.CloseHandle(processInformation.hProcess);
+                    _ = Kernel32.CloseHandle(processInformation.hThread);
+                    _ = Kernel32.CloseHandle(processInformation.hProcess);
                 }
             }
             finally
             {
                 if (environmentBlock != IntPtr.Zero)
                 {
-                    _ = NativeMethods.DestroyEnvironmentBlock(environmentBlock);
+                    _ = UserEnv.DestroyEnvironmentBlock(environmentBlock);
                 }
             }
         }
