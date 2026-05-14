@@ -85,7 +85,7 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Overlay redesign status
 
-Current phase assessment (as of 2026-05-14): **Phase 6 hardening in progress; redesign is not fully complete against the target architecture.**
+Current phase assessment (as of 2026-05-14): **Phase 6 hardening in progress; redesign is near-complete but not fully complete against the target architecture.**
 
 ### Why the previous DoD was insufficient
 The earlier DoD validated important progress (catalog extraction, abstraction-first lifecycle wiring, suppression DTOs, layout tests), but it did **not** fully encode Section 4 target-architecture constraints:
@@ -106,18 +106,18 @@ The redesign is complete only when **all** are true:
 
 ### Updated phase mapping
 - **Phase 0–2:** Completed (baseline characterization, naming/contracts, first-class catalog extraction).
-- **Phase 3:** Partially completed. Instance-native runtime exists (`DisplayOverlayOrchestratorRuntime`), but static compatibility pathways remain prominent and concrete monitor-set implementation remains coupled to orchestrator type.
+- **Phase 3:** Completed. Core runtime wiring is instance-based (`DisplayOverlayOrchestratorRuntime`), while static orchestration entry points are now limited to compatibility facades/adapters.
 - **Phase 4:** Completed for typed suppression payloads and declarative apply flow.
 - **Phase 5:** Substantially completed for layout-policy invariants; additional enforcement is still required to remove residual geometry policy leakage in surface creation paths.
 - **Phase 6:** In progress (telemetry/hardening continues).
 
 ### Next phase execution plan (starting now)
 To proceed safely from current state toward the redefined DoD:
-1. Extract `MonitorSurfaceSet` to a top-level component and introduce `IMonitorSurfaceSet`.
-2. Inject monitor-set factory/contracts into catalog so orchestrator runtime no longer instantiates concrete surface types directly.
-3. Reduce static `DisplayOverlayOrchestrator` to a compatibility facade over `DisplayOverlayOrchestratorRuntime` only.
-4. Add unit coverage focused on monitor-set contract behavior independent of static orchestrator.
+1. Add monitor-set focused tests that validate orchestration-facing behavior (`TryShowWindow`, suppression state transitions, and close behavior) without static orchestration dependencies.
+2. Continue hardening GroupHealthPolicy behavior under repetitive window failures and recovery windows.
+3. Preserve and verify startup rendering performance telemetry (`First Banner shown`) across refresh/reconcile transitions.
+4. Expand structured reconcile/suppression logs with test assertions where practical.
 
 ### Practical status conclusion
-- We are **after Phase 4 and within Phase 6 hardening**, with remaining architectural work centered on fully decoupling monitor-set composition from orchestrator/static types.
+- We are **after Phase 5 and within Phase 6 hardening**, with remaining work centered on hardening/observability test depth rather than major architectural boundary extraction.
 - Therefore, redesign completion should be tracked against the redefined DoD above rather than the earlier milestone language.

@@ -12,10 +12,10 @@ namespace NetBannerNG
         private static readonly IMonitorIdentity MonitorIdentityProvider = new MonitorIdentityProvider();
 
         internal static void Init(bool clean = true) => Runtime.Init(clean);
-        internal static void InitiateAllBorders() => Runtime.InitiateAllSurfaces();
+        internal static void InitiateAllSurfaces() => Runtime.InitiateAllSurfaces();
         internal static void Refresh() => Runtime.Refresh();
         internal static void BeginShutdown() => Runtime.BeginShutdown();
-        internal static void CloseAllBorders() => Runtime.CloseAllSurfaces();
+        internal static void CloseAllSurfaces() => Runtime.CloseAllSurfaces();
         internal static void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup) => Runtime.ApplyFullscreenSuppressionStates(suppressionByGroup);
 
         public static bool HasMonitorLayoutChanged(Monitor previous, Monitor next) =>
