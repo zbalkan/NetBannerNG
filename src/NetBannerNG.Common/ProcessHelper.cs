@@ -15,18 +15,23 @@ namespace NetBannerNG.Common
 
         private const string SingleInstanceMutexName = @"Local\NetBannerNG.Singleton";
 
+        private static readonly object SingleInstanceMutexSync = new();
+
         private static bool _isProtected;
         private static Mutex? _singleInstanceMutex;
 
         public static bool EnsureSingleInstance()
         {
-            if (_singleInstanceMutex != null)
+            lock (SingleInstanceMutexSync)
             {
-                return true;
-            }
+                if (_singleInstanceMutex != null)
+                {
+                    return true;
+                }
 
-            _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out var createdNew);
-            return createdNew;
+                _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out var createdNew);
+                return createdNew;
+            }
         }
 
         public static bool EnsureParentIsService()
