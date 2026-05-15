@@ -43,7 +43,9 @@ namespace NetBannerNG
             try
             {
                 _isClosing = true;
-                await ((App)Current!)._lifecycleService.ShutdownRuntimeAsync().ConfigureAwait(false);
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+                await ((App)Current!)._lifecycleService.ShutdownRuntimeAsync();
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
                 Current?.Shutdown();
             }
             catch (Exception)
@@ -76,18 +78,24 @@ namespace NetBannerNG
                 // If no debugger is attached and the argument --debug was passed, launch the debugger.
                 AppLifecycleService.TryLaunchDebugger(args);
 
-                if (!await TryInitializePipeClientAsync(args).ConfigureAwait(false))
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+                if (!await TryInitializePipeClientAsync(args))
                 {
                     return;
                 }
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
 
                 base.OnStartup(e);
 
-                await _lifecycleService.InitializeRuntimeAsync().ConfigureAwait(false);
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+                await _lifecycleService.InitializeRuntimeAsync();
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
             }
             catch (Exception ex)
             {
-                await Dump(ex).ConfigureAwait(false);
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+                await Dump(ex);
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
                 ShutDownGracefully();
             }
 #pragma warning restore CA1031 // Do not catch general exception types
@@ -96,7 +104,9 @@ namespace NetBannerNG
         private async Task<bool> TryInitializePipeClientAsync(string[] args)
         {
             var pipeName = ResolvePipeName(args);
-            var initialized = await _lifecycleService.InitializePipeClientAsync(pipeName).ConfigureAwait(false);
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+            var initialized = await _lifecycleService.InitializePipeClientAsync(pipeName);
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
             if (initialized)
             {
                 return true;
