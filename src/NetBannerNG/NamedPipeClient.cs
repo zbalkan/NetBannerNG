@@ -34,7 +34,7 @@ namespace NetBannerNG
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
-        private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(unchecked(Environment.TickCount * 31 + Environment.CurrentManagedThreadId)));
+        private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(Guid.NewGuid().GetHashCode()));
 
         public NamedPipeClient(string pipeName, int timeout = 10000)
         {
@@ -160,7 +160,7 @@ namespace NetBannerNG
         private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             DebugTrace("Disconnected");
-            App.ShutDownGracefully();
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(App.ShutDownGracefully));
         }
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)

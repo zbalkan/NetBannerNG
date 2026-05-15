@@ -197,11 +197,11 @@ namespace NetBannerNG.Classification
         private static ClassificationCatalog BuildNatoCatalog() => new(
             new[]
             {
-                new ClassificationCatalogEntry("NATO_UNCLASSIFIED", "NATO UNCLASSIFIED", "#007A33", null, 10, "UNCLASSIFIED", "UNCLASS", "PUBLIC"),
-                new ClassificationCatalogEntry("NATO_RESTRICTED", "NATO RESTRICTED", "#FF671F", null, 20, "RESTRICTED"),
-                new ClassificationCatalogEntry("NATO_CONFIDENTIAL", "NATO CONFIDENTIAL", "#0033A0", null, 30, "CONFIDENTIAL"),
-                new ClassificationCatalogEntry("NATO_SECRET", "NATO SECRET", "#C8102E", null, 40, "SECRET"),
-                new ClassificationCatalogEntry("COSMIC_TOP_SECRET", "COSMIC TOP SECRET", "#F7EA48", null, 50, "#000000", "TOP SECRET"),
+                new ClassificationCatalogEntry("NATO_UNCLASSIFIED", "NATO UNCLASSIFIED", "#007A33", "#FFFFFF", 10, "UNCLASSIFIED", "UNCLASS", "PUBLIC"),
+                new ClassificationCatalogEntry("NATO_RESTRICTED", "NATO RESTRICTED", "#FF671F", "#FFFFFF", 20, "RESTRICTED"),
+                new ClassificationCatalogEntry("NATO_CONFIDENTIAL", "NATO CONFIDENTIAL", "#0033A0", "#FFFFFF", 30, "CONFIDENTIAL"),
+                new ClassificationCatalogEntry("NATO_SECRET", "NATO SECRET", "#C8102E", "#FFFFFF", 40, "SECRET"),
+                new ClassificationCatalogEntry("COSMIC_TOP_SECRET", "COSMIC TOP SECRET", "#F7EA48", "#000000", 50, "TOP SECRET"),
             },
             new Dictionary<int, string>
             {
@@ -219,12 +219,12 @@ namespace NetBannerNG.Classification
         private static ClassificationCatalog BuildUsCatalog() => new(
             new[]
             {
-                new ClassificationCatalogEntry("CUI", "CONTROLLED UNCLASSIFIED INFORMATION", "#502B85", null, 10, "CUI"),
-                new ClassificationCatalogEntry("UNCLASSIFIED", "UNCLASSIFIED", "#007A33", null, 20, "U"),
-                new ClassificationCatalogEntry("CONFIDENTIAL", "CONFIDENTIAL", "#0033A0", null, 30, "C"),
-                new ClassificationCatalogEntry("SECRET", "SECRET", "#C8102E", null, 40, "S"),
-                new ClassificationCatalogEntry("TOP_SECRET", "TOP SECRET", "#FF8C00", null, 50, "TS"),
-                new ClassificationCatalogEntry("TS_SCI", "TOP SECRET//SENSITIVE COMPARTMENT INFORMATION", "#FCE83A", "#000000", 60, "#000000", "TS//SCI"),
+                new ClassificationCatalogEntry("CUI", "CONTROLLED UNCLASSIFIED INFORMATION", "#502B85", "#FFFFFF", 10, "CUI"),
+                new ClassificationCatalogEntry("UNCLASSIFIED", "UNCLASSIFIED", "#007A33", "#FFFFFF", 20, "U"),
+                new ClassificationCatalogEntry("CONFIDENTIAL", "CONFIDENTIAL", "#0033A0", "#FFFFFF", 30, "C"),
+                new ClassificationCatalogEntry("SECRET", "SECRET", "#C8102E", "#FFFFFF", 40, "S"),
+                new ClassificationCatalogEntry("TOP_SECRET", "TOP SECRET", "#FF8C00", "#FFFFFF", 50, "TS"),
+                new ClassificationCatalogEntry("TS_SCI", "TOP SECRET//SENSITIVE COMPARTMENT INFORMATION", "#FCE83A", "#000000", 60, "TS//SCI"),
             },
             new Dictionary<int, string>());
 
@@ -269,7 +269,7 @@ namespace NetBannerNG.Classification
                 new ClassificationCatalogEntry("VS_NFD", "VS-NUR FÜR DEN DIENSTGEBRAUCH", null, null, 10),
                 new ClassificationCatalogEntry("VS_VERTRAULICH", "VS-VERTRAULICH", null, null, 20),
                 new ClassificationCatalogEntry("GEHEIM", "GEHEIM", null, null, 30),
-                new ClassificationCatalogEntry("STRENG_GEHEIM", "STRENG GEHIM", null, null, 40),
+                new ClassificationCatalogEntry("STRENG_GEHEIM", "STRENG GEHEIM", null, null, 40),
             },
             new Dictionary<int, string>());
 
@@ -283,6 +283,7 @@ namespace NetBannerNG.Classification
             },
             new Dictionary<int, string>());
 
+        // EP uses the same classification framework as EUCI; this alias is intentional.
         private static ClassificationCatalog BuildEuropeanParliamentCatalog() => BuildEuciCatalog();
 
         private static ClassificationCatalog BuildEstoniaCatalog() => new(new[] { new ClassificationCatalogEntry("EE_TS", "TÄIESTI SALAJANE", null, null, 40), new ClassificationCatalogEntry("EE_S", "SALAJANE", null, null, 30), new ClassificationCatalogEntry("EE_C", "KONFIDENTSIAALNE", null, null, 20), new ClassificationCatalogEntry("EE_R", "PIIRATUD", null, null, 10), }, new Dictionary<int, string>());

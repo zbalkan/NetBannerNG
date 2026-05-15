@@ -7,7 +7,6 @@ namespace NetBannerNG.Common.NamedPipes
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     /// </summary>
     [MessagePackObject]
-    [Serializable]
     public class PipeMessage
     {
         private readonly byte[] _checksum = new byte[32];

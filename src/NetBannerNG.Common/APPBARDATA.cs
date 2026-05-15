@@ -9,8 +9,8 @@ namespace NetBannerNG.Common
     {
         public int cbSize;
         public IntPtr hWnd;
-        public int uCallbackMessage;
-        public int uEdge;
+        public uint uCallbackMessage;
+        public uint uEdge;
         public MonitorRect rc;
         public IntPtr lParam;
 

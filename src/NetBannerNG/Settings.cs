@@ -25,6 +25,7 @@ namespace NetBannerNG
         private const string PolicyRegistryPath = SettingsDefaults.PolicyRegistryPath;
         private const string LocalRegistryPath = SettingsDefaults.LocalRegistryPath;
         private static readonly BrushConverter BrushConverter = new();
+        private static readonly object BrushConverterSync = new();
         private static readonly Lazy<Settings> Lazy = new(() => new Settings());
 
         private SettingsSnapshot? _currentSettings;
@@ -189,7 +190,10 @@ namespace NetBannerNG
                 return brush;
             }
 
-            return (SolidColorBrush)BrushConverter.ConvertFromInvariantString(fallbackHex);
+            lock (BrushConverterSync)
+            {
+                return (SolidColorBrush)BrushConverter.ConvertFromInvariantString(fallbackHex);
+            }
         }
 
         private static SolidColorBrush ParseForegroundBrush(string value) => ParseBrushWithFallback(value, DefaultForegroundHex);
@@ -202,8 +206,17 @@ namespace NetBannerNG
 
         private static bool TryParseBrush(string value, out SolidColorBrush brush)
         {
-            try { brush = (SolidColorBrush)BrushConverter.ConvertFromInvariantString(value); return true; }
+            try
+            {
+                lock (BrushConverterSync)
+                {
+                    brush = (SolidColorBrush)BrushConverter.ConvertFromInvariantString(value);
+                }
+                return true;
+            }
             catch (FormatException) { brush = new SolidColorBrush(); return false; }
+            catch (NotSupportedException) { brush = new SolidColorBrush(); return false; }
+            catch (ArgumentNullException) { brush = new SolidColorBrush(); return false; }
         }
 
         internal sealed class SettingsSnapshot

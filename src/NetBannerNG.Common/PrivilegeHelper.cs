@@ -7,6 +7,7 @@ namespace NetBannerNG.Common
 {
     public static class PrivilegeHelper
     {
+        private static readonly object CacheSync = new();
         private static bool? _isCurrentUserAdmin;
         private static bool? _isSessionOwnerAdmin;
         private static uint? _cachedSessionId;
@@ -14,14 +15,16 @@ namespace NetBannerNG.Common
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         public static bool IsCurrentUserAdmin {
             get {
-                if (_isCurrentUserAdmin.HasValue)
+                lock (CacheSync)
                 {
+                    if (_isCurrentUserAdmin.HasValue)
+                    {
+                        return _isCurrentUserAdmin.Value;
+                    }
+
+                    _isCurrentUserAdmin = IsUserAdministrator(WindowsIdentity.GetCurrent());
                     return _isCurrentUserAdmin.Value;
                 }
-
-                _isCurrentUserAdmin = IsUserAdministrator(WindowsIdentity.GetCurrent());
-
-                return _isCurrentUserAdmin.Value;
             }
         }
 
@@ -29,34 +32,41 @@ namespace NetBannerNG.Common
         public static bool IsSessionOwnerAdmin {
             get {
                 var activeSessionId = GetInteractiveSessionId();
-                if (_cachedSessionId != activeSessionId)
+                lock (CacheSync)
                 {
-                    _isSessionOwnerAdmin = null;
-                    _cachedSessionId = activeSessionId;
-                }
+                    if (_cachedSessionId != activeSessionId)
+                    {
+                        _isSessionOwnerAdmin = null;
+                        _cachedSessionId = activeSessionId;
+                    }
 
-                if (_isSessionOwnerAdmin.HasValue)
-                {
-                    return _isSessionOwnerAdmin.Value;
+                    if (_isSessionOwnerAdmin.HasValue)
+                    {
+                        return _isSessionOwnerAdmin.Value;
+                    }
                 }
 
                 if (Environment.UserInteractive)
                 {
-                    _isSessionOwnerAdmin = IsCurrentUserAdmin;
-                    return _isSessionOwnerAdmin.Value;
+                    lock (CacheSync)
+                    {
+                        _isSessionOwnerAdmin = IsCurrentUserAdmin;
+                        return _isSessionOwnerAdmin.Value;
+                    }
                 }
 
                 if (!GetActiveUser(out var sessionOwner) || sessionOwner == null)
                 {
-                    _isSessionOwnerAdmin = false;
                     sessionOwner?.Dispose();
-                    return _isSessionOwnerAdmin.Value;
+                    lock (CacheSync) { _isSessionOwnerAdmin = false; }
+                    return false;
                 }
 
-                _isSessionOwnerAdmin = IsUserAdministrator(sessionOwner);
+                var result = IsUserAdministrator(sessionOwner);
                 sessionOwner.Dispose();
 
-                return _isSessionOwnerAdmin.Value;
+                lock (CacheSync) { _isSessionOwnerAdmin = result; }
+                return result;
             }
         }
 
@@ -69,18 +79,32 @@ namespace NetBannerNG.Common
             {
                 Debug.WriteLine($"Failed to query user token (Error no: {Marshal.GetLastWin32Error()})");
                 user = null;
-                Kernel32.CloseHandle(userToken);
                 return false;
             }
 
-            user = new WindowsIdentity(userToken);
-            Kernel32.CloseHandle(userToken);
-            return true;
+            try
+            {
+                user = new WindowsIdentity(userToken);
+                return true;
+            }
+            finally
+            {
+                Kernel32.CloseHandle(userToken);
+            }
         }
 
         public static bool TryGetActiveUserSid(out SecurityIdentifier? sid)
         {
             sid = null;
+
+            // In interactive/debug host mode, the service process may be impersonating the active user.
+            // Use process owner SID directly so ACLs follow the effective user context even when multiple
+            // users are logged in.
+            if (Environment.UserInteractive)
+            {
+                sid = WindowsIdentity.GetCurrent().User;
+                return sid != null;
+            }
             if (GetActiveUser(out var user) && user != null)
             {
                 sid = user.User;
@@ -90,16 +114,59 @@ namespace NetBannerNG.Common
 
             user?.Dispose();
 
-            // In interactive debug mode (service host running as console app), WTSQueryUserToken
-            // may fail while the current process identity is the actual interactive user.
-            // Fall back to current identity SID so pipe ACLs still allow the launched UI client.
-            if (Environment.UserInteractive)
+
+            var sessionId = GetActiveSessionId();
+            if (TryGetSessionUserSid(sessionId, out sid) && sid != null)
             {
-                sid = WindowsIdentity.GetCurrent().User;
-                return sid != null;
+                return true;
             }
 
+            // No valid session-owner SID could be resolved.
+            // Do not fall back to the current process identity, because the service host identity
+            // may differ from the active GUI user and would produce an ACL that denies the real client.
             return false;
+        }
+
+        private static bool TryGetSessionUserSid(uint sessionId, out SecurityIdentifier? sid)
+        {
+            sid = null;
+            if (!TryGetSessionString(sessionId, Wtsapi32.WTSINFOCLASS.WTSUserName, out var userName) || string.IsNullOrWhiteSpace(userName))
+            {
+                return false;
+            }
+
+            _ = TryGetSessionString(sessionId, Wtsapi32.WTSINFOCLASS.WTSDomainName, out var domainName);
+            var ntAccountName = string.IsNullOrWhiteSpace(domainName) ? userName : $"{domainName}\\{userName}";
+
+            try
+            {
+                sid = (SecurityIdentifier)new NTAccount(ntAccountName).Translate(typeof(SecurityIdentifier));
+                return true;
+            }
+            catch (IdentityNotMappedException)
+            {
+                return false;
+            }
+        }
+
+        private static bool TryGetSessionString(uint sessionId, Wtsapi32.WTSINFOCLASS infoClass, out string value)
+        {
+            value = string.Empty;
+            if (!Wtsapi32.WTSQuerySessionInformation(IntPtr.Zero, sessionId, infoClass, out var buffer, out _)
+                || buffer == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            try
+            {
+                value = Marshal.PtrToStringUni(buffer) ?? string.Empty;
+                return true;
+            }
+            finally
+            {
+                Wtsapi32.WTSFreeMemory(buffer);
+            }
         }
 
         public static bool IsUserAdministrator(WindowsIdentity user)
@@ -130,26 +197,61 @@ namespace NetBannerNG.Common
 
         public static void ResetSessionOwnerAdminCache()
         {
-            _isSessionOwnerAdmin = null;
-            _cachedSessionId = null;
+            lock (CacheSync)
+            {
+                _isSessionOwnerAdmin = null;
+                _cachedSessionId = null;
+            }
         }
 
         [CLSCompliant(false)]
         public static uint GetInteractiveSessionId()
         {
-            var id = Kernel32.WTSGetActiveConsoleSessionId();
-            if (id != 0xFFFFFFFF && id != 0)
+            // Prefer active WTS session so remote/terminal interactive users are handled correctly.
+            if (TryGetActiveSessionIdFromWts(out var activeSessionId) && activeSessionId != 0)
             {
-                return id;
+                return activeSessionId;
             }
 
-            var processId = Kernel32.GetCurrentProcessId();
-            if (Kernel32.ProcessIdToSessionId(processId, out var current) && current != 0)
+            var consoleSessionId = Kernel32.WTSGetActiveConsoleSessionId();
+            if (consoleSessionId != 0xFFFFFFFF && consoleSessionId != 0)
             {
-                return current;
+                return consoleSessionId;
             }
 
             throw new InvalidOperationException("No interactive session detected.");
+        }
+
+        private static bool TryGetActiveSessionIdFromWts(out uint sessionId)
+        {
+            sessionId = 0;
+            if (!Wtsapi32.WTSEnumerateSessions(IntPtr.Zero, 0, 1, out var sessionInfoPtr, out var sessionCount)
+                || sessionInfoPtr == IntPtr.Zero
+                || sessionCount <= 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                var dataSize = Marshal.SizeOf<Wtsapi32.WTSSESSIONINFO>();
+                for (var i = 0; i < sessionCount; i++)
+                {
+                    var itemPtr = IntPtr.Add(sessionInfoPtr, i * dataSize);
+                    var info = Marshal.PtrToStructure<Wtsapi32.WTSSESSIONINFO>(itemPtr);
+                    if (info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSActive && info.SessionId != 0)
+                    {
+                        sessionId = info.SessionId;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                Wtsapi32.WTSFreeMemory(sessionInfoPtr);
+            }
         }
     }
 }

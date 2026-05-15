@@ -23,6 +23,18 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
+        public void CreateDefaultServerSecurity_IncludesLocalSystemAllowRule()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var localSystemSid = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
+            AssertAllowRule(rules, localSystemSid, PipeAccessRights.FullControl, "Local System");
+        }
+
+        [TestMethod]
         public void CreateDefaultServerSecurity_DoesNotGrantBuiltinAdministratorsByDefault()
         {
             var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
@@ -111,7 +123,7 @@ namespace NetBannerNG.Tests
 
             Assert.IsNotNull(rule, $"Expected explicit allow rule for {principalLabel}.");
             Assert.AreEqual(expectedRights, rule.PipeAccessRights & expectedRights,
-                $"Expected {principalLabel} to have {expectedRights} access.");
+                $"Expected {principalLabel} to include {expectedRights} access.");
         }
 
         private static void AssertNoAllowRule(

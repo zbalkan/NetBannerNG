@@ -12,7 +12,7 @@ namespace NetBannerNG.Service
 
         private sealed class LaunchedProcessInfo
         {
-            public DateTime StartTimeUtc { get; set; }
+            public DateTime? StartTimeUtc { get; set; }
             public string PipeName { get; set; } = string.Empty;
             public string? CommandLine { get; set; }
             public DateTime CommandLineLastAttemptUtc { get; set; } = DateTime.MinValue;
@@ -36,9 +36,10 @@ namespace NetBannerNG.Service
             if (Environment.UserInteractive)
             {
 #pragma warning disable CA1031 // Do not catch general exception types
+                Process? process = null;
                 try
                 {
-                    var process = Process.Start(psi);
+                    process = Process.Start(psi);
                     if (process != null)
                     {
                         TrackLaunchedProcess(process, pipeName);
@@ -50,6 +51,10 @@ namespace NetBannerNG.Service
                 {
                     Program.Log.LogError(EventLogCatalog.ProcessStartFailed, psi.FileName, ex);
                     return false;
+                }
+                finally
+                {
+                    process?.Dispose();
                 }
 #pragma warning restore CA1031 // Do not catch general exception types
             }
@@ -89,7 +94,16 @@ namespace NetBannerNG.Service
             }
         }
 
-        public static bool IsChildProcessRunning() => GetChildProcesses().Any();
+        public static bool IsChildProcessRunning()
+        {
+            var children = GetChildProcesses();
+            foreach (var p in children)
+            {
+                p.Dispose();
+            }
+
+            return children.Count > 0;
+        }
 
         private static ProcessStartInfo BuildChildProcessStartInfo(string path, string pipeName) =>
             new()
@@ -130,7 +144,7 @@ namespace NetBannerNG.Service
 
 #pragma warning restore IDE0022 // Use expression body for method
 
-        private static IEnumerable<Process> GetChildProcesses()
+        private static List<Process> GetChildProcesses()
         {
             List<int> trackedProcessIds;
             lock (LaunchSync)
@@ -140,17 +154,17 @@ namespace NetBannerNG.Service
 
             if (trackedProcessIds.Count == 0)
             {
-                return Enumerable.Empty<Process>();
+                return new List<Process>();
             }
 
             var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
-            var processes = new List<Process>(trackedProcessIds.Count);
+            var candidates = new List<Process>(trackedProcessIds.Count);
             var staleProcessIds = new List<int>();
             foreach (var processId in trackedProcessIds)
             {
                 try
                 {
-                    processes.Add(Process.GetProcessById(processId));
+                    candidates.Add(Process.GetProcessById(processId));
                 }
                 catch (ArgumentException)
                 {
@@ -167,7 +181,20 @@ namespace NetBannerNG.Service
                 UntrackLaunchedProcess(processId);
             }
 
-            return processes.Where(process => IsExpectedChildProcess(process, interactiveSessionId));
+            var result = new List<Process>(candidates.Count);
+            foreach (var process in candidates)
+            {
+                if (IsExpectedChildProcess(process, interactiveSessionId))
+                {
+                    result.Add(process);
+                }
+                else
+                {
+                    process.Dispose();
+                }
+            }
+
+            return result;
         }
 
         private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
@@ -195,7 +222,8 @@ namespace NetBannerNG.Service
                         return false;
                     }
 
-                    if (SafeGetStartTimeUtc(process) != launchInfo.StartTimeUtc)
+                    var processStartTime = SafeGetStartTimeUtc(process);
+                    if (processStartTime is null || launchInfo.StartTimeUtc is null || processStartTime.Value != launchInfo.StartTimeUtc.Value)
                     {
                         return false;
                     }
@@ -251,10 +279,19 @@ namespace NetBannerNG.Service
             }
         }
 
-        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId) => Process.GetProcessesByName(ChildProcessName)
-                .Where(p => p.SessionId == interactiveSessionId)
-                .Select(p => p.Id)
-                .ToHashSet();
+        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId)
+        {
+            var result = new HashSet<int>();
+            foreach (var p in Process.GetProcessesByName(ChildProcessName))
+            {
+                if (p.SessionId == interactiveSessionId)
+                {
+                    result.Add(p.Id);
+                }
+                p.Dispose();
+            }
+            return result;
+        }
 
         private static bool TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
         {
@@ -262,10 +299,20 @@ namespace NetBannerNG.Service
             while (DateTime.UtcNow <= deadlineUtc)
             {
                 var observedAny = false;
-                foreach (var process in Process.GetProcessesByName(ChildProcessName).Where(p => p.SessionId == interactiveSessionId && !existingCandidates.Contains(p.Id)))
+                foreach (var process in Process.GetProcessesByName(ChildProcessName))
                 {
-                    observedAny = true;
-                    TrackLaunchedProcess(process, pipeName);
+                    try
+                    {
+                        if (process.SessionId == interactiveSessionId && !existingCandidates.Contains(process.Id))
+                        {
+                            observedAny = true;
+                            TrackLaunchedProcess(process, pipeName);
+                        }
+                    }
+                    finally
+                    {
+                        process.Dispose();
+                    }
                 }
 
                 if (observedAny)
@@ -292,7 +339,7 @@ namespace NetBannerNG.Service
             }
         }
 
-        private static DateTime SafeGetStartTimeUtc(Process process)
+        private static DateTime? SafeGetStartTimeUtc(Process process)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
@@ -301,7 +348,7 @@ namespace NetBannerNG.Service
             }
             catch
             {
-                return DateTime.MinValue;
+                return null;
             }
 #pragma warning restore CA1031 // Do not catch general exception types
         }

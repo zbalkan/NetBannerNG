@@ -54,9 +54,9 @@ namespace NetBannerNG.Borders
 
         protected override void OnClosing(CancelEventArgs e)
         {
+            this.Undock();
             Width = 0;
             Height = 0;
-            this.Undock();
             base.OnClosing(e);
         }
 
@@ -73,6 +73,6 @@ namespace NetBannerNG.Borders
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        internal void Window_Loaded(object sender, RoutedEventArgs e) => Render(true);
+        internal virtual void Window_Loaded(object sender, RoutedEventArgs e) => Render(true);
     }
 }

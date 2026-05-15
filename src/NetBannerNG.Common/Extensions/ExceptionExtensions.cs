@@ -9,28 +9,23 @@ namespace NetBannerNG.Common.Extensions
         public static string GetMessageStack(this Exception exception, string separator = MessageSeparator)
         {
             var result = new StringBuilder();
+            var current = exception;
+            var depth = 0;
+            const int maxDepth = 64;
 
-            if (exception != default)
+            while (current != null && depth++ < maxDepth)
             {
-                if (!string.IsNullOrWhiteSpace(exception.Message))
+                if (!string.IsNullOrWhiteSpace(current.Message))
                 {
-                    result.Append(exception.Message.Trim());
-                }
-
-                if (exception.InnerException != default)
-                {
-                    var furtherMessages = exception.InnerException.GetMessageStack(separator);
-
-                    if (!string.IsNullOrWhiteSpace(furtherMessages))
+                    if (result.Length > 0)
                     {
-                        if (result.Length > 0)
-                        {
-                            result.Append(separator);
-                        }
-
-                        result.Append(furtherMessages.Trim());
+                        result.Append(separator);
                     }
+
+                    result.Append(current.Message.Trim());
                 }
+
+                current = current.InnerException;
             }
 
             return result.ToString();
