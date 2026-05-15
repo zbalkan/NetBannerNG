@@ -31,21 +31,22 @@ Policy/configuration registry paths:
 
 ## Classification catalogs
 
-Set `ClassificationProfile` to select a marking catalog. Built-in keys include:
+Set `ClassificationSelection` to choose both catalog and level in the format `<Catalog> - <Classification>` (for example `NATO - COSMIC TOP SECRET`). Built-in catalog keys include:
 
-- `NATO` default
+- `NOT_CONFIGURED` (default when selection is missing/invalid)
+- `NATO`
 - `US`, `UK`, `CA`, `AU`, `DE`, `DK`, `EE`, `FI`, `FR`, `IT`, `PL`, `SE`, `TR`, `UA`
 - `EUCI`, `EP`
 - `AG`, `CCEB`, `COE`, `ESA`, `EURATOM`, `ICC`, `ICTY`, `NSG`, `OECD`, `OPCW`, `OSCE`, `UN`, `WASSENAAR`, `WTO`
 
 Compatibility behavior:
 
-- If `ClassificationProfile` is unset and the legacy `Classification` value is `1..4`, NetBannerNG maps the value to the `US` profile for compatibility.
-- Otherwise, the default profile is `NATO`.
+- If `ClassificationSelection` is unset and the legacy `Classification` value is `1..4`, NetBannerNG maps the value to the `US` profile for compatibility.
+- Otherwise, NetBannerNG uses the `NOT_CONFIGURED` default profile ("Classification not configured").
 
 Catalog notes:
 
-- `NATO` and `US` include built-in color definitions.
+- `NATO` and `US` include full built-in color definitions; some other profiles include limited entry-specific colors (for example `AU` for `SECRET`).
 - Most other profiles provide textual marking presets only.
 - Organizations remain responsible for validating markings, colors, translations, caveats, and policy suitability against their own rules.
 
