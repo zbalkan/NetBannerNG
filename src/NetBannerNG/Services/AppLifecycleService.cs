@@ -54,13 +54,16 @@ namespace NetBannerNG.Services
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();
 
-        internal static bool EnsureParentIsService() =>
+#pragma warning disable IDE0022 // Use expression body for method
+        internal static bool EnsureParentIsService()
+        {
 #if DEBUG
-            true;
+            return true;
 #else
             return ProcessHelper.EnsureParentIsService();
 #endif
-
+        }
+#pragma warning restore IDE0022 // Use expression body for method
 
         internal static void TryLaunchDebugger(string[] args)
         {
