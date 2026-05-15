@@ -95,7 +95,6 @@ namespace NetBannerNG
 
         private static string GatherHostInfo() => $"{Environment.MachineName} | {Environment.UserName} | {NetworkHelper.GetPhysicalIPAddress()}";
 
-
         private static SettingsSnapshot LoadSettings()
         {
             using var localMachineKey = OpenLocalMachineKey();
@@ -129,8 +128,6 @@ namespace NetBannerNG
             };
         }
 
-
-
         private static (string ProfileName, string ClassificationLabel) ParseClassificationSelection(string rawSelection)
         {
             var selection = (rawSelection ?? string.Empty).Trim();
@@ -163,7 +160,6 @@ namespace NetBannerNG
                 values.Add($"{label} {level}");
             }
         }
-
 
         private static int Clamp(int value, int min, int max)
             => Math.Min(max, Math.Max(min, value));

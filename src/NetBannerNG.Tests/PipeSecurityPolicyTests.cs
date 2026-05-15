@@ -22,7 +22,6 @@ namespace NetBannerNG.Tests
             AssertAllowRule(rules, localServiceSid, PipeAccessRights.FullControl, "Local Service");
         }
 
-
         [TestMethod]
         public void CreateDefaultServerSecurity_DoesNotGrantBuiltinAdministratorsByDefault()
         {
@@ -69,7 +68,6 @@ namespace NetBannerNG.Tests
             AssertNoAllowRule(rules, everyoneSid, "Everyone");
             AssertNoAllowRule(rules, anonymousSid, "Anonymous");
         }
-
 
         [TestMethod]
         public void CreateDefaultServerSecurity_DeniesNetworkSidByDefault()

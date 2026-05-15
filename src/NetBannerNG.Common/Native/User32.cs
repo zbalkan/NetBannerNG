@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Security;
 using System.Text;
 
 namespace NetBannerNG.Common.Native
@@ -17,7 +16,9 @@ namespace NetBannerNG.Common.Native
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+#pragma warning disable CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
         public static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+#pragma warning restore CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
 
         [DllImport("user32.dll")]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
@@ -74,7 +75,9 @@ namespace NetBannerNG.Common.Native
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+#pragma warning disable CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
         public static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+#pragma warning restore CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

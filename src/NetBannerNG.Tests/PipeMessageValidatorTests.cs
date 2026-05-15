@@ -77,7 +77,7 @@ namespace NetBannerNG.Tests
                 return validAccepted && !invalidAccepted;
             }));
 
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             Assert.IsTrue(results.All(r => r));
         }
 

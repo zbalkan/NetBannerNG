@@ -21,7 +21,9 @@ namespace NetBannerNG.Common.NamedPipes
                 return false;
             }
 
+#pragma warning disable CA1508 // Avoid dead conditional code
             return !string.IsNullOrWhiteSpace(message.Text) && message.Text?.Length <= MaxLogTextLength;
+#pragma warning restore CA1508 // Avoid dead conditional code
         }
     }
 }

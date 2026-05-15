@@ -57,23 +57,23 @@ namespace NetBannerNG.Common
 
         public readonly bool IsEmpty => Width <= 0 || Height <= 0;
 
-        public readonly Rect ToWpfRect() => new Rect(X, Y, Width, Height);
+        public readonly Rect ToRect() => new Rect(X, Y, Width, Height);
 
         public static implicit operator Rect(MonitorRect mr)
         {
-            return mr.ToWpfRect();
+            return mr.ToRect();
         }
 
-        public override readonly string ToString() => $"{Left},{Top},{Right},{Bottom}";
+        public readonly override string ToString() => $"{Left},{Top},{Right},{Bottom}";
 
         public readonly bool Equals(MonitorRect other) => Left == other.Left
                 && Top == other.Top
                 && Right == other.Right
                 && Bottom == other.Bottom;
 
-        public override readonly bool Equals(object obj) => obj is MonitorRect other && Equals(other);
+        public readonly override bool Equals(object obj) => obj is MonitorRect other && Equals(other);
 
-        public override readonly int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+        public readonly override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
 
         public static bool operator ==(MonitorRect left, MonitorRect right) => left.Equals(right);
 

@@ -58,3 +58,15 @@ Catalog notes:
 ## Security note
 
 NetBannerNG is a display and awareness utility. It is not an access-control, authorization, information-flow-control, or data-loss-prevention boundary.
+
+## Source acknowledgements
+
+The following references are cited in inline code comments and influenced parts of the implementation:
+
+- https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/
+- https://github.com/PhilipRieck/WpfAppBar
+- https://stackoverflow.com/questions/1109271/launching-gui-app-from-windows-service-window-does-not-appear/1109443
+- https://bytes.com/topic/c-sharp/answers/463942-using-openprocesstoken
+- https://fleexlab.blogspot.com/2015/04/remote-desktop-surprise.html
+- http://csharptest.net/1043/how-to-prevent-users-from-killing-your-service-process/index.html
+

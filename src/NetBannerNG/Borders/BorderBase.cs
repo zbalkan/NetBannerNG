@@ -16,6 +16,11 @@ namespace NetBannerNG.Borders
 
         protected void RenderWindow(bool needsResize, Action layoutAction)
         {
+            if (layoutAction is null)
+            {
+                throw new ArgumentNullException(nameof(layoutAction));
+            }
+
             ReadSettings();
             if (!needsResize)
             {

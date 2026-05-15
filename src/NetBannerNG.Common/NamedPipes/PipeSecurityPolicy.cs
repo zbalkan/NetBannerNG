@@ -8,6 +8,7 @@ namespace NetBannerNG.Common.NamedPipes
     {
         private static readonly SecurityIdentifier LocalServiceSid = new(WellKnownSidType.LocalServiceSid, null);
         private static readonly SecurityIdentifier NetworkSid = new(WellKnownSidType.NetworkSid, null);
+
         public static PipeSecurity CreateDefaultServerSecurity(SecurityIdentifier? interactiveUserSid = null)
         {
             var pipeSecurity = new PipeSecurity();

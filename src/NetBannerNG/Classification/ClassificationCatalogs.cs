@@ -7,6 +7,7 @@ namespace NetBannerNG.Classification
     {
         private readonly ClassificationCatalogEntry[] _entries;
         private readonly Dictionary<int, string> _valueLabels;
+        internal static readonly char[] separator = new[] { '|' };
 
         internal ClassificationCatalog(ClassificationCatalogEntry[] entries, Dictionary<int, string> valueLabels)
         {
@@ -68,7 +69,7 @@ namespace NetBannerNG.Classification
         private static string[] ExtractCandidateTokens(string text)
         {
             var normalized = Normalize(text);
-            var pieces = normalized.Split(new[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+            var pieces = normalized.Split(separator, StringSplitOptions.RemoveEmptyEntries);
             for (var i = 0; i < pieces.Length; i++)
             {
                 pieces[i] = pieces[i].Trim();

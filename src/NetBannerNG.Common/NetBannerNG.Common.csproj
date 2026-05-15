@@ -5,9 +5,12 @@
 		<LangVersion>12.0</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-
 		<AnalysisMode>All</AnalysisMode>
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+		<AnalysisLevel>latest-all</AnalysisLevel>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);CA1401</WarningsNotAsErrors>
+		<NoWarn>$(NoWarn);CA1401</NoWarn>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />

@@ -6,7 +6,7 @@ using NetBannerNG.Common.NamedPipes;
 
 namespace NetBannerNG.Service
 {
-    public static class ProcessHelper
+    internal static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
 
@@ -35,6 +35,7 @@ namespace NetBannerNG.Service
             Program.Log.LogInformation(EventLogCatalog.ProcessStarting, psi.FileName);
             if (Environment.UserInteractive)
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     var process = Process.Start(psi);
@@ -50,12 +51,13 @@ namespace NetBannerNG.Service
                     Program.Log.LogError(EventLogCatalog.ProcessStartFailed, psi.FileName, ex);
                     return false;
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
 
             var existingCandidates = CaptureCandidateProcessIds((int)sessionId);
             if (!psi.RunAsActiveUser())
             {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Failed to start {psi.FileName}", new Exception("Failed to run as active user."));
+                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Failed to start {psi.FileName}", new UnauthorizedAccessException("Failed to run as active user."));
                 return false;
             }
 
@@ -73,6 +75,7 @@ namespace NetBannerNG.Service
         {
             foreach (var process in GetChildProcesses())
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     process.Kill();
@@ -82,6 +85,7 @@ namespace NetBannerNG.Service
                 {
                     Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
         }
 
@@ -114,6 +118,7 @@ namespace NetBannerNG.Service
         }
 
 #pragma warning disable IDE0022 // Use expression body for method
+
         private static string GetChildProcessPath()
         {
 #if DEBUG
@@ -122,6 +127,7 @@ namespace NetBannerNG.Service
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");
 #endif
         }
+
 #pragma warning restore IDE0022 // Use expression body for method
 
         private static IEnumerable<Process> GetChildProcesses()
@@ -166,6 +172,7 @@ namespace NetBannerNG.Service
 
         private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 if (process.SessionId != interactiveSessionId)
@@ -228,6 +235,7 @@ namespace NetBannerNG.Service
                 Program.Log.LogInformation(EventLogCatalog.ProcessIdentityValidationFailed, process.Id, ex.GetType().Name);
                 return false;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private static void TrackLaunchedProcess(Process process, string pipeName)
@@ -286,6 +294,7 @@ namespace NetBannerNG.Service
 
         private static DateTime SafeGetStartTimeUtc(Process process)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 return process.StartTime.ToUniversalTime();
@@ -294,10 +303,12 @@ namespace NetBannerNG.Service
             {
                 return DateTime.MinValue;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private static string? TryGetCommandLine(int processId)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 using var searcher = new ManagementObjectSearcher($"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
@@ -310,6 +321,7 @@ namespace NetBannerNG.Service
             {
                 return null;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
 
             return null;
         }

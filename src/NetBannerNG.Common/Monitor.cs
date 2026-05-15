@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using NetBannerNG.Common.Native;
@@ -32,6 +31,15 @@ namespace NetBannerNG.Common
             Handle = monitor;
 
             Debug.WriteLine(ToString());
+        }
+
+        internal Monitor(string name, Rect bounds, Rect workingArea, bool isPrimary, IntPtr? handle = null)
+        {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Bounds = bounds;
+            WorkingArea = workingArea;
+            IsPrimary = isPrimary;
+            Handle = handle ?? IntPtr.Zero;
         }
 
         public static IEnumerable<Monitor> AllMonitors {

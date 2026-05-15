@@ -215,7 +215,9 @@ namespace NetBannerNG.Service
         {
             var exponent = Math.Min(Math.Max(consecutiveLaunchFailures, 1) - 1, 5);
             var baseSeconds = Math.Min(1 << exponent, (int)MaxRestartBackoff.TotalSeconds);
+#pragma warning disable CA5394 // Do not use insecure randomness
             var jitterSeconds = BackoffJitter.NextDouble() * 0.5;
+#pragma warning restore CA5394 // Do not use insecure randomness
             return TimeSpan.FromSeconds(baseSeconds + jitterSeconds);
         }
 
