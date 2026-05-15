@@ -67,6 +67,46 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
+        public void CreateDefaultServerSecurity_WithInteractiveUser_HasRoundTripSafeDescriptor()
+        {
+            var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity(sid);
+
+            var sddl = security.GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+            var rawDescriptor = new RawSecurityDescriptor(sddl);
+            var roundTripBinary = new byte[rawDescriptor.BinaryLength];
+
+            rawDescriptor.GetBinaryForm(roundTripBinary, 0);
+
+            var roundTripSecurity = new PipeSecurity();
+            roundTripSecurity.SetSecurityDescriptorBinaryForm(roundTripBinary);
+
+            var roundTripRules = roundTripSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            AssertAllowRule(roundTripRules, sid, PipeAccessRights.ReadWrite, "interactive user SID");
+        }
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_WithInteractiveUser_PreservesCanonicalDenyBeforeAllow()
+        {
+            var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity(sid);
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var firstAllowIndex = rules.FindIndex(r => r.AccessControlType == AccessControlType.Allow);
+            var lastDenyIndex = rules.FindLastIndex(r => r.AccessControlType == AccessControlType.Deny);
+
+            Assert.IsTrue(lastDenyIndex >= 0, "Expected at least one deny rule in ACL.");
+            Assert.IsTrue(firstAllowIndex >= 0, "Expected at least one allow rule in ACL.");
+            Assert.IsTrue(lastDenyIndex < firstAllowIndex,
+                "Expected deny rules to be canonicalized before allow rules.");
+        }
+
+        [TestMethod]
         public void CreateDefaultServerSecurity_DoesNotGrantEveryoneOrAnonymousAccess()
         {
             var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
