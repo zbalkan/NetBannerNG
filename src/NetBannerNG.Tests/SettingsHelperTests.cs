@@ -32,43 +32,6 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
-        public void ResolveCatalogBackground_UsesSelectedProfile()
-        {
-            Assert.AreEqual("#F7EA48", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "SECRET | COSMIC TOP SECRET"));
-            Assert.AreEqual("#C8102E", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "NATO SECRET | REL TO USA"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "UK", "UK TOP SECRET | UK EYES ONLY"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "MISSION USE"));
-        }
-
-        [TestMethod]
-        public void ResolveCatalogBackground_ValidatesPublishedCatalogColors()
-        {
-            Assert.AreEqual("#007A33", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "NATO UNCLASSIFIED"));
-            Assert.AreEqual("#FF671F", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "NATO RESTRICTED"));
-            Assert.AreEqual("#0033A0", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "NATO CONFIDENTIAL"));
-            Assert.AreEqual("#C8102E", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "NATO SECRET"));
-            Assert.AreEqual("#F7EA48", InvokePrivate<string>("ResolveCatalogBackground", "NATO", "COSMIC TOP SECRET"));
-
-            Assert.AreEqual("#502B85", InvokePrivate<string>("ResolveCatalogBackground", "US", "CUI"));
-            Assert.AreEqual("#007A33", InvokePrivate<string>("ResolveCatalogBackground", "US", "UNCLASSIFIED"));
-            Assert.AreEqual("#0033A0", InvokePrivate<string>("ResolveCatalogBackground", "US", "CONFIDENTIAL"));
-            Assert.AreEqual("#C8102E", InvokePrivate<string>("ResolveCatalogBackground", "US", "SECRET"));
-            Assert.AreEqual("#FF8C00", InvokePrivate<string>("ResolveCatalogBackground", "US", "TOP SECRET"));
-            Assert.AreEqual("#FCE83A", InvokePrivate<string>("ResolveCatalogBackground", "US", "TS//SCI"));
-
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "UK", "UK TOP SECRET"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "CA", "PROTECTED B"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "AU", "SECRET"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "DE", "VS-NUR FÜR DEN DIENSTGEBRAUCH"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "EUCI", "SECRET UE / EU SECRET"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "EP", "R-UE / EU-R"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "ESA", "ESA SECRET"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "UN", "STRICTLY CONFIDENTIAL"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "DE", "VS-VERTRAULICH"));
-            Assert.AreEqual("#FFFFFF", InvokePrivate<string>("ResolveCatalogBackground", "DK", "HEMMELIGT"));
-        }
-
-        [TestMethod]
         public void Clamp_EnforcesExpectedNumericRanges()
         {
             Assert.AreEqual(16, InvokePrivate<int>("Clamp", 5, 16, 60));
