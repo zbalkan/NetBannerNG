@@ -1,5 +1,3 @@
-using System;
-
 namespace NetBannerNG.Common.Native
 {
     public static class NativeTypes

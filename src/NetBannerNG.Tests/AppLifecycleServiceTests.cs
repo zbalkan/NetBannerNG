@@ -71,6 +71,7 @@ namespace NetBannerNG.Tests
         private sealed class FakeSuppressionService : IFullscreenSuppressionService
         {
             public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? SuppressionUpdated;
+
             internal int StartCalls { get; private set; }
             internal int StopCalls { get; private set; }
 

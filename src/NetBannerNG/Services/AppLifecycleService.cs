@@ -1,8 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using NetBannerNG.Common;
 using NetBannerNG.Utils;
 
@@ -11,6 +11,7 @@ namespace NetBannerNG.Services
     internal interface IMonitorTopologyWatcher
     {
         void Watch(Action refreshAction);
+
         void Unwatch();
     }
 
@@ -31,7 +32,6 @@ namespace NetBannerNG.Services
         private readonly SemaphoreSlim _runtimeGate = new SemaphoreSlim(1, 1);
         private bool _runtimeStarted;
 
-
         internal AppLifecycleService()
             : this(new StaticDisplayOverlayOrchestrator(), new FullscreenSuppressionService(), new StaticMonitorTopologyWatcher())
         {
@@ -48,6 +48,7 @@ namespace NetBannerNG.Services
             _fullscreenSuppressionService = fullscreenSuppressionService;
             _monitorWatcher = monitorWatcher;
         }
+
         internal NamedPipeClient? Client { get; private set; }
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();

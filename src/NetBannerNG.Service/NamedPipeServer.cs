@@ -239,7 +239,6 @@ namespace NetBannerNG.Service
 
         private bool TryBuildAuthorizedClient(string? connectedPipeName, object connection, out AuthorizedClientContext authorizedClient)
         {
-
             authorizedClient = null!;
             if (string.IsNullOrWhiteSpace(connectedPipeName))
             {
@@ -322,7 +321,6 @@ namespace NetBannerNG.Service
             // in interactive debugging mode. Keep this fallback scoped to interactive runs only.
             return true;
         }
-
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
     }

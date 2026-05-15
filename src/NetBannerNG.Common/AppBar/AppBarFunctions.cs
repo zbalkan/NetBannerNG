@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using static NetBannerNG.Common.Native.User32;
-using static NetBannerNG.Common.Native.Shell32;
 using static NetBannerNG.Common.Native.DwmApi;
 using static NetBannerNG.Common.Native.NativeTypes;
+using static NetBannerNG.Common.Native.Shell32;
+using static NetBannerNG.Common.Native.User32;
 
 namespace NetBannerNG.Common.AppBar
 {
@@ -267,7 +267,6 @@ namespace NetBannerNG.Common.AppBar
                     handled = true;
                     return IntPtr.Zero;
                 }
-
 
                 if (msg == WmShowWindow && wParam == IntPtr.Zero)
                 {

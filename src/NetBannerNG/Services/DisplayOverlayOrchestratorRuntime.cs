@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -30,6 +29,7 @@ namespace NetBannerNG.Services
 
         public void Init(bool clean)
         {
+            _shutdownInProgress = false;
             _cleanStart = clean;
             System.Windows.Application.Current.MainWindow = new Launcher();
             System.Windows.Application.Current.MainWindow.Show();

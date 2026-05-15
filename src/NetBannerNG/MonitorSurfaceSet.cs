@@ -12,23 +12,28 @@ namespace NetBannerNG
     internal sealed class MonitorSurfaceSet : IMonitorSurfaceSet
     {
         private static readonly IMonitorLayoutPolicy LayoutPolicy = new MonitorLayoutPolicyProvider();
+        private readonly IMonitorIdentity _monitorIdentityProvider;
         private readonly bool _cleanStart;
         private readonly string _monitorIdentity;
         private readonly List<BorderBase> _windows;
         private readonly GroupHealthPolicy _healthPolicy = new(disableThreshold: 3, disableDuration: TimeSpan.FromSeconds(30));
 
-        internal MonitorSurfaceSet(Monitor monitor, bool cleanStart)
+        internal MonitorSurfaceSet(Monitor monitor, bool cleanStart, IMonitorIdentity monitorIdentity)
         {
             Monitor = monitor;
+            _monitorIdentityProvider = monitorIdentity;
             _cleanStart = cleanStart;
-            _monitorIdentity = MonitorIdentity.BuildGroupId(monitor.Name, monitor.Bounds);
+            _monitorIdentity = _monitorIdentityProvider.BuildGroupId(monitor.Name, monitor.Bounds);
             _windows = CreateWindows().ToList();
         }
 
         public Monitor Monitor { get; private set; }
         public string GroupId => _monitorIdentity;
+
         public IEnumerable<BorderBase> CreateLaunchEntries() => _windows;
-        public bool MatchesMonitor(Monitor monitor) => MonitorIdentity.BuildGroupId(monitor.Name, monitor.Bounds) == GroupId;
+
+        public bool MatchesMonitor(Monitor monitor) => _monitorIdentityProvider.BuildGroupId(monitor) == GroupId;
+
         public bool HasMonitorLayoutChanged(Monitor monitor) =>
             Monitor.Bounds != monitor.Bounds || Monitor.WorkingArea != monitor.WorkingArea || Monitor.IsPrimary != monitor.IsPrimary;
 
@@ -57,8 +62,12 @@ namespace NetBannerNG
             }
         }
 
-        public void ApplyPostDockVisualState() { foreach (var w in _windows) w.ApplyPostDockVisualState(); }
-        public void SetTopMost(bool topMost) { foreach (var w in _windows) w.Topmost = topMost; }
+        public void ApplyPostDockVisualState()
+        { foreach (var w in _windows) w.ApplyPostDockVisualState(); }
+
+        public void SetTopMost(bool topMost)
+        { foreach (var w in _windows) w.Topmost = topMost; }
+
         public void SetBarsVisibility(bool isVisible)
         {
             foreach (var window in _windows)
@@ -86,7 +95,9 @@ namespace NetBannerNG
             catch (Exception ex) { MarkFailure("Show", window.GetType().Name, ex); error = ex; return false; }
         }
 
-        private static void ShowWindowIfNeeded(BorderBase window) { if (!window.IsVisible) { window.Render(); window.Show(); } }
+        private static void ShowWindowIfNeeded(BorderBase window)
+        { if (!window.IsVisible) { window.Render(); window.Show(); } }
+
         private void MarkFailure(string stage, string windowType, Exception ex)
         {
             _healthPolicy.RecordFailure(DateTime.UtcNow);

@@ -13,7 +13,6 @@ internal sealed class SettingsRegistryReader
         _localMachineKey = localMachineKey;
     }
 
-
     [System.Diagnostics.Conditional("DEBUG")]
     internal void EnsureDebugRegistryKeys(string policyPath, string localPath)
     {

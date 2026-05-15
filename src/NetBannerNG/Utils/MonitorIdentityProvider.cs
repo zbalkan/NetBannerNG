@@ -1,5 +1,5 @@
-using NetBannerNG.Services;
 using System.Windows;
+using NetBannerNG.Services;
 using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG.Utils

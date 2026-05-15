@@ -85,4 +85,4 @@ Development changes that affect lifecycle must be validated with installer-drive
 
 ## Architecture reference
 
-For current runtime boundaries and monitor-overlay design, see `docs/ARCHITECTURE.md`.
+For current runtime boundaries and monitor-overlay design, see `ARCHITECTURE.md`.

@@ -114,6 +114,7 @@ namespace NetBannerNG.Service
         }
 
 #pragma warning disable IDE0022 // Use expression body for method
+
         private static string GetChildProcessPath()
         {
 #if DEBUG
@@ -122,6 +123,7 @@ namespace NetBannerNG.Service
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.exe");
 #endif
         }
+
 #pragma warning restore IDE0022 // Use expression body for method
 
         private static IEnumerable<Process> GetChildProcesses()

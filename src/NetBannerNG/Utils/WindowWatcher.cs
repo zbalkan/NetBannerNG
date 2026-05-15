@@ -2,16 +2,16 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
 using System.Windows;
 using System.Windows.Threading;
+using NetBannerNG.Common;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
 using NetBannerNG.Services;
 using Monitor = NetBannerNG.Common.Monitor;
-using NetBannerNG.Common;
 
 namespace NetBannerNG.Utils
 {
@@ -31,6 +31,7 @@ namespace NetBannerNG.Utils
         private static IntPtr _hookId;
         private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
         internal static Func<string, Task>? EventLogSinkAsync { get; set; }
+
         internal static event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
 
         internal static void Watch()
@@ -212,7 +213,6 @@ namespace NetBannerNG.Utils
             _ = EventLogSinkAsync?.Invoke(message);
         }
 
-
         private static HashSet<IntPtr> SnapshotOwnWindowHandles()
         {
             var dispatcher = Application.Current?.Dispatcher;
@@ -248,7 +248,6 @@ namespace NetBannerNG.Utils
 
             return windows;
         }
-
 
         private static bool ShouldConsiderForFullscreen(IntPtr windowHandle)
         {
@@ -328,6 +327,7 @@ namespace NetBannerNG.Utils
 
             return bounds;
         }
+
         private static void BeginOnUi(Action action)
         {
             var dispatcher = Application.Current?.Dispatcher;

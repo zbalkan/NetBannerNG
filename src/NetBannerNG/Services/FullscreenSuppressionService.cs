@@ -7,21 +7,22 @@ namespace NetBannerNG.Services
     internal interface IForegroundWindowWatcher
     {
         event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
+
         Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync { get; set; }
+
         void Watch();
+
         void Unwatch();
     }
 
     internal sealed class StaticForegroundWindowWatcher : IForegroundWindowWatcher
     {
-        public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated
-        {
+        public event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated {
             add => WindowWatcher.FullscreenSuppressionUpdated += value;
             remove => WindowWatcher.FullscreenSuppressionUpdated -= value;
         }
 
-        public Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync
-        {
+        public Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync {
             get => WindowWatcher.EventLogSinkAsync;
             set => WindowWatcher.EventLogSinkAsync = value;
         }
@@ -34,7 +35,9 @@ namespace NetBannerNG.Services
     internal interface IFullscreenSuppressionService
     {
         event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? SuppressionUpdated;
+
         void Start();
+
         void Stop();
     }
 
@@ -52,8 +55,7 @@ namespace NetBannerNG.Services
             _foregroundWindowWatcher = foregroundWindowWatcher;
         }
 
-        internal Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync
-        {
+        internal Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync {
             get => _foregroundWindowWatcher.EventLogSinkAsync;
             set => _foregroundWindowWatcher.EventLogSinkAsync = value;
         }

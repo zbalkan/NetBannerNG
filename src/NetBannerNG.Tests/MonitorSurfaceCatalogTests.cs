@@ -14,24 +14,42 @@ namespace NetBannerNG.Tests
         private sealed class FakeMonitorIdentity : IMonitorIdentity
         {
             public string BuildGroupId(Monitor monitor) => monitor.Name;
+
             public string BuildGroupId(string monitorName, Rect bounds) => monitorName;
         }
 
         private sealed class FakeSurfaceSet : IMonitorSurfaceSet
         {
-            public FakeSurfaceSet(string groupId, Monitor monitor) { GroupId = groupId; Monitor = monitor; }
+            public FakeSurfaceSet(string groupId, Monitor monitor)
+            { GroupId = groupId; Monitor = monitor; }
+
             public Monitor Monitor { get; private set; }
             public string GroupId { get; }
             public int SyncCount { get; private set; }
+
             public IEnumerable<BorderBase> CreateLaunchEntries() => Array.Empty<BorderBase>();
+
             public bool MatchesMonitor(Monitor monitor) => monitor.Name == GroupId;
+
             public bool HasMonitorLayoutChanged(Monitor monitor) => Monitor.Bounds != monitor.Bounds;
-            public void SyncMonitor(Monitor monitor) { Monitor = monitor; SyncCount++; }
-            public void ApplyPostDockVisualState() { }
-            public void SetTopMost(bool topMost) { }
-            public void SetBarsVisibility(bool isVisible) { }
-            public void Close() { }
-            public bool TryShowWindow(BorderBase window, out Exception? error) { error = null; return true; }
+
+            public void SyncMonitor(Monitor monitor)
+            { Monitor = monitor; SyncCount++; }
+
+            public void ApplyPostDockVisualState()
+            { }
+
+            public void SetTopMost(bool topMost)
+            { }
+
+            public void SetBarsVisibility(bool isVisible)
+            { }
+
+            public void Close()
+            { }
+
+            public bool TryShowWindow(BorderBase window, out Exception? error)
+            { error = null; return true; }
         }
 
         [TestMethod]

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using NetBannerNG.Services;
-using NetBannerNG.Utils;
 using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG
@@ -11,8 +10,11 @@ namespace NetBannerNG
     internal interface IMonitorSurfaceCatalog
     {
         List<IMonitorSurfaceSet> Reconcile(IEnumerable<Monitor> monitors, bool clean);
+
         bool TryGet(string groupId, out IMonitorSurfaceSet? group);
+
         int Count { get; }
+
         List<IMonitorSurfaceSet> Snapshot(bool clear = false);
     }
 
@@ -33,7 +35,7 @@ namespace NetBannerNG
         private readonly object _sync = new();
 
         internal MonitorSurfaceCatalog(IMonitorIdentity monitorIdentity)
-            : this(monitorIdentity, (monitor, clean) => new MonitorSurfaceSet(monitor, clean))
+            : this(monitorIdentity, (monitor, clean) => new MonitorSurfaceSet(monitor, clean, monitorIdentity))
         {
         }
 
@@ -62,14 +64,17 @@ namespace NetBannerNG
                 try
                 {
                     group.Close();
-                    lock (_sync)
-                    {
-                        _ = _surfaces.Remove(group.GroupId);
-                    }
                 }
                 catch (Exception ex)
                 {
                     LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", group.GroupId, ex);
+                }
+                finally
+                {
+                    lock (_sync)
+                    {
+                        _ = _surfaces.Remove(group.GroupId);
+                    }
                 }
             }
 
@@ -146,10 +151,8 @@ namespace NetBannerNG
             }
         }
 
-        public int Count
-        {
-            get
-            {
+        public int Count {
+            get {
                 lock (_sync)
                 {
                     return _surfaces.Count;

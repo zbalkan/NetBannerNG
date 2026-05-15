@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Security;
 using System.Text;
 
 namespace NetBannerNG.Common.Native

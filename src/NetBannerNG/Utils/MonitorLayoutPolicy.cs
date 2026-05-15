@@ -1,7 +1,5 @@
 using System;
-using System.Windows;
 using NetBannerNG.Borders;
-using NetBannerNG.Services;
 using Monitor = NetBannerNG.Common.Monitor;
 
 namespace NetBannerNG.Utils

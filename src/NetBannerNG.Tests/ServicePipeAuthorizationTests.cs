@@ -73,7 +73,6 @@ namespace NetBannerNG.Tests
             Assert.IsTrue(ServiceHost.HasSessionChanged(5, 6));
         }
 
-
         [TestMethod]
         public void TryAuthorizeClientIdentity_WhenSidMatches_ReturnsTrueAndSidDisplayImmediately()
         {

@@ -5,10 +5,15 @@ namespace NetBannerNG.Services
     internal interface IDisplayOverlayOrchestrator
     {
         void Init(bool clean);
+
         void InitiateAllSurfaces();
+
         void Refresh();
+
         void BeginShutdown();
+
         void CloseAllSurfaces();
+
         void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup);
     }
 

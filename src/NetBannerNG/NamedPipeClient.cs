@@ -150,10 +150,8 @@ namespace NetBannerNG
             GC.SuppressFinalize(this);
         }
 
-
         private void OnConnected(object o, ConnectionEventArgs<PipeMessage> args) =>
             DebugTrace("Connected");
-
 
         private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
