@@ -63,21 +63,27 @@ namespace NetBannerNG.Common.Native
             DoNotRedraw = 1 << 3,
             DoNotActivate = 1 << 4,
             DrawFrame = 1 << 5,
+#pragma warning disable CA1069 // Enums values should not be duplicated
             FrameChanged = 1 << 5,
+#pragma warning restore CA1069 // Enums values should not be duplicated
             ShowWindow = 1 << 6,
             HideWindow = 1 << 7,
             DoNotCopyBits = 1 << 8,
             DoNotChangeOwnerZOrder = 1 << 9,
+#pragma warning disable CA1069 // Enums values should not be duplicated
             DoNotReposition = 1 << 9,
+#pragma warning restore CA1069 // Enums values should not be duplicated
             DoNotSendChangingEvent = 1 << 10,
             DeferErase = 1 << 13,
             SynchronousWindowPosition = 1 << 14,
         }
 
         [Flags]
-        public enum SetWinEventHookFlags
+        public enum SetWinEventHook
         {
+#pragma warning disable CA1008 // Enums should have zero value
             OutOfContext = 0,
+#pragma warning restore CA1008 // Enums should have zero value
             SkipOwnThread = 1,
             SkipOwnProcess = 1 << 1,
             InContext = 1 << 2

@@ -27,7 +27,9 @@ namespace NetBannerNG.Common.NamedPipes
         public string? Text { get; set; }
 
         [Key(3)]
+#pragma warning disable CA1819 // Properties should not return arrays
         public byte[] Checksum {
+#pragma warning restore CA1819 // Properties should not return arrays
             get => (byte[])_checksum.Clone();
             set {
                 if (value == null || value.Length != PipeMessageChecksum.ChecksumLengthBytes)

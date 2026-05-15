@@ -120,7 +120,7 @@ namespace NetBannerNG.Tests
                     : !NamedPipeServer.IsAuthorizedClientConnection(sessionId, PipeNaming.ForSession(sessionId + 1), sessionId);
             }));
 
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             Assert.IsTrue(results.All(r => r));
         }
     }

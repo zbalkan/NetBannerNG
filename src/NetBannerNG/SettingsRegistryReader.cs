@@ -90,6 +90,7 @@ internal sealed class SettingsRegistryReader
 
     internal static bool TryConvertToInt(object? value, out int converted)
     {
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             if (value == null)
@@ -106,5 +107,6 @@ internal sealed class SettingsRegistryReader
             converted = 0;
             return false;
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 }

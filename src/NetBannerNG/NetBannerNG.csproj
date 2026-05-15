@@ -8,19 +8,16 @@
 		<ImplicitUsings>disable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<ApplicationManifest>app.manifest</ApplicationManifest>
-
 		<AnalysisMode>All</AnalysisMode>
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
-
 		<AssemblyName>NetBannerNG</AssemblyName>
 		<RootNamespace>NetBannerNG</RootNamespace>
-
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
-		
-
-
-
+		<AnalysisLevel>latest-all</AnalysisLevel>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+		<WarningsNotAsErrors>$(WarningsNotAsErrors);CA1515</WarningsNotAsErrors>
+		<NoWarn>$(NoWarn);CA1515</NoWarn>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
@@ -60,44 +57,40 @@
 		<MakeDir Directories="$(InstallerGeneratedDir)" />
 
 		<ItemGroup>
-			<InnoBuildInfoLines Include='#define MyAppId "$(InstallerAppId)"' />
-			<InnoBuildInfoLines Include='#define MyAppName "$(Product)"' />
-			<InnoBuildInfoLines Include='#define MyAppVersion "$(InstallerVersion)"' />
-			<InnoBuildInfoLines Include='#define MyAppPublisher "$(Company)"' />
-			<InnoBuildInfoLines Include='#define MyAppURL "$(InstallerUrl)"' />
-			<InnoBuildInfoLines Include='#define MyInstallerIconFile "$(MSBuildProjectDirectory)\..\Assets\DeltaZulu - dark.ico"' />
+			<InnoBuildInfoLines Include="#define MyAppId &quot;$(InstallerAppId)&quot;" />
+			<InnoBuildInfoLines Include="#define MyAppName &quot;$(Product)&quot;" />
+			<InnoBuildInfoLines Include="#define MyAppVersion &quot;$(InstallerVersion)&quot;" />
+			<InnoBuildInfoLines Include="#define MyAppPublisher &quot;$(Company)&quot;" />
+			<InnoBuildInfoLines Include="#define MyAppURL &quot;$(InstallerUrl)&quot;" />
+			<InnoBuildInfoLines Include="#define MyInstallerIconFile &quot;$(MSBuildProjectDirectory)\..\Assets\DeltaZulu - dark.ico&quot;" />
 
-			<InnoBuildInfoLines Include='#define MyUiExeName "$(TargetFileName)"' />
-			<InnoBuildInfoLines Include='#define MyServiceExeName "$(NetBannerNGServiceExeName)"' />
-			<InnoBuildInfoLines Include='#define MyUiOutputDir "$(TargetDir)"' />
-			<InnoBuildInfoLines Include='#define MyServiceOutputDir "$(MSBuildProjectDirectory)\..\NetBannerNG.Service\bin\$(Configuration)\$(TargetFramework)\"' />
+			<InnoBuildInfoLines Include="#define MyUiExeName &quot;$(TargetFileName)&quot;" />
+			<InnoBuildInfoLines Include="#define MyServiceExeName &quot;$(NetBannerNGServiceExeName)&quot;" />
+			<InnoBuildInfoLines Include="#define MyUiOutputDir &quot;$(TargetDir)&quot;" />
+			<InnoBuildInfoLines Include="#define MyServiceOutputDir &quot;$(MSBuildProjectDirectory)\..\NetBannerNG.Service\bin\$(Configuration)\$(TargetFramework)\&quot;" />
 
-			<InnoBuildInfoLines Include='#define MyServiceName "$(NetBannerNGServiceName)"' />
-			<InnoBuildInfoLines Include='#define MyServiceDisplayName "$(NetBannerNGServiceDisplayName)"' />
-			<InnoBuildInfoLines Include='#define MyServiceDescription "$(NetBannerNGServiceDescription)"' />
+			<InnoBuildInfoLines Include="#define MyServiceName &quot;$(NetBannerNGServiceName)&quot;" />
+			<InnoBuildInfoLines Include="#define MyServiceDisplayName &quot;$(NetBannerNGServiceDisplayName)&quot;" />
+			<InnoBuildInfoLines Include="#define MyServiceDescription &quot;$(NetBannerNGServiceDescription)&quot;" />
 
-			<InnoBuildInfoLines Include='#define MyEventLogName "$(NetBannerNGEventLogName)"' />
-			<InnoBuildInfoLines Include='#define MyEventLogSource "$(NetBannerNGEventLogSource)"' />
-			<InnoBuildInfoLines Include='#define MyPolicyRegistryKey "$(NetBannerNGPolicyRegistryKey)"' />
-			<InnoBuildInfoLines Include='#define MyProgramDataDir "$(NetBannerNGProgramDataDir)"' />
-			<InnoBuildInfoLines Include='#define DefaultClassificationProfile "$(NetBannerNGDefaultClassificationProfile)"' />
-			<InnoBuildInfoLines Include='#define DefaultBannerSize "$(NetBannerNGDefaultBannerSize)"' />
-			<InnoBuildInfoLines Include='#define DefaultCustomSettings "$(NetBannerNGDefaultCustomSettings)"' />
-			<InnoBuildInfoLines Include='#define DefaultCustomBackgroundColor "$(NetBannerNGDefaultCustomBackgroundColor)"' />
-			<InnoBuildInfoLines Include='#define DefaultCustomForeColor "$(NetBannerNGDefaultCustomForeColor)"' />
-			<InnoBuildInfoLines Include='#define DefaultInfoCon "$(NetBannerNGDefaultInfoCon)"' />
-			<InnoBuildInfoLines Include='#define DefaultFpCon "$(NetBannerNGDefaultFpCon)"' />
-			<InnoBuildInfoLines Include='#define DefaultCaveatsEnabled "$(NetBannerNGDefaultCaveatsEnabled)"' />
-			<InnoBuildInfoLines Include='#define DefaultDisableBorders "$(NetBannerNGDefaultDisableBorders)"' />
-			<InnoBuildInfoLines Include='#define DefaultShowHostInformation "$(NetBannerNGDefaultShowHostInformation)"' />
-			<InnoBuildInfoLines Include='#define DefaultEnableBottomBanner "$(NetBannerNGDefaultEnableBottomBanner)"' />
+			<InnoBuildInfoLines Include="#define MyEventLogName &quot;$(NetBannerNGEventLogName)&quot;" />
+			<InnoBuildInfoLines Include="#define MyEventLogSource &quot;$(NetBannerNGEventLogSource)&quot;" />
+			<InnoBuildInfoLines Include="#define MyPolicyRegistryKey &quot;$(NetBannerNGPolicyRegistryKey)&quot;" />
+			<InnoBuildInfoLines Include="#define MyProgramDataDir &quot;$(NetBannerNGProgramDataDir)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultClassificationProfile &quot;$(NetBannerNGDefaultClassificationProfile)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultBannerSize &quot;$(NetBannerNGDefaultBannerSize)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultCustomSettings &quot;$(NetBannerNGDefaultCustomSettings)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultCustomBackgroundColor &quot;$(NetBannerNGDefaultCustomBackgroundColor)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultCustomForeColor &quot;$(NetBannerNGDefaultCustomForeColor)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultInfoCon &quot;$(NetBannerNGDefaultInfoCon)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultFpCon &quot;$(NetBannerNGDefaultFpCon)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultCaveatsEnabled &quot;$(NetBannerNGDefaultCaveatsEnabled)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultDisableBorders &quot;$(NetBannerNGDefaultDisableBorders)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultShowHostInformation &quot;$(NetBannerNGDefaultShowHostInformation)&quot;" />
+			<InnoBuildInfoLines Include="#define DefaultEnableBottomBanner &quot;$(NetBannerNGDefaultEnableBottomBanner)&quot;" />
 		</ItemGroup>
 
-		<WriteLinesToFile
-		  File="$(InnoBuildInfoFile)"
-		  Lines="@(InnoBuildInfoLines)"
-		  Overwrite="true"
-		  Encoding="UTF-8" />
+		<WriteLinesToFile File="$(InnoBuildInfoFile)" Lines="@(InnoBuildInfoLines)" Overwrite="true" Encoding="UTF-8" />
 
 	</Target>
 

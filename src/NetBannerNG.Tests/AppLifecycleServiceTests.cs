@@ -9,6 +9,8 @@ namespace NetBannerNG.Tests
     [TestClass]
     public class AppLifecycleServiceTests
     {
+        private static readonly string[] expected = new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" };
+
         [TestMethod]
         public async Task InitializeRuntimeAsync_InitializesAndWiresSuppressionUpdates()
         {
@@ -19,10 +21,10 @@ namespace NetBannerNG.Tests
 
             try
             {
-                await sut.InitializeRuntimeAsync();
+                await sut.InitializeRuntimeAsync().ConfigureAwait(false);
                 suppression.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["DISPLAY1"] = new FullscreenSuppressionState(true, "VideoPlayer") });
                 CollectionAssert.AreEqual(
-                    new[] { "Init", "InitiateAllSurfaces", "ApplyFullscreenSuppressionStates" },
+                    expected,
                     orchestrator.Calls);
                 Assert.AreEqual(1, suppression.StartCalls);
                 Assert.AreEqual(1, monitorWatcher.WatchCalls);
@@ -30,7 +32,8 @@ namespace NetBannerNG.Tests
             }
             finally
             {
-                await sut.ShutdownRuntimeAsync();
+                await sut.ShutdownRuntimeAsync().ConfigureAwait(false);
+                sut.Dispose();
             }
         }
 
@@ -42,13 +45,14 @@ namespace NetBannerNG.Tests
             var monitorWatcher = new FakeMonitorWatcher();
             var sut = new AppLifecycleService(orchestrator, suppression, monitorWatcher);
 
-            await sut.InitializeRuntimeAsync();
-            await sut.ShutdownRuntimeAsync();
+            await sut.InitializeRuntimeAsync().ConfigureAwait(false);
+            await sut.ShutdownRuntimeAsync().ConfigureAwait(false);
 
             CollectionAssert.Contains(orchestrator.Calls, "BeginShutdown");
             CollectionAssert.Contains(orchestrator.Calls, "CloseAllSurfaces");
             Assert.AreEqual(1, monitorWatcher.UnwatchCalls);
             Assert.AreEqual(1, suppression.StopCalls);
+            sut.Dispose();
         }
 
         private sealed class FakeOverlayOrchestrator : IDisplayOverlayOrchestrator

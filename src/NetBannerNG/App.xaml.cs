@@ -17,16 +17,14 @@ namespace NetBannerNG
     /// <summary>
     ///     Interaction logic for App.xaml
     /// </summary>
-    public partial class App : Application
+    public partial class App : Application, IDisposable
     {
         private static bool _isClosing;
         private static int _shutdownStarted;
+        private bool disposedValue;
         private readonly AppLifecycleService _lifecycleService = new();
 
-        internal static void ShutDownGracefully()
-        {
-            _ = ShutDownGracefullyAsync();
-        }
+        internal static void ShutDownGracefully() => _ = ShutDownGracefullyAsync();
 
         internal static async Task ShutDownGracefullyAsync()
         {
@@ -41,10 +39,11 @@ namespace NetBannerNG
                 return;
             }
 
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 _isClosing = true;
-                await ((App)Current!)._lifecycleService.ShutdownRuntimeAsync();
+                await ((App)Current!)._lifecycleService.ShutdownRuntimeAsync().ConfigureAwait(false);
                 Current?.Shutdown();
             }
             catch (Exception)
@@ -52,10 +51,12 @@ namespace NetBannerNG
                 _isClosing = true;
                 Current?.Shutdown();
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 if (!_lifecycleService.EnsureSingleInstance())
@@ -75,32 +76,35 @@ namespace NetBannerNG
                 // If no debugger is attached and the argument --debug was passed, launch the debugger.
                 AppLifecycleService.TryLaunchDebugger(args);
 
-                if (!await TryInitializePipeClientAsync(args))
+                if (!await TryInitializePipeClientAsync(args).ConfigureAwait(false))
                 {
                     return;
                 }
 
                 base.OnStartup(e);
 
-                await _lifecycleService.InitializeRuntimeAsync();
+                await _lifecycleService.InitializeRuntimeAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                await Dump(ex);
+                await Dump(ex).ConfigureAwait(false);
                 ShutDownGracefully();
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private async Task<bool> TryInitializePipeClientAsync(string[] args)
         {
             var pipeName = ResolvePipeName(args);
-            var initialized = await _lifecycleService.InitializePipeClientAsync(pipeName);
+            var initialized = await _lifecycleService.InitializePipeClientAsync(pipeName).ConfigureAwait(false);
             if (initialized)
             {
                 return true;
             }
 
+#pragma warning disable CA1849 // Call async methods when in an async method
             ShutDownGracefully();
+#pragma warning restore CA1849 // Call async methods when in an async method
             return false;
         }
 
@@ -155,6 +159,26 @@ namespace NetBannerNG
 
             e.Cancel = true;
             ShutDownGracefully();
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _lifecycleService?.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

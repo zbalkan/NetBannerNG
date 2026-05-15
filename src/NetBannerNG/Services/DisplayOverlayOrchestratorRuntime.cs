@@ -10,7 +10,9 @@ namespace NetBannerNG.Services
     internal sealed class DisplayOverlayOrchestratorRuntime : IDisplayOverlayOrchestrator
     {
         private readonly IMonitorLayoutPolicy _layoutPolicy;
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private readonly IMonitorSurfaceCatalog _surfaceCatalog;
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
         private readonly List<Monitor> _previousMonitors = new();
         private bool _isInitiated;
         private bool _cleanStart;

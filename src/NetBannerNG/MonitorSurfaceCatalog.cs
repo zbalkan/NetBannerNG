@@ -61,6 +61,7 @@ namespace NetBannerNG
 
             foreach (var group in groupsToRemove)
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     group.Close();
@@ -76,6 +77,7 @@ namespace NetBannerNG
                         _ = _surfaces.Remove(group.GroupId);
                     }
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
 
             foreach (var monitor in nextMonitors)
@@ -91,6 +93,7 @@ namespace NetBannerNG
 
                 if (shouldSyncExistingGroup && existingGroup != null)
                 {
+#pragma warning disable CA1031 // Do not catch general exception types
                     try
                     {
                         if (existingGroup.HasMonitorLayoutChanged(monitor))
@@ -102,10 +105,12 @@ namespace NetBannerNG
                     {
                         LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
                     }
+#pragma warning restore CA1031 // Do not catch general exception types
 
                     continue;
                 }
 
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     var createdGroup = _surfaceSetFactory(monitor, clean);
@@ -138,6 +143,7 @@ namespace NetBannerNG
                 {
                     LogMonitorGroupFailure(EventIds.GroupAddFailure, "Add", groupId, ex);
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
 
             return groupsToShow;

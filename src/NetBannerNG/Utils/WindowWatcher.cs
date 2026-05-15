@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -69,7 +70,7 @@ namespace NetBannerNG.Utils
                 hookProc,
                 0,
                 0,
-                (int)(NativeTypes.SetWinEventHookFlags.SkipOwnProcess | NativeTypes.SetWinEventHookFlags.OutOfContext));
+                (int)(NativeTypes.SetWinEventHook.SkipOwnProcess | NativeTypes.SetWinEventHook.OutOfContext));
 
         private static void HookCallback(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
@@ -133,7 +134,7 @@ namespace NetBannerNG.Utils
                     var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
                     var appName = fullscreenAppByGroup.TryGetValue(groupId, out var app) ? app : "Unknown";
                     Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
-                    LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(), isFullscreen, appName);
+                    LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(CultureInfo.InvariantCulture), isFullscreen, appName);
                 }
             });
         }

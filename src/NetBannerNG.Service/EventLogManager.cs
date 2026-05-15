@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace NetBannerNG.Service
 {
-    public sealed class EventLogManager
+    internal sealed class EventLogManager
     {
         private const string LogName = "Application";
         private const string SourceName = "NetBannerNG";
@@ -27,6 +27,7 @@ namespace NetBannerNG.Service
                 return;
             }
 
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 RegisterSource();
@@ -37,6 +38,7 @@ namespace NetBannerNG.Service
             {
                 Trace.TraceWarning($"[NetBannerNG] Event log source registration failed: {ex.Message}");
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         public void LogInformation(string message) =>
@@ -105,6 +107,7 @@ namespace NetBannerNG.Service
             }
 
             Task.Run(() => {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     RegisterSource();
@@ -121,6 +124,7 @@ namespace NetBannerNG.Service
                 {
                     Interlocked.Exchange(ref _initLock, 0);
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             });
         }
 
@@ -174,6 +178,7 @@ namespace NetBannerNG.Service
 
         private static bool TryWriteEntry(PendingEntry entry)
         {
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 EventLog.WriteEntry(SourceName, entry.Message, entry.Type, entry.EventId);
@@ -186,6 +191,7 @@ namespace NetBannerNG.Service
                 ScheduleInitialization();
                 return false;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private static void WriteToTrace(EventLogEntryType type, string message)
@@ -206,7 +212,7 @@ namespace NetBannerNG.Service
             }
         }
 
-        public readonly struct PendingEntry
+        internal readonly struct PendingEntry
         {
             public EventLogEntryType Type { get; }
             public string Message { get; }

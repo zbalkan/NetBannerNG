@@ -6,7 +6,7 @@ using System.ServiceProcess;
 using NetBannerNG.Common.Extensions;
 
 [assembly: CLSCompliant(true)]
-
+#pragma warning disable CA1303 // Do not pass literals as localized parameters
 namespace NetBannerNG.Service
 {
     /// <summary>
@@ -14,8 +14,9 @@ namespace NetBannerNG.Service
     ///     The application runs as a Windows service; interactive hosting is available only in Debug builds.
     /// </summary>
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
-    public static class Program
+    internal static class Program
     {
+
         public static EventLogManager Log { get; } = new();
 
         public static void Main(string[] args)
@@ -68,8 +69,8 @@ namespace NetBannerNG.Service
         private static bool ShouldCaptureFirstChanceExceptions()
         {
             var value = Environment.GetEnvironmentVariable("NETBANNERNG_DEBUG_DUMP_FIRST_CHANCE");
-            return string.Equals(value, "1") ||
-                   string.Equals(value, "true");
+            return string.Equals(value, "1", StringComparison.Ordinal) ||
+                   string.Equals(value, "true", StringComparison.Ordinal);
         }
 
         private static void CurrentDomain_FirstChanceException(object? sender, FirstChanceExceptionEventArgs e)
@@ -150,3 +151,4 @@ namespace NetBannerNG.Service
         private static void StartLogger() => EventLogManager.Initialize();
     }
 }
+#pragma warning restore CA1303 // Do not pass literals as localized parameters

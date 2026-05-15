@@ -11,7 +11,9 @@ namespace NetBannerNG
 {
     internal sealed class MonitorSurfaceSet : IMonitorSurfaceSet
     {
+#pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private static readonly IMonitorLayoutPolicy LayoutPolicy = new MonitorLayoutPolicyProvider();
+#pragma warning restore CA1859 // Use concrete types when possible for improved performance
         private readonly IMonitorIdentity _monitorIdentityProvider;
         private readonly bool _cleanStart;
         private readonly string _monitorIdentity;
@@ -39,11 +41,16 @@ namespace NetBannerNG
 
         public void SyncMonitor(Monitor monitor)
         {
-            if (!_healthPolicy.CanAttempt(DateTime.UtcNow)) return;
+            if (!_healthPolicy.CanAttempt(DateTime.UtcNow))
+            {
+                return;
+            }
+
             Monitor = monitor;
             var syncFailed = false;
             foreach (var window in _windows)
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     LayoutPolicy.ApplyMonitorBounds(window, monitor);
@@ -54,6 +61,7 @@ namespace NetBannerNG
                     syncFailed = true;
                     MarkFailure("Sync", window.GetType().Name, ex);
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
 
             if (!syncFailed)
@@ -63,16 +71,28 @@ namespace NetBannerNG
         }
 
         public void ApplyPostDockVisualState()
-        { foreach (var w in _windows) w.ApplyPostDockVisualState(); }
+        { foreach (var w in _windows)
+            {
+                w.ApplyPostDockVisualState();
+            }
+        }
 
         public void SetTopMost(bool topMost)
-        { foreach (var w in _windows) w.Topmost = topMost; }
+        { foreach (var w in _windows)
+            {
+                w.Topmost = topMost;
+            }
+        }
 
         public void SetBarsVisibility(bool isVisible)
         {
             foreach (var window in _windows)
             {
-                if (window is not LeftBar and not RightBar and not BottomBar) continue;
+                if (window is not LeftBar and not RightBar and not BottomBar)
+                {
+                    continue;
+                }
+
                 if (isVisible) { ShowWindowIfNeeded(window); window.Render(true); }
                 else if (window.IsVisible) { window.Hide(); }
             }
@@ -82,17 +102,25 @@ namespace NetBannerNG
         {
             foreach (var window in _windows.ToList())
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try { window.Close(); _healthPolicy.RecordSuccess(); }
                 catch (Exception ex) { MarkFailure("Close", window.GetType().Name, ex); }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
         }
 
         public bool TryShowWindow(BorderBase window, out Exception? error)
         {
             error = null;
-            if (!_healthPolicy.CanAttempt(DateTime.UtcNow)) return false;
+            if (!_healthPolicy.CanAttempt(DateTime.UtcNow))
+            {
+                return false;
+            }
+
+#pragma warning disable CA1031 // Do not catch general exception types
             try { ShowWindowIfNeeded(window); _healthPolicy.RecordSuccess(); return true; }
             catch (Exception ex) { MarkFailure("Show", window.GetType().Name, ex); error = ex; return false; }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private static void ShowWindowIfNeeded(BorderBase window)
@@ -107,9 +135,20 @@ namespace NetBannerNG
         private IEnumerable<BorderBase> CreateWindows()
         {
             yield return new Banner { Owner = System.Windows.Application.Current.MainWindow, Top = Monitor.Bounds.Top, Left = Monitor.Bounds.Left, Width = Monitor.Bounds.Width, AppBarMessageKey = BuildMessageKey("Banner"), IsDocked = !_cleanStart };
-            if (Settings.Instance.EnableBottomBanner) yield return new BottomBanner { Owner = System.Windows.Application.Current.MainWindow, Top = Monitor.Bounds.Top, Left = Monitor.Bounds.Left, Width = Monitor.Bounds.Width, AppBarMessageKey = BuildMessageKey("BottomBanner"), IsDocked = !_cleanStart };
-            else if (!Settings.Instance.DisableBorders) yield return new BottomBar { Owner = System.Windows.Application.Current.MainWindow, Top = Monitor.Bounds.Top, Left = Monitor.Bounds.Left, Width = Monitor.Bounds.Width, AppBarMessageKey = BuildMessageKey("Bottom"), IsDocked = !_cleanStart };
-            if (Settings.Instance.DisableBorders) yield break;
+            if (Settings.Instance.EnableBottomBanner)
+            {
+                yield return new BottomBanner { Owner = System.Windows.Application.Current.MainWindow, Top = Monitor.Bounds.Top, Left = Monitor.Bounds.Left, Width = Monitor.Bounds.Width, AppBarMessageKey = BuildMessageKey("BottomBanner"), IsDocked = !_cleanStart };
+            }
+            else if (!Settings.Instance.DisableBorders)
+            {
+                yield return new BottomBar { Owner = System.Windows.Application.Current.MainWindow, Top = Monitor.Bounds.Top, Left = Monitor.Bounds.Left, Width = Monitor.Bounds.Width, AppBarMessageKey = BuildMessageKey("Bottom"), IsDocked = !_cleanStart };
+            }
+
+            if (Settings.Instance.DisableBorders)
+            {
+                yield break;
+            }
+
             var top = LayoutPolicy.GetVerticalTop(Monitor); var height = LayoutPolicy.GetVerticalHeight(Monitor);
             yield return new LeftBar { Owner = System.Windows.Application.Current.MainWindow, Top = top, Left = Monitor.Bounds.Left, Height = height, AppBarMessageKey = BuildMessageKey("Left"), IsDocked = !_cleanStart };
             yield return new RightBar { Owner = System.Windows.Application.Current.MainWindow, Top = top, Left = Monitor.Bounds.Right - Settings.Instance.BorderSize, Height = height, AppBarMessageKey = BuildMessageKey("Right"), IsDocked = !_cleanStart };

@@ -22,7 +22,7 @@ namespace NetBannerNG.Services
         public void Unwatch() => MonitorWatcher.Unwatch();
     }
 
-    internal sealed class AppLifecycleService
+    internal sealed class AppLifecycleService : IDisposable
     {
         private static string TmpFilePath => Path.Combine(UserHelper.UserTempPath, $"netbannerng-pipe-{System.Diagnostics.Process.GetCurrentProcess().SessionId}.tmp");
 
@@ -31,6 +31,7 @@ namespace NetBannerNG.Services
         private readonly IDisplayOverlayOrchestrator _overlayOrchestrator;
         private readonly SemaphoreSlim _runtimeGate = new SemaphoreSlim(1, 1);
         private bool _runtimeStarted;
+        private bool disposedValue;
 
         internal AppLifecycleService()
             : this(new StaticDisplayOverlayOrchestrator(), new FullscreenSuppressionService(), new StaticMonitorTopologyWatcher())
@@ -53,14 +54,13 @@ namespace NetBannerNG.Services
 
         internal bool EnsureSingleInstance() => ProcessHelper.EnsureSingleInstance();
 
-        internal static bool EnsureParentIsService()
-        {
+        internal static bool EnsureParentIsService() =>
 #if DEBUG
-            return true;
+            true;
 #else
             return ProcessHelper.EnsureParentIsService();
 #endif
-        }
+
 
         internal static void TryLaunchDebugger(string[] args)
         {
@@ -75,12 +75,12 @@ namespace NetBannerNG.Services
         internal async Task<bool> InitializePipeClientAsync(string pipeName)
         {
             Client = new NamedPipeClient(pipeName);
-            return await Client.InitializeAsync();
+            return await Client.InitializeAsync().ConfigureAwait(false);
         }
 
         internal async Task InitializeRuntimeAsync()
         {
-            await _runtimeGate.WaitAsync();
+            await _runtimeGate.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_runtimeStarted)
@@ -142,7 +142,7 @@ namespace NetBannerNG.Services
 
                     if (Client is not null)
                     {
-                        await Client.DisposeAsync();
+                        await Client.DisposeAsync().ConfigureAwait(false);
                         Client = null;
                     }
 
@@ -158,7 +158,7 @@ namespace NetBannerNG.Services
 
         internal async Task ShutdownRuntimeAsync()
         {
-            await _runtimeGate.WaitAsync();
+            await _runtimeGate.WaitAsync().ConfigureAwait(false);
             try
             {
                 if (_runtimeStarted)
@@ -175,7 +175,7 @@ namespace NetBannerNG.Services
                 PinClearShutdown();
                 if (Client is not null)
                 {
-                    await Client.DisposeAsync();
+                    await Client.DisposeAsync().ConfigureAwait(false);
                     Client = null;
                 }
                 _runtimeStarted = false;
@@ -231,6 +231,26 @@ namespace NetBannerNG.Services
             {
                 // Best-effort marker; runtime should continue even if temp storage is unavailable.
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _runtimeGate?.Dispose();
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

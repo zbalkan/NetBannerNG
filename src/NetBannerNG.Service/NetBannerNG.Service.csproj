@@ -9,6 +9,8 @@
 		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<AnalysisMode>All</AnalysisMode>
 		<AnalysisModeSecurity>All</AnalysisModeSecurity>
+		<AnalysisLevel>latest-all</AnalysisLevel>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0">

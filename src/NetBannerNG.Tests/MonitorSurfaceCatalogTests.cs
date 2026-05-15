@@ -52,13 +52,15 @@ namespace NetBannerNG.Tests
             { error = null; return true; }
         }
 
+        private static readonly string[] expected = new[] { "DISPLAY1", "DISPLAY2" };
+
         [TestMethod]
         public void Reconcile_AddsAndSnapshots_WhenNewMonitorsProvided()
         {
             var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => new FakeSurfaceSet(monitor.Name, monitor));
             var toShow = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0), CreateMonitor("DISPLAY2", 1920) }, clean: false);
             Assert.HasCount(2, toShow);
-            CollectionAssert.AreEquivalent(new[] { "DISPLAY1", "DISPLAY2" }, toShow.ConvertAll(group => group.GroupId));
+            CollectionAssert.AreEquivalent(expected, toShow.ConvertAll(group => group.GroupId));
             Assert.AreEqual(2, catalog.Count);
         }
 

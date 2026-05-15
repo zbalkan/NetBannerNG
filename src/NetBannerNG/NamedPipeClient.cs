@@ -34,7 +34,7 @@ namespace NetBannerNG
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
-        private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(unchecked(Environment.TickCount * 31 + Thread.CurrentThread.ManagedThreadId)));
+        private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(unchecked(Environment.TickCount * 31 + Environment.CurrentManagedThreadId)));
 
         public NamedPipeClient(string pipeName, int timeout = 10000)
         {
@@ -48,6 +48,7 @@ namespace NetBannerNG
             _timeoutPolicy = Policy
                 .TimeoutAsync(TimeSpan.FromMilliseconds(timeout));
 
+#pragma warning disable CA5394 // Do not use insecure randomness
             var retryPolicy = Policy
                 .Handle<OperationCanceledException>()
                 .Or<InvalidOperationException>()
@@ -58,6 +59,7 @@ namespace NetBannerNG
                     onRetry: (exception, delay, attempt, _) => {
                         DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}");
                     });
+#pragma warning restore CA5394 // Do not use insecure randomness
 
             var breakerPolicy = Policy
                 .Handle<OperationCanceledException>()
@@ -75,18 +77,20 @@ namespace NetBannerNG
         public async Task<bool> InitializeAsync()
         {
             bool result;
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                await ExecuteWithResilience(async cancellationToken => await _client.ConnectAsync(cancellationToken));
+                await ExecuteWithResilience(_client.ConnectAsync).ConfigureAwait(false);
 
                 result = true;
             }
             catch (Exception ex)
             {
                 DebugTrace($"InitializeFailed reason={ex.GetType().Name} message={ex.Message}");
-                await _client.DisposeAsync();
+                await _client.DisposeAsync().ConfigureAwait(false);
                 result = false;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
 
             return result;
         }
@@ -117,9 +121,9 @@ namespace NetBannerNG
                         Text = message,
                     };
                     outboundMessage.Checksum = PipeMessageChecksum.Compute(outboundMessage);
-                    await _client.WriteAsync(outboundMessage, cancellationToken);
+                    await _client.WriteAsync(outboundMessage, cancellationToken).ConfigureAwait(false);
                     DebugTrace($"OutboundSent action={outboundMessage.Action} text_len={outboundMessage.Text?.Length ?? 0} checksum_len={outboundMessage.Checksum?.Length ?? 0}");
-                });
+                }).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
