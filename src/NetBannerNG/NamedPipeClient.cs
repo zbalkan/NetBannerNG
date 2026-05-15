@@ -160,7 +160,7 @@ namespace NetBannerNG
         private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             DebugTrace("Disconnected");
-            Application.Current.Dispatcher.Invoke(App.ShutDownGracefully);
+            App.ShutDownGracefully();
         }
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
