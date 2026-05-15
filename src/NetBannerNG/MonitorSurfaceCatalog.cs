@@ -104,9 +104,27 @@ namespace NetBannerNG
                 try
                 {
                     var createdGroup = _surfaceSetFactory(monitor, clean);
+                    IMonitorSurfaceSet? replacedGroup = null;
                     lock (_sync)
                     {
+                        if (_surfaces.TryGetValue(groupId, out var existingById))
+                        {
+                            replacedGroup = existingById;
+                        }
+
                         _surfaces[groupId] = createdGroup;
+                    }
+
+                    if (replacedGroup != null)
+                    {
+                        try
+                        {
+                            replacedGroup.Close();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogMonitorGroupFailure(EventIds.GroupRemoveFailure, "Remove", replacedGroup.GroupId, ex);
+                        }
                     }
 
                     groupsToShow.Add(createdGroup);

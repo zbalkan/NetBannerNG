@@ -36,18 +36,24 @@ namespace NetBannerNG
         {
             if (!_healthPolicy.CanAttempt(DateTime.UtcNow)) return;
             Monitor = monitor;
+            var syncFailed = false;
             foreach (var window in _windows)
             {
                 try
                 {
                     LayoutPolicy.ApplyMonitorBounds(window, monitor);
                     window.Render(true);
-                    _healthPolicy.RecordSuccess();
                 }
                 catch (Exception ex)
                 {
+                    syncFailed = true;
                     MarkFailure("Sync", window.GetType().Name, ex);
                 }
+            }
+
+            if (!syncFailed)
+            {
+                _healthPolicy.RecordSuccess();
             }
         }
 

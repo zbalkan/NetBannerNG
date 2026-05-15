@@ -112,6 +112,9 @@ namespace NetBannerNG.Services
                 }
                 catch
                 {
+                    _overlayOrchestrator.BeginShutdown();
+                    _overlayOrchestrator.CloseAllSurfaces();
+
                     if (monitorWatching)
                     {
                         _monitorWatcher.Unwatch();
@@ -134,6 +137,14 @@ namespace NetBannerNG.Services
                         ProcessHelper.Unprotect();
                     }
 
+                    PinClearShutdown();
+
+                    if (Client is not null)
+                    {
+                        await Client.DisposeAsync();
+                        Client = null;
+                    }
+
                     _runtimeStarted = false;
                     throw;
                 }
@@ -149,25 +160,23 @@ namespace NetBannerNG.Services
             await _runtimeGate.WaitAsync();
             try
             {
-                if (!_runtimeStarted)
+                if (_runtimeStarted)
                 {
-                    return;
+                    _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
+                    _overlayOrchestrator.BeginShutdown();
+                    _monitorWatcher.Unwatch();
+                    _fullscreenSuppressionService.Stop();
+                    _overlayOrchestrator.CloseAllSurfaces();
+                    ProcessHelper.Unprotect();
                 }
 
                 SetSuppressionEventLogSink(null);
-                _fullscreenSuppressionService.SuppressionUpdated -= _overlayOrchestrator.ApplyFullscreenSuppressionStates;
-                _overlayOrchestrator.BeginShutdown();
-                _monitorWatcher.Unwatch();
-                _fullscreenSuppressionService.Stop();
-                _overlayOrchestrator.CloseAllSurfaces();
                 PinClearShutdown();
                 if (Client is not null)
                 {
                     await Client.DisposeAsync();
                     Client = null;
                 }
-
-                ProcessHelper.Unprotect();
                 _runtimeStarted = false;
             }
             finally
