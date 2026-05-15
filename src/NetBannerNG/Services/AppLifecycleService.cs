@@ -224,15 +224,15 @@ namespace NetBannerNG.Services
         {
             try
             {
-                File.WriteAllText(TmpFilePath, "1");
+                using var _ = new FileStream(TmpFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             }
             catch (IOException)
             {
-                // Best-effort marker; runtime should continue even if temp storage is unavailable.
+                // File already exists (not a clear start) or I/O unavailable; both are acceptable.
             }
             catch (UnauthorizedAccessException)
             {
-                // Best-effort marker; runtime should continue even if temp storage is unavailable.
+                // File already exists (not a clear start) or I/O unavailable; both are acceptable.
             }
         }
 

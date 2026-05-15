@@ -29,8 +29,15 @@ namespace NetBannerNG.Common
                     return true;
                 }
 
-                _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out var createdNew);
-                return createdNew;
+                try
+                {
+                    _singleInstanceMutex = new Mutex(initiallyOwned: true, name: SingleInstanceMutexName, createdNew: out var createdNew);
+                    return createdNew;
+                }
+                catch (AbandonedMutexException)
+                {
+                    return true;
+                }
             }
         }
 
@@ -41,9 +48,30 @@ namespace NetBannerNG.Common
             {
                 return false;
             }
-            var parentName = parent.ProcessName;
+            if (!string.Equals(parent.ProcessName, "NetBannerNG.Service", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
 
-            return parentName == "NetBannerNG.Service";
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                var parentPath = parent.MainModule?.FileName;
+                if (string.IsNullOrEmpty(parentPath))
+                {
+                    return false;
+                }
+
+                var expectedPath = Path.GetFullPath(
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.Service.exe"));
+                return string.Equals(
+                    Path.GetFullPath(parentPath), expectedPath, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         /// <summary>
@@ -113,12 +141,17 @@ namespace NetBannerNG.Common
 
             var hToken = IntPtr.Zero;
 
-            var token = Advapi32.OpenProcessToken(process.Handle, TokenAccessRights.TokenQuery |
-                                                                      TokenAccessRights.TokenImpersonate |
-                                                                      TokenAccessRights.TokenDuplicate, ref hToken) == 0
+            var token = Advapi32.OpenProcessToken(process.Handle, TokenAccessRights.TokenQuery, ref hToken) == 0
                 ? throw new SecurityException($"Failed to access the token of the owner of {process.ProcessName}")
                 : hToken;
-            return new WindowsIdentity(token);
+            try
+            {
+                return new WindowsIdentity(token);
+            }
+            finally
+            {
+                Kernel32.CloseHandle(token);
+            }
         }
 
         private static RawSecurityDescriptor GetProcessSecurityDescriptor(IntPtr processHandle)
@@ -281,7 +314,7 @@ namespace NetBannerNG.Common
             var status = NtDll.NtQueryInformationProcess(handle, 0, ref parentProcessUtil, Marshal.SizeOf(parentProcessUtil), out _);
             if (status != 0)
             {
-                throw new Win32Exception(status);
+                throw new InvalidOperationException($"NtQueryInformationProcess failed: 0x{status:X8}");
             }
 
             try

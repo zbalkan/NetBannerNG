@@ -167,7 +167,6 @@ namespace NetBannerNG
                 return;
             }
 
-            e.Cancel = true;
             ShutDownGracefully();
         }
 

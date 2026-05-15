@@ -107,6 +107,18 @@ namespace NetBannerNG.Tests
             Assert.IsFalse(authorized);
         }
 
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_WhenIdentityMetadataMissingAndFallbackEnabled_ReturnsTrue()
+        {
+            var activeSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalServiceSid, null);
+            var connection = new { };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeSid, allowInteractiveUserNameFallback: true);
+
+            Assert.IsTrue(authorized);
+        }
+
         [TestMethod]
         public async Task IsAuthorizedClientConnection_IsStableUnderConcurrentBurstChecks()
         {

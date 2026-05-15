@@ -1,5 +1,8 @@
 using System;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using System.Windows.Media;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace NetBannerNG.Tests
@@ -72,6 +75,35 @@ namespace NetBannerNG.Tests
             Assert.IsFalse(success);
         }
 
+        [TestMethod]
+        public async Task TryParseBrush_IsThreadSafe_UnderConcurrentCalls()
+        {
+            var settingsType = Type.GetType("NetBannerNG.Settings, NetBannerNG")
+                ?? throw new InvalidOperationException("Type NetBannerNG.Settings was not found.");
+            var methodInfo = settingsType.GetMethod("TryParseBrush", BindingFlags.NonPublic | BindingFlags.Static)
+                ?? throw new InvalidOperationException("Method TryParseBrush was not found.");
+
+            var inputs = new[] { "#FF0000", "#00FF00", "", "bad-color", null, "#112233" };
+
+            var tasks = Enumerable.Range(0, 200)
+                .Select(i => Task.Run(() => {
+                    var input = inputs[i % inputs.Length];
+                    var args = new object?[] { input!, null! };
+                    var result = (bool)(methodInfo.Invoke(null, args) ?? false);
+                    var brush = args[1] as SolidColorBrush;
+
+                    Assert.IsNotNull(brush);
+                    if (string.IsNullOrWhiteSpace(input) || string.Equals(input, "bad-color", StringComparison.Ordinal))
+                    {
+                        Assert.IsFalse(result);
+                    }
+                }, TestContext.CancellationToken));
+
+#pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
+            await Task.WhenAll(tasks);
+#pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
+        }
+
         private static T InvokePrivate<T>(string method, params object[] args)
         {
             var type = Type.GetType("NetBannerNG.Settings, NetBannerNG")
@@ -82,5 +114,7 @@ namespace NetBannerNG.Tests
             return (T)(methodInfo.Invoke(null, args)
                 ?? throw new InvalidOperationException($"Method {method} returned null."));
         }
+
+        public TestContext TestContext { get; set; }
     }
 }

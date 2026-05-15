@@ -66,7 +66,11 @@ namespace NetBannerNG.Service
 
         private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server)
         {
-            _ = PrivilegeHelper.TryGetActiveUserSid(out var interactiveUserSid);
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var interactiveUserSid) || interactiveUserSid == null)
+            {
+                throw new InvalidOperationException("Unable to resolve active session user SID for pipe ACL configuration.");
+            }
+
             server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity(interactiveUserSid));
         }
 
@@ -324,8 +328,11 @@ namespace NetBannerNG.Service
                 return string.Equals(currentUserName, userNameValue, StringComparison.OrdinalIgnoreCase);
             }
 
-            // Some runtime targets do not expose SID/username metadata on the connection object
-            // in interactive debugging mode. Keep this fallback scoped to interactive runs only.
+            // In interactive/debug mode we can encounter transports that do not expose identity metadata.
+            // When fallback is explicitly enabled, the pipe ACL and session-bound pipe name remain the
+            // authoritative guardrails, so allow the connection to proceed.
+            Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, 0,
+                "SID/username not available on connection; allowing due to interactive fallback.");
             return true;
         }
 

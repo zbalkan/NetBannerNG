@@ -55,6 +55,8 @@ namespace NetBannerNG.Common.Extensions
             }
 
             Debug.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
+            var refAdded = false;
+            userIdentity.AccessToken.DangerousAddRef(ref refAdded);
             var userToken = userIdentity.AccessToken.DangerousGetHandle();
 
             var path = psi.FileName;
@@ -113,6 +115,11 @@ namespace NetBannerNG.Common.Extensions
             }
             finally
             {
+                if (refAdded)
+                {
+                    userIdentity.AccessToken.DangerousRelease();
+                }
+
                 if (environmentBlock != IntPtr.Zero)
                 {
                     _ = UserEnv.DestroyEnvironmentBlock(environmentBlock);

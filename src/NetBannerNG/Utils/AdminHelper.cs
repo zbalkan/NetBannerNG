@@ -2,9 +2,15 @@
 {
     internal static class AdminHelper
     {
+        private static volatile bool _isAdmin;
+
         /// <summary>
-        ///     Until the Windows service clearly sends on named pipe that the active user is an admin, return false.
+        ///     Set by the service over the named pipe after identity verification; defaults false until confirmed.
         /// </summary>
-        internal static bool IsAdmin { get; set; }
+        internal static bool IsAdmin
+        {
+            get => _isAdmin;
+            set => _isAdmin = value;
+        }
     }
 }

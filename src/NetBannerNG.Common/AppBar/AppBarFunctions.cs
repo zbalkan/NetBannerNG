@@ -334,9 +334,15 @@ namespace NetBannerNG.Common.AppBar
                 Interlocked.Exchange(ref LastPosChangedHandledAtTicks, nowTicks);
                 _ = Interlocked.Increment(ref _posChangedHandled);
                 IsHandled = true;
-                AbSetPos(this, Window, ChildElement);
-                handled = true; // This is set but never used
-                IsHandled = false; // Added to reduce unnecessary duplicate callbacks
+                try
+                {
+                    AbSetPos(this, Window, ChildElement);
+                    handled = true;
+                }
+                finally
+                {
+                    IsHandled = false;
+                }
                 Debug.WriteLine($"WndProc hook: {CallbackId} | Window: {Window} | Edge: {Enum.GetName(typeof(DockEdge), Edge)} | DockedSize: {DockedSize ?? new()}");
                 return IntPtr.Zero;
             }
@@ -351,7 +357,7 @@ namespace NetBannerNG.Common.AppBar
                 }
 
                 var appBarData = new APPBARDATA().WithWindow(Window);
-                appBarData.uCallbackMessage = CallbackId;
+                appBarData.uCallbackMessage = (uint)CallbackId;
                 var registrationResult = SHAppBarMessage((int)AbMsg.AbmNew, ref appBarData);
                 if (registrationResult == 0)
                 {
@@ -417,7 +423,7 @@ namespace NetBannerNG.Common.AppBar
         {
             switch (barData.uEdge)
             {
-                case (int)DockEdge.Left:
+                case (uint)DockEdge.Left:
                     barData.rc.Top = (int)workAreaInPixelsF.Top;
                     barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
                     barData.rc.Left = (int)workAreaInPixelsF.Left;
@@ -426,14 +432,14 @@ namespace NetBannerNG.Common.AppBar
                     barData.rc.Right = barData.rc.Left + (int)Math.Round(sizeInPixels.X);
                     break;
 
-                case (int)DockEdge.Right:
+                case (uint)DockEdge.Right:
                     barData.rc.Top = (int)workAreaInPixelsF.Top;
                     barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
                     barData.rc.Right = (int)workAreaInPixelsF.Right;
                     barData.rc.Left = barData.rc.Right - (int)Math.Round(sizeInPixels.X);
                     break;
 
-                case (int)DockEdge.Top:
+                case (uint)DockEdge.Top:
                     barData.rc.Left = (int)workAreaInPixelsF.Left;
                     barData.rc.Right = (int)workAreaInPixelsF.Right;
                     barData.rc.Top = (int)workAreaInPixelsF.Top;
@@ -442,7 +448,7 @@ namespace NetBannerNG.Common.AppBar
                     barData.rc.Bottom = barData.rc.Top + (int)Math.Round(sizeInPixels.Y);
                     break;
 
-                case (int)DockEdge.Bottom:
+                case (uint)DockEdge.Bottom:
                     barData.rc.Left = (int)workAreaInPixelsF.Left;
                     barData.rc.Right = (int)workAreaInPixelsF.Right;
                     barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
@@ -461,7 +467,7 @@ namespace NetBannerNG.Common.AppBar
         {
             barData.cbSize = Marshal.SizeOf(barData);
             barData.hWnd = appbarWindow.GetHandle();
-            barData.uEdge = (int)edge;
+            barData.uEdge = (uint)edge;
             return barData;
         }
 
@@ -505,7 +511,7 @@ namespace NetBannerNG.Common.AppBar
             {
                 throw new InvalidOperationException("Failed to register TaskbarCreated message.");
             }
-            abd.uCallbackMessage = info.CallbackId;
+            abd.uCallbackMessage = (uint)info.CallbackId;
             abd = SendNewAppBarToShell(abd);
             Debug.WriteLine($"Registered AppBar window {info.Window} with callback id {info.CallbackId} and TaskbarCreated id {info.TaskbarCreatedMessageId}.");
 
@@ -578,6 +584,12 @@ namespace NetBannerNG.Common.AppBar
                         CallbackMessageKey = string.Empty
                     };
                     RegisteredWindowInfo.Add(appbarWindow, reg);
+                    appbarWindow.Closed += (_, _) => {
+                        lock (RegisteredWindowInfoSync)
+                        {
+                            RegisteredWindowInfo.Remove(appbarWindow);
+                        }
+                    };
                 }
 
                 return reg;

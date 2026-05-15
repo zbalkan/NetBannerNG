@@ -88,8 +88,6 @@
                 TextAlignment="Center"
                 TextTrimming="CharacterEllipsis" />
 
-            <!-- Keep this only if/when you actually render caveats.
-                 For now it is collapsed so classification stays centered. -->
             <TextBlock
                 x:Name="TbCaveats"
                 Grid.Row="1"
@@ -97,7 +95,6 @@
                 Margin="4,0,4,0"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center"
-                Visibility="Collapsed"
                 FontFamily="Arial"
                 FontSize="9"
                 FontWeight="Bold"
@@ -107,7 +104,18 @@
                 SnapsToDevicePixels="True"
                 Text="{Binding CaveatsText}"
                 TextAlignment="Center"
-                TextTrimming="CharacterEllipsis" />
+                TextTrimming="CharacterEllipsis">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CaveatsText}" Value="">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
 
             <!-- Right column -->
             <TextBlock
