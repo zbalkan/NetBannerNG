@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Principal;
 using System.Text;
@@ -109,6 +110,7 @@ namespace NetBannerNG.Service
             Debug.WriteLine($"[PipeServer]  ClientConnected pipe={args.Connection.PipeName}");
             Debug.WriteLine("Checking child process owner.");
             var isAdmin = false;
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 isAdmin = PrivilegeHelper.IsSessionOwnerAdmin;
@@ -117,8 +119,10 @@ namespace NetBannerNG.Service
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeSessionAdminQueryFailed, ex.GetMessageStack());
             }
+#pragma warning restore CA1031 // Do not catch general exception types
             Debug.WriteLine($"Child process owner has admin rights: {isAdmin}");
 
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 var bootstrapMessage = new PipeMessage
@@ -148,6 +152,7 @@ namespace NetBannerNG.Service
             {
                 Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, ex.GetMessageStack());
             }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
@@ -231,7 +236,7 @@ namespace NetBannerNG.Service
             var hex = new StringBuilder(ba.Length * 2);
             foreach (var b in ba)
             {
-                hex.AppendFormat("{0:x2}", b);
+                hex.AppendFormat(CultureInfo.InvariantCulture, "{0:x2}", b);
             }
 
             return hex.ToString();
@@ -239,7 +244,6 @@ namespace NetBannerNG.Service
 
         private bool TryBuildAuthorizedClient(string? connectedPipeName, object connection, out AuthorizedClientContext authorizedClient)
         {
-
             authorizedClient = null!;
             if (string.IsNullOrWhiteSpace(connectedPipeName))
             {
@@ -262,11 +266,13 @@ namespace NetBannerNG.Service
                 return false;
             }
 
+#pragma warning disable CA1508 // Avoid dead conditional code
             authorizedClient = new AuthorizedClientContext
             {
                 PipeName = connectedPipeName ?? string.Empty,
                 Connection = connection
             };
+#pragma warning restore CA1508 // Avoid dead conditional code
             return true;
         }
 
@@ -322,7 +328,6 @@ namespace NetBannerNG.Service
             // in interactive debugging mode. Keep this fallback scoped to interactive runs only.
             return true;
         }
-
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
     }

@@ -73,7 +73,6 @@ namespace NetBannerNG.Tests
             Assert.IsTrue(ServiceHost.HasSessionChanged(5, 6));
         }
 
-
         [TestMethod]
         public void TryAuthorizeClientIdentity_WhenSidMatches_ReturnsTrueAndSidDisplayImmediately()
         {
@@ -121,7 +120,7 @@ namespace NetBannerNG.Tests
                     : !NamedPipeServer.IsAuthorizedClientConnection(sessionId, PipeNaming.ForSession(sessionId + 1), sessionId);
             }));
 
-            var results = await Task.WhenAll(tasks);
+            var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             Assert.IsTrue(results.All(r => r));
         }
     }

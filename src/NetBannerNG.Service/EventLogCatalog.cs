@@ -1,6 +1,8 @@
+using System.Globalization;
+
 namespace NetBannerNG.Service
 {
-    public static class EventLogCatalog
+    internal static class EventLogCatalog
     {
         public static readonly EventDefinition ServiceStartedService = new(1000, "NetBannerNG Service is started. Mode=Service");
         public static readonly EventDefinition ServiceStartedInteractive = new(1001, "NetBannerNG Service is started. Mode=Interactive");
@@ -44,7 +46,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition UnhandledException = new(9000, "Unhandled exception captured. {0}");
     }
 
-    public readonly struct EventDefinition
+    internal readonly struct EventDefinition
     {
         public int EventId { get; }
         public string Template { get; }
@@ -58,6 +60,6 @@ namespace NetBannerNG.Service
         public string Format(params object[] args) =>
             args == null || args.Length == 0
                 ? Template
-                : string.Format(Template, args);
+                : string.Format(CultureInfo.InvariantCulture, Template, args);
     }
 }

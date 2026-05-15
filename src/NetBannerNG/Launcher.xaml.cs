@@ -12,9 +12,6 @@ namespace NetBannerNG
             InitializeComponent();
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            App.ShutDownGracefully();
-        }
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) => App.ShutDownGracefully();
     }
 }

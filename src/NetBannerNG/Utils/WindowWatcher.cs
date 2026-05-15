@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Text;
 using System.Windows;
 using System.Windows.Threading;
+using NetBannerNG.Common;
 using NetBannerNG.Common.AppBar;
 using NetBannerNG.Common.Native;
+using NetBannerNG.Services;
 using Monitor = NetBannerNG.Common.Monitor;
-using NetBannerNG.Common;
 
 namespace NetBannerNG.Utils
 {
@@ -30,6 +32,8 @@ namespace NetBannerNG.Utils
         private static IntPtr _hookId;
         private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
         internal static Func<string, Task>? EventLogSinkAsync { get; set; }
+
+        internal static event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
 
         internal static void Watch()
         {
@@ -66,7 +70,7 @@ namespace NetBannerNG.Utils
                 hookProc,
                 0,
                 0,
-                (int)(NativeTypes.SetWinEventHookFlags.SkipOwnProcess | NativeTypes.SetWinEventHookFlags.OutOfContext));
+                (int)(NativeTypes.SetWinEventHook.SkipOwnProcess | NativeTypes.SetWinEventHook.OutOfContext));
 
         private static void HookCallback(IntPtr hWinEventHook, uint eventType, IntPtr hWnd, int idObject, int idChild,
             uint dwEventThread, uint dwmsEventTime)
@@ -119,14 +123,18 @@ namespace NetBannerNG.Utils
 
             Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
             BeginOnUi(() => {
+                var suppressionStateByGroup = fullscreenByGroup.ToDictionary(
+                    pair => pair.Key,
+                    pair => new FullscreenSuppressionState(pair.Value, fullscreenAppByGroup.TryGetValue(pair.Key, out var appName) ? appName : null),
+                    StringComparer.Ordinal);
+                FullscreenSuppressionUpdated?.Invoke(suppressionStateByGroup);
                 foreach (var monitor in monitors)
                 {
-                    var groupId = BorderManager.BuildGroupId(monitor);
+                    var groupId = MonitorIdentity.BuildGroupId(monitor);
                     var isFullscreen = fullscreenByGroup.TryGetValue(groupId, out var fullscreen) && fullscreen;
                     var appName = fullscreenAppByGroup.TryGetValue(groupId, out var app) ? app : "Unknown";
                     Debug.WriteLine($"[Fullscreen][Apply] Group={groupId} Monitor={monitor.Bounds} IsFullscreen={isFullscreen}");
-                    BorderManager.SetMonitorFullscreenSuppressedState(monitor, isFullscreen);
-                    LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(), isFullscreen, appName);
+                    LogSuppressionStateTransition(groupId, monitor.Bounds.ToString(CultureInfo.InvariantCulture), isFullscreen, appName);
                 }
             });
         }
@@ -134,8 +142,8 @@ namespace NetBannerNG.Utils
         private static Dictionary<string, string> ResolveFullscreenAppsByGroup(IReadOnlyList<Monitor> monitors, HashSet<IntPtr> ownWindowHandles, IReadOnlyList<FullscreenSuppressionEvaluator.WindowSnapshot> windows)
         {
             var boundsGroupToActualGroup = monitors.ToDictionary(
-                monitor => BorderManager.BuildGroupId(string.Empty, monitor.Bounds),
-                BorderManager.BuildGroupId,
+                monitor => MonitorIdentity.BuildGroupId(string.Empty, monitor.Bounds),
+                MonitorIdentity.BuildGroupId,
                 StringComparer.Ordinal);
             var results = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (var window in windows)
@@ -145,7 +153,7 @@ namespace NetBannerNG.Utils
                     continue;
                 }
 
-                var boundsGroupId = BorderManager.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
+                var boundsGroupId = MonitorIdentity.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
                 if (!boundsGroupToActualGroup.TryGetValue(boundsGroupId, out var groupId) || results.ContainsKey(groupId))
                 {
                     continue;
@@ -206,7 +214,6 @@ namespace NetBannerNG.Utils
             _ = EventLogSinkAsync?.Invoke(message);
         }
 
-
         private static HashSet<IntPtr> SnapshotOwnWindowHandles()
         {
             var dispatcher = Application.Current?.Dispatcher;
@@ -242,7 +249,6 @@ namespace NetBannerNG.Utils
 
             return windows;
         }
-
 
         private static bool ShouldConsiderForFullscreen(IntPtr windowHandle)
         {
@@ -322,6 +328,7 @@ namespace NetBannerNG.Utils
 
             return bounds;
         }
+
         private static void BeginOnUi(Action action)
         {
             var dispatcher = Application.Current?.Dispatcher;

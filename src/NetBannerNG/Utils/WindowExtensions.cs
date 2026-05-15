@@ -1,11 +1,10 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using NetBannerNG.Borders;
 using NetBannerNG.Common.AppBar;
-using static NetBannerNG.Common.Native.User32;
 using static NetBannerNG.Common.Native.Kernel32;
+using static NetBannerNG.Common.Native.User32;
 
 namespace NetBannerNG.Utils
 {

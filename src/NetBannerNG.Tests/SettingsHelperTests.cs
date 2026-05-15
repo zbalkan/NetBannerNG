@@ -87,7 +87,6 @@ namespace NetBannerNG.Tests
             Assert.AreEqual("short", InvokePrivate<string>("Truncate", "short", 40));
         }
 
-
         [TestMethod]
         public void ParseClassificationSelection_HandlesMissingSeparatorAsNotConfigured()
         {
@@ -120,6 +119,5 @@ namespace NetBannerNG.Tests
             return (T)(methodInfo.Invoke(null, args)
                 ?? throw new InvalidOperationException($"Method {method} returned null."));
         }
-
     }
 }

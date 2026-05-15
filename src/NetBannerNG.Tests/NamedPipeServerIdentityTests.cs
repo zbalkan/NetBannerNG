@@ -90,7 +90,6 @@ namespace NetBannerNG.Tests
             Assert.IsFalse(authorized);
         }
 
-
         [TestMethod]
         public void TryAuthorizeClientIdentity_ReturnsTrue_ForMatchingUserName_WhenInteractiveFallbackEnabled()
         {
@@ -103,7 +102,6 @@ namespace NetBannerNG.Tests
 
             Assert.IsTrue(authorized);
         }
-
 
         [TestMethod]
         public void TryAuthorizeClientIdentity_ReturnsTrue_WhenIdentityMetadataMissing_AndInteractiveFallbackEnabled()

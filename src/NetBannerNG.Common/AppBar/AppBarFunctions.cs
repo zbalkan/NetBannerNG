@@ -1,12 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Threading;
-using static NetBannerNG.Common.Native.User32;
-using static NetBannerNG.Common.Native.Shell32;
 using static NetBannerNG.Common.Native.DwmApi;
 using static NetBannerNG.Common.Native.NativeTypes;
+using static NetBannerNG.Common.Native.Shell32;
+using static NetBannerNG.Common.Native.User32;
 
 namespace NetBannerNG.Common.AppBar
 {
@@ -243,7 +244,6 @@ namespace NetBannerNG.Common.AppBar
             internal long LastPosChangedHandledAtTicks;
             internal DispatcherOperation? PendingResizeOperation { get; set; }
 
-            [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Values not needed as we filter by call type.")]
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
                 if (TaskbarCreatedMessageId != 0 && msg == TaskbarCreatedMessageId)
@@ -267,7 +267,6 @@ namespace NetBannerNG.Common.AppBar
                     handled = true;
                     return IntPtr.Zero;
                 }
-
 
                 if (msg == WmShowWindow && wParam == IntPtr.Zero)
                 {
@@ -342,7 +341,9 @@ namespace NetBannerNG.Common.AppBar
                 return IntPtr.Zero;
             }
 
+#pragma warning disable IDE0060 // Remove unused parameter
             private void ReRegisterAfterExplorerRestart(IntPtr hWnd)
+#pragma warning restore IDE0060 // Remove unused parameter
             {
                 if (!IsRegistered || Window is null)
                 {
@@ -479,12 +480,11 @@ namespace NetBannerNG.Common.AppBar
         private static void SetDwmBoolAttribute(IntPtr hWnd, DWMWINDOWATTRIBUTE attribute, bool enabled)
         {
             var value = enabled ? 1 : 0;
-            var hr = DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int));
-            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{hr:X8}");
-            if (hr < 0)
+            if (DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)) != 0)
             {
-                throw new ExternalException($"Failed to set DWM attribute {attribute} to {enabled} for HWND {hWnd}. HRESULT=0x{hr:X8}", hr);
+                throw new Win32Exception(Marshal.GetLastWin32Error());
             }
+            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)):X8}");
         }
 
         private static APPBARDATA Register(this APPBARDATA abd, RegisterInfo info)

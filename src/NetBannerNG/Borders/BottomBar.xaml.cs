@@ -20,6 +20,5 @@ namespace NetBannerNG.Borders
             Background = Settings.Instance.CustomBackgroundColor;
             Height = Settings.Instance.BorderSize;
         }
-
     }
 }
