@@ -31,6 +31,7 @@ namespace NetBannerNG.Service
         }
 
         private AuthorizedClientContext? _authorizedClient;
+        private readonly object _authorizedClientSync = new();
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
@@ -106,7 +107,7 @@ namespace NetBannerNG.Service
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
                 return;
             }
-            _authorizedClient = authorizedClient;
+            lock (_authorizedClientSync) { _authorizedClient = authorizedClient; }
 
             Program.Log.LogInformation(EventLogCatalog.PipeClientAuthorizationAccepted, _sessionId, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeClientConnected, args.Connection.PipeName);
@@ -161,7 +162,7 @@ namespace NetBannerNG.Service
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
-            _authorizedClient = null;
+            lock (_authorizedClientSync) { _authorizedClient = null; }
             ServiceHost.ReportConnectionChurn();
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
             Program.Log.LogInformation(EventLogCatalog.PipeAutoRestartDisabled);
@@ -176,7 +177,8 @@ namespace NetBannerNG.Service
 
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
-            var authorizedClient = _authorizedClient;
+            AuthorizedClientContext? authorizedClient;
+            lock (_authorizedClientSync) { authorizedClient = _authorizedClient; }
             if (authorizedClient == null)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundRejectedUnauthorizedSession, _sessionId, args.Connection.PipeName);
