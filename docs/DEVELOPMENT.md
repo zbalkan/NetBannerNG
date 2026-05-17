@@ -28,7 +28,7 @@ Registry paths:
 
 Behavior:
 - Seed missing managed values with build-defined defaults (Not Configured baseline), then read managed policy values.
-- No local settings fallback path is used.
+- Runtime resolution order is **managed policy first**, then **local machine settings**, then **compiled defaults** when neither is configured.
 - `ClassificationSelection` selects catalog/classification values in the format `<Catalog> - <Classification>`.
 - Default profile is `NOT_CONFIGURED`.
 - EU/country/international profiles are primarily textual presets; color should be set by policy.
