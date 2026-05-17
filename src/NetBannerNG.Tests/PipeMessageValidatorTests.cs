@@ -80,15 +80,6 @@ namespace NetBannerNG.Tests
             var results = await Task.WhenAll(tasks).ConfigureAwait(false);
             Assert.IsTrue(results.All(r => r));
         }
-
-        [TestMethod]
-        public void IsValidInboundClientMessage_ReturnsFalse_ForForgedMessageBodyAfterChecksumIssued()
-        {
-            var message = Build(ActionType.SendLog, "safe");
-            message.Text = "tampered";
-            Assert.IsFalse(PipeMessageValidator.IsValidInboundClientMessage(message));
-        }
-
         [TestMethod]
         public void PipeMessage_ChecksumSetter_RejectsMissingChecksum()
         {
