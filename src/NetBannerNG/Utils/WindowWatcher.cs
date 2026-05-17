@@ -24,6 +24,7 @@ namespace NetBannerNG.Utils
         private static readonly NativeTypes.WinEventHook HookProc = HookCallback;
         private static readonly object HookSync = new();
         private static readonly Dictionary<string, (bool IsSuppressed, string AppName)> LastSuppressionStateByGroup = new(StringComparer.Ordinal);
+        private static readonly object SuppressionStateSync = new();
         private static readonly object WindowCacheSync = new();
         private static readonly Dictionary<IntPtr, (MonitorRect Rect, long Ticks)> WindowRectCache = new();
         private static IntPtr _foregroundHookId;
@@ -43,7 +44,7 @@ namespace NetBannerNG.Utils
                 if (_foregroundHookId != default) { _ = User32.UnhookWinEvent(_foregroundHookId); _foregroundHookId = default; }
                 if (_locationHookId != default) { _ = User32.UnhookWinEvent(_locationHookId); _locationHookId = default; }
             }
-            LastSuppressionStateByGroup.Clear();
+            lock (SuppressionStateSync) { LastSuppressionStateByGroup.Clear(); }
         }
 
         internal static void Watch()
@@ -131,6 +132,25 @@ namespace NetBannerNG.Utils
             }
             lock (WindowCacheSync)
             {
+                List<IntPtr>? toRemove = null;
+                foreach (var kv in WindowRectCache)
+                {
+                    var handle = kv.Key;
+                    var entry = kv.Value;
+
+                    if (nowTicks - entry.Ticks > cacheTicks)
+                    {
+                        (toRemove ??= new List<IntPtr>()).Add(handle);
+                    }
+                }
+                if (toRemove is not null)
+                {
+                    foreach (var key in toRemove)
+                    {
+                        WindowRectCache.Remove(key);
+                    }
+                }
+
                 WindowRectCache[current] = (bounds, nowTicks);
             }
 
@@ -218,13 +238,17 @@ namespace NetBannerNG.Utils
 
         private static void LogSuppressionStateTransition(string groupId, string monitorBounds, bool isSuppressed, string appName)
         {
-            if (LastSuppressionStateByGroup.TryGetValue(groupId, out var lastState) && lastState.IsSuppressed == isSuppressed)
+            string previousAppName;
+            lock (SuppressionStateSync)
             {
-                return;
+                if (LastSuppressionStateByGroup.TryGetValue(groupId, out var lastState) && lastState.IsSuppressed == isSuppressed)
+                {
+                    return;
+                }
+                previousAppName = lastState.AppName;
+                LastSuppressionStateByGroup[groupId] = (isSuppressed, appName);
             }
 
-            var previousAppName = lastState.AppName;
-            LastSuppressionStateByGroup[groupId] = (isSuppressed, appName);
             var message = isSuppressed
                 ? $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Suppressed FullscreenApp={appName} Behavior=Bars stay behind fullscreen app."
                 : $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Normal FullscreenApp={(!string.IsNullOrWhiteSpace(previousAppName) ? previousAppName : appName)} Behavior=Fullscreen closed; bars restored.";
