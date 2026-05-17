@@ -1,6 +1,8 @@
 using System.Security.Principal;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Service;
+using System;
 
 namespace NetBannerNG.Tests
 {
@@ -114,6 +116,23 @@ namespace NetBannerNG.Tests
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void ResolveIdentityFallbackMode_DefaultsToFalse_UnlessExplicitlyEnabled()
+        {
+            const string variableName = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
+            var method = typeof(NamedPipeServer).GetMethod("ResolveIdentityFallbackMode", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(method);
+
+            Environment.SetEnvironmentVariable(variableName, null);
+            Assert.IsFalse((bool)method!.Invoke(null, null)!);
+
+            Environment.SetEnvironmentVariable(variableName, "1");
+            Assert.IsTrue((bool)method.Invoke(null, null)!);
+
+            Environment.SetEnvironmentVariable(variableName, "false");
+            Assert.IsFalse((bool)method.Invoke(null, null)!);
         }
     }
 }

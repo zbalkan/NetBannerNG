@@ -27,6 +27,12 @@ namespace NetBannerNG.Utils
         private static readonly object SuppressionStateSync = new();
         private static readonly object WindowCacheSync = new();
         private static readonly Dictionary<IntPtr, (MonitorRect Rect, long Ticks)> WindowRectCache = new();
+        private static long _windowCachePruneChecks;
+        private static long _lastWindowCachePruneAtTicks;
+        private const long WindowCacheTtlTicks = TimeSpan.TicksPerMillisecond * 200;
+        private const int WindowCachePruneEveryNMisses = 32;
+        private const long WindowCachePruneCadenceTicks = TimeSpan.TicksPerMillisecond * 750;
+        private const int WindowCacheMaxEntries = 512;
         private static IntPtr _foregroundHookId;
         private static long _lastReEvaluatedAtTicks;
         private static IntPtr _locationHookId;
@@ -44,6 +50,7 @@ namespace NetBannerNG.Utils
                 if (_foregroundHookId != default) { _ = User32.UnhookWinEvent(_foregroundHookId); _foregroundHookId = default; }
                 if (_locationHookId != default) { _ = User32.UnhookWinEvent(_locationHookId); _locationHookId = default; }
             }
+            // Hook callbacks can race while the UI loop is draining; keep state-map resets serialized.
             lock (SuppressionStateSync) { LastSuppressionStateByGroup.Clear(); }
         }
 
@@ -110,11 +117,10 @@ namespace NetBannerNG.Utils
         private static MonitorRect GetWindowBounds(IntPtr current)
         {
             var nowTicks = DateTime.UtcNow.Ticks;
-            const long cacheTicks = TimeSpan.TicksPerMillisecond * 200;
             const int dwmaExtendedFrameBounds = 9;
             lock (WindowCacheSync)
             {
-                if (WindowRectCache.TryGetValue(current, out var cached) && nowTicks - cached.Ticks <= cacheTicks)
+                if (WindowRectCache.TryGetValue(current, out var cached) && nowTicks - cached.Ticks <= WindowCacheTtlTicks)
                 {
                     return cached.Rect;
                 }
@@ -132,25 +138,13 @@ namespace NetBannerNG.Utils
             }
             lock (WindowCacheSync)
             {
-                List<IntPtr>? toRemove = null;
-                foreach (var kv in WindowRectCache)
+                _windowCachePruneChecks++;
+                if (_windowCachePruneChecks % WindowCachePruneEveryNMisses == 0
+                    || nowTicks - _lastWindowCachePruneAtTicks >= WindowCachePruneCadenceTicks
+                    || WindowRectCache.Count >= WindowCacheMaxEntries)
                 {
-                    var handle = kv.Key;
-                    var entry = kv.Value;
-
-                    if (nowTicks - entry.Ticks > cacheTicks)
-                    {
-                        (toRemove ??= new List<IntPtr>()).Add(handle);
-                    }
+                    PruneWindowCacheUnderLock(nowTicks);
                 }
-                if (toRemove is not null)
-                {
-                    foreach (var key in toRemove)
-                    {
-                        WindowRectCache.Remove(key);
-                    }
-                }
-
                 WindowRectCache[current] = (bounds, nowTicks);
             }
 
@@ -238,7 +232,8 @@ namespace NetBannerNG.Utils
 
         private static void LogSuppressionStateTransition(string groupId, string monitorBounds, bool isSuppressed, string appName)
         {
-            string previousAppName;
+            var previousAppName = string.Empty;
+            // Transition logs may be emitted from rapid callback bursts; keep check/update atomic per group.
             lock (SuppressionStateSync)
             {
                 if (LastSuppressionStateByGroup.TryGetValue(groupId, out var lastState) && lastState.IsSuppressed == isSuppressed)
@@ -253,6 +248,38 @@ namespace NetBannerNG.Utils
                 ? $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Suppressed FullscreenApp={appName} Behavior=Bars stay behind fullscreen app."
                 : $"[FullscreenSuppression] Group={groupId} Monitor={monitorBounds} State=Normal FullscreenApp={(!string.IsNullOrWhiteSpace(previousAppName) ? previousAppName : appName)} Behavior=Fullscreen closed; bars restored.";
             _ = EventLogSinkAsync?.Invoke(message);
+        }
+
+        private static void PruneWindowCacheUnderLock(long nowTicks)
+        {
+            _lastWindowCachePruneAtTicks = nowTicks;
+            List<IntPtr>? expiredEntries = null;
+            foreach (var kv in WindowRectCache)
+            {
+                if (nowTicks - kv.Value.Ticks > WindowCacheTtlTicks)
+                {
+                    (expiredEntries ??= new List<IntPtr>()).Add(kv.Key);
+                }
+            }
+
+            if (expiredEntries is not null)
+            {
+                foreach (var key in expiredEntries)
+                {
+                    WindowRectCache.Remove(key);
+                }
+            }
+
+            if (WindowRectCache.Count <= WindowCacheMaxEntries)
+            {
+                return;
+            }
+
+            var overflow = WindowRectCache.Count - WindowCacheMaxEntries;
+            foreach (var key in WindowRectCache.OrderBy(pair => pair.Value.Ticks).Take(overflow).Select(pair => pair.Key).ToList())
+            {
+                WindowRectCache.Remove(key);
+            }
         }
 
         private static Dictionary<string, string> ResolveFullscreenAppsByGroup(IReadOnlyList<Monitor> monitors, HashSet<IntPtr> ownWindowHandles, IReadOnlyList<FullscreenSuppressionEvaluator.WindowSnapshot> windows)
