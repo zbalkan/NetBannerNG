@@ -34,6 +34,8 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition PipeInboundRejectedUnauthorizedSession = new(3014, "Rejected inbound message from unauthorized/unbound client. ExpectedSession={0}, Pipe={1}");
         public static readonly EventDefinition PipeInboundIdentityRevalidationFailed = new(3015, "Rejected inbound message after identity revalidation failed. ExpectedSession={0}, Pipe={1}");
         public static readonly EventDefinition PipeInboundSessionRevalidationFailed = new(3016, "Rejected inbound message after session revalidation failed. ExpectedSession={0}, ActiveSession={1}, Pipe={2}");
+        public static readonly EventDefinition PipeIdentityFallbackMode = new(3017, "Pipe identity fallback mode. DebugOnlyEnabled={0}");
+        public static readonly EventDefinition PipeIdentityFallbackUsed = new(3018, "Pipe identity fallback used. ConnectionType={0}, Pipe={1}, Reason={2}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");

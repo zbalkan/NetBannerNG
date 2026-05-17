@@ -21,6 +21,12 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
+        private const bool EnableIdentityFallback =
+#if DEBUG
+            true;
+#else
+            false;
+#endif
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
 
@@ -38,6 +44,7 @@ namespace NetBannerNG.Service
         internal NamedPipeServer(uint sessionId, int timeout = 10000)
         {
             _sessionId = sessionId;
+            Program.Log.LogInformation(EventLogCatalog.PipeIdentityFallbackMode, EnableIdentityFallback);
             var pipeName = PipeNaming.ForSession(sessionId);
             _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
             ConfigurePipeSecurity(_server);
@@ -204,7 +211,7 @@ namespace NetBannerNG.Service
                 return;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, Environment.UserInteractive))
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableIdentityFallback))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundIdentityRevalidationFailed, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
@@ -267,7 +274,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            if (!TryAuthorizeClientIdentity(connection, activeUserSid, Environment.UserInteractive))
+            if (!TryAuthorizeClientIdentity(connection, activeUserSid, connectedPipeName, EnableIdentityFallback))
             {
                 return false;
             }
@@ -293,7 +300,7 @@ namespace NetBannerNG.Service
             return activeSessionId == expectedSessionId;
         }
 
-        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, bool allowInteractiveUserNameFallback = false)
+        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, string? pipeName, bool allowIdentityFallback = false)
         {
             var connectionType = connection.GetType();
             var userSidProperty = connectionType.GetProperty("UserSid", BindingFlags.Instance | BindingFlags.Public);
@@ -317,7 +324,7 @@ namespace NetBannerNG.Service
                 return false;
             }
 
-            if (!allowInteractiveUserNameFallback)
+            if (!allowIdentityFallback)
             {
                 return false;
             }
@@ -333,10 +340,14 @@ namespace NetBannerNG.Service
             // In interactive/debug mode we can encounter transports that do not expose identity metadata.
             // When fallback is explicitly enabled, the pipe ACL and session-bound pipe name remain the
             // authoritative guardrails, so allow the connection to proceed.
+            Program.Log.LogError(EventLogCatalog.PipeIdentityFallbackUsed, connectionType.FullName ?? connectionType.Name, pipeName ?? string.Empty, "Connection did not expose SID or username metadata.");
             Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, 0,
                 "SID/username not available on connection; allowing due to interactive fallback.");
             return true;
         }
+
+        internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, bool allowInteractiveUserNameFallback = false) =>
+            TryAuthorizeClientIdentity(connection, activeUserSid, string.Empty, allowInteractiveUserNameFallback);
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
     }
