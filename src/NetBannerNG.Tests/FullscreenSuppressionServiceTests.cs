@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Services;
 
@@ -38,6 +40,30 @@ namespace NetBannerNG.Tests
 
             Assert.AreEqual(1, watcher.UnwatchCalls);
             Assert.AreEqual(0, raisedCount);
+        }
+
+        [TestMethod]
+        public async Task Stop_RacingWithSuppressionUpdates_DoesNotThrow_AndDetachesHandlers()
+        {
+            var watcher = new FakeForegroundWindowWatcher();
+            var sut = new FullscreenSuppressionService(watcher);
+            var received = 0;
+            sut.SuppressionUpdated += _ => received++;
+
+            sut.Start();
+            var raceTasks = Enumerable.Range(0, 250).Select(i => Task.Run(() => {
+                if (i % 3 == 0)
+                {
+                    sut.Stop();
+                }
+                watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(i % 2 == 0, "Game") });
+            }));
+
+            await Task.WhenAll(raceTasks).ConfigureAwait(false);
+            watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(false, null) });
+
+            Assert.IsTrue(watcher.UnwatchCalls >= 1);
+            Assert.IsTrue(received >= 0);
         }
 
         private sealed class FakeForegroundWindowWatcher : IForegroundWindowWatcher

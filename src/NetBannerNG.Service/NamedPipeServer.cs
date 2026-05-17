@@ -21,12 +21,8 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
-        private const bool EnableIdentityFallback =
-#if DEBUG
-            true;
-#else
-            false;
-#endif
+        private const string IdentityFallbackEnvironmentVariable = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
+        private static readonly bool EnableIdentityFallback = ResolveIdentityFallbackMode();
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
 
@@ -114,6 +110,7 @@ namespace NetBannerNG.Service
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
                 return;
             }
+            // Connection callbacks are raised on thread-pool threads; guard authoritative client binding.
             lock (_authorizedClientSync) { _authorizedClient = authorizedClient; }
 
             Program.Log.LogInformation(EventLogCatalog.PipeClientAuthorizationAccepted, _sessionId, args.Connection.PipeName);
@@ -169,6 +166,7 @@ namespace NetBannerNG.Service
 
         private void OnClientDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
+            // Disconnect can race with inbound messages; clear the authorized reference atomically.
             lock (_authorizedClientSync) { _authorizedClient = null; }
             ServiceHost.ReportConnectionChurn();
             Program.Log.LogInformation(EventLogCatalog.PipeClientDisconnected, args.Connection.PipeName);
@@ -185,6 +183,7 @@ namespace NetBannerNG.Service
         private void OnMessageReceived(object sender, ConnectionMessageEventArgs<PipeMessage> args)
         {
             AuthorizedClientContext? authorizedClient;
+            // Snapshot under lock so revalidation checks operate on a consistent authorized-client view.
             lock (_authorizedClientSync) { authorizedClient = _authorizedClient; }
             if (authorizedClient == null)
             {
@@ -350,5 +349,21 @@ namespace NetBannerNG.Service
             TryAuthorizeClientIdentity(connection, activeUserSid, string.Empty, allowInteractiveUserNameFallback);
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
+
+        private static bool ResolveIdentityFallbackMode()
+        {
+            var value = Environment.GetEnvironmentVariable(IdentityFallbackEnvironmentVariable);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            if (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return bool.TryParse(value, out var parsed) && parsed;
+        }
     }
 }

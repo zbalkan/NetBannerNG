@@ -60,6 +60,14 @@ Catalog notes:
 
 NetBannerNG is a display and awareness utility. It is not an access-control, authorization, information-flow-control, or data-loss-prevention boundary.
 
+### Service/client pipe trust model (operations summary)
+
+- The service endpoint uses a session-bound pipe name (`NetBannerNG.<SessionId>`) so only clients targeting the current interactive session name are considered.
+- Pipe ACLs are built with the active interactive user SID and explicit deny rules for network principals.
+- Client identity is verified against the active interactive user SID when connection metadata exposes SID details.
+- Interactive username fallback is **disabled by default** and can only be enabled explicitly with `NETBANNERNG_PIPE_IDENTITY_FALLBACK=1` (or `true`) in the service environment.
+- If fallback is used because SID/username metadata are unavailable on a transport, the service emits a dedicated high-signal event (`EventId 3018`) with connection type, pipe name, and reason.
+
 ## Source acknowledgements
 
 The following references are cited in inline code comments and influenced parts of the implementation:
@@ -70,4 +78,3 @@ The following references are cited in inline code comments and influenced parts 
 - https://bytes.com/topic/c-sharp/answers/463942-using-openprocesstoken
 - https://fleexlab.blogspot.com/2015/04/remote-desktop-surprise.html
 - http://csharptest.net/1043/how-to-prevent-users-from-killing-your-service-process/index.html
-
