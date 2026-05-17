@@ -20,9 +20,7 @@ namespace NetBannerNG.Services
 
         void ApplyPostDockVisualState();
 
-        void SetTopMost(bool topMost);
-
-        void SetBarsVisibility(bool isVisible);
+        void SetSuppressed(bool isSuppressed);
 
         void Close();
 
