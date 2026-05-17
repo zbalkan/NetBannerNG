@@ -55,6 +55,7 @@ Catalog notes:
 - `docs/ADMIN_OPERATIONS.md` — install, remove, upgrade, and rollback runbook
 - `docs/DEVELOPMENT.md` — architecture, internals, build, and test guidance
 - `docs/FEATURE_PARITY_MATRIX.md` — NetBannerNG vs NetBanner/SystemBanner capability matrix
+- `SUPPORT.md` — supported platforms, versioning policy, response expectations, and EOL policy
 
 ## Security note
 
