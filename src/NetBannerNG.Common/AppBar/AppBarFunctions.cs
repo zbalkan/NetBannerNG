@@ -16,29 +16,44 @@ namespace NetBannerNG.Common.AppBar
     /// </summary>
     public static class AppBarFunctions
     {
-        private const int WmSysCommand = 0x0112;
         private const int ScMinimize = 0xF020;
-        private const int WmSize = 0x0005;
         private const int SizeMinimized = 1;
-        private const int WmShowWindow = 0x0018;
-        private const int WmWindowPosChanging = 0x0046;
         private const uint SwpHideWindow = 0x0080;
+        private const int WmShowWindow = 0x0018;
+        private const int WmSize = 0x0005;
+        private const int WmSysCommand = 0x0112;
+        private const int WmWindowPosChanging = 0x0046;
         private static readonly IntPtr HwndTopMost = new(-1);
 
         private static readonly Dictionary<Window, RegisterInfo> RegisteredWindowInfo = new();
         private static readonly object RegisteredWindowInfoSync = new();
 
-        private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
-
         private static int _batchDepth;
-        private static long _suppressPosChangedUntilTicksUtc;
-        private static long _posChangedReceived;
-        private static long _posChangedSkippedBatch;
-        private static long _posChangedSkippedSettle;
-        private static long _posChangedSkippedDebounce;
+
         private static long _posChangedHandled;
 
+        private static long _posChangedReceived;
+
+        private static long _posChangedSkippedBatch;
+
+        private static long _posChangedSkippedDebounce;
+
+        private static long _posChangedSkippedSettle;
+
+        private static int _suppressionDepth;
+
+        private static long _suppressPosChangedUntilTicksUtc;
+
+        private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
+        internal static bool IsSuppressionActive => Volatile.Read(ref _suppressionDepth) > 0;
+
+        private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
+
         public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
+
+        // Process-wide bypass for the Show-Desktop anti-hide guards in WndProc below.
+        // Reference-counted so multiple groups can suppress concurrently.
+        public static void BeginSuppression() => Interlocked.Increment(ref _suppressionDepth);
 
         public static void EndBatch()
         {
@@ -56,10 +71,13 @@ namespace NetBannerNG.Common.AppBar
             }
         }
 
-        private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
-
-        private static bool IsInPostBatchSettleWindow() => DateTime.UtcNow.Ticks < Interlocked.Read(ref _suppressPosChangedUntilTicksUtc);
-
+        public static void EndSuppression()
+        {
+            if (Interlocked.Decrement(ref _suppressionDepth) < 0)
+            {
+                Interlocked.Exchange(ref _suppressionDepth, 0);
+            }
+        }
         public static void SetAppBar(Window appbarWindow, DockEdge edge, string messageKey, FrameworkElement? childElement = null, bool topMost = true)
         {
             if (appbarWindow is null)
@@ -146,27 +164,6 @@ namespace NetBannerNG.Common.AppBar
             Debug.WriteLine($"{appbarWindow} new size: {dockedSize}");
         }
 
-        private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect)
-        {
-            if (IsBatchActive)
-            {
-                info.PendingResizeOperation?.Abort();
-                info.PendingResizeOperation = null;
-                DoResize(appbarWindow, rect);
-                return;
-            }
-
-            info.PendingResizeOperation?.Abort();
-            info.PendingResizeOperation = appbarWindow.Dispatcher.BeginInvoke(
-                // Loaded runs after initial layout/measure has completed for this dispatcher turn,
-                // but before ContextIdle. That keeps shell-position correction responsive while
-                // still avoiding immediate-size races with WPF's own startup resize messages.
-                DispatcherPriority.Loaded,
-                new ResizeDelegate(DoResize),
-                appbarWindow,
-                rect);
-        }
-
         private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement) => childElement != null ?
                 WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
                     new Vector(childElement.ActualWidth, childElement.ActualHeight))
@@ -197,6 +194,7 @@ namespace NetBannerNG.Common.AppBar
             return wa;
         }
 
+        private static bool IsInPostBatchSettleWindow() => DateTime.UtcNow.Ticks < Interlocked.Read(ref _suppressPosChangedUntilTicksUtc);
         private static void RestoreWindow(Window appbarWindow)
         {
             var info = appbarWindow.GetRegisterInfo();
@@ -206,6 +204,26 @@ namespace NetBannerNG.Common.AppBar
             ScheduleResize(info, appbarWindow, rect);
         }
 
+        private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect)
+        {
+            if (IsBatchActive)
+            {
+                info.PendingResizeOperation?.Abort();
+                info.PendingResizeOperation = null;
+                DoResize(appbarWindow, rect);
+                return;
+            }
+
+            info.PendingResizeOperation?.Abort();
+            info.PendingResizeOperation = appbarWindow.Dispatcher.BeginInvoke(
+                // Loaded runs after initial layout/measure has completed for this dispatcher turn,
+                // but before ContextIdle. That keeps shell-position correction responsive while
+                // still avoiding immediate-size races with WPF's own startup resize messages.
+                DispatcherPriority.Loaded,
+                new ResizeDelegate(DoResize),
+                appbarWindow,
+                rect);
+        }
         private static APPBARDATA SendAppBarRemovalToShell(APPBARDATA abd)
         {
             _ = SHAppBarMessage((int)AbMsg.AbmRemove, ref abd);
@@ -225,25 +243,36 @@ namespace NetBannerNG.Common.AppBar
             return new Rect(workTopLeftInPixels, screenSizeInPixels);
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WINDOWPOS
+        {
+            public IntPtr hwnd;
+            public IntPtr hwndInsertAfter;
+            public int x;
+            public int y;
+            public int cx;
+            public int cy;
+            public uint flags;
+        }
+
         internal class RegisterInfo
         {
+            internal long LastPosChangedHandledAtTicks;
             internal int CallbackId { get; set; }
-            internal bool IsRegistered { get; set; }
-            internal Window? Window { get; set; }
-            internal DockEdge Edge { get; set; }
-            internal WindowStyle OriginalStyle { get; set; }
-            internal Point OriginalPosition { get; set; }
-            internal Size OriginalSize { get; set; }
-            internal ResizeMode OriginalResizeMode { get; set; }
-            internal bool OriginalTopmost { get; set; }
+            internal string CallbackMessageKey { get; set; } = string.Empty;
             internal FrameworkElement? ChildElement { get; set; }
             internal Rect? DockedSize { get; set; }
+            internal DockEdge Edge { get; set; }
             internal bool IsHandled { get; set; }
-            internal string CallbackMessageKey { get; set; } = string.Empty;
-            internal int TaskbarCreatedMessageId { get; set; }
-            internal long LastPosChangedHandledAtTicks;
+            internal bool IsRegistered { get; set; }
+            internal Point OriginalPosition { get; set; }
+            internal ResizeMode OriginalResizeMode { get; set; }
+            internal Size OriginalSize { get; set; }
+            internal WindowStyle OriginalStyle { get; set; }
+            internal bool OriginalTopmost { get; set; }
             internal DispatcherOperation? PendingResizeOperation { get; set; }
-
+            internal int TaskbarCreatedMessageId { get; set; }
+            internal Window? Window { get; set; }
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
             {
                 if (TaskbarCreatedMessageId != 0 && msg == TaskbarCreatedMessageId)
@@ -260,30 +289,33 @@ namespace NetBannerNG.Common.AppBar
                     return IntPtr.Zero;
                 }
 
-                if (msg == WmSize && wParam.ToInt32() == SizeMinimized)
+                if (!IsSuppressionActive)
                 {
-                    Debug.WriteLine($"WndProc: received SIZE_MINIMIZED for AppBar window {Window}; restoring visibility.");
-                    EnsureVisible();
-                    handled = true;
-                    return IntPtr.Zero;
-                }
-
-                if (msg == WmShowWindow && wParam == IntPtr.Zero)
-                {
-                    Debug.WriteLine($"WndProc: received WM_SHOWWINDOW(false) for AppBar window {Window}; enforcing visibility.");
-                    EnsureVisible();
-                    handled = true;
-                    return IntPtr.Zero;
-                }
-
-                if (msg == WmWindowPosChanging && lParam != IntPtr.Zero)
-                {
-                    var windowPos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
-                    if ((windowPos.flags & SwpHideWindow) != 0)
+                    if (msg == WmSize && wParam.ToInt32() == SizeMinimized)
                     {
-                        windowPos.flags &= ~SwpHideWindow;
-                        Marshal.StructureToPtr(windowPos, lParam, false);
-                        Debug.WriteLine($"WndProc: removed SWP_HIDEWINDOW for AppBar window {Window}.");
+                        Debug.WriteLine($"WndProc: received SIZE_MINIMIZED for AppBar window {Window}; restoring visibility.");
+                        EnsureVisible();
+                        handled = true;
+                        return IntPtr.Zero;
+                    }
+
+                    if (msg == WmShowWindow && wParam == IntPtr.Zero)
+                    {
+                        Debug.WriteLine($"WndProc: received WM_SHOWWINDOW(false) for AppBar window {Window}; enforcing visibility.");
+                        EnsureVisible();
+                        handled = true;
+                        return IntPtr.Zero;
+                    }
+
+                    if (msg == WmWindowPosChanging && lParam != IntPtr.Zero)
+                    {
+                        var windowPos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
+                        if ((windowPos.flags & SwpHideWindow) != 0)
+                        {
+                            windowPos.flags &= ~SwpHideWindow;
+                            Marshal.StructureToPtr(windowPos, lParam, false);
+                            Debug.WriteLine($"WndProc: removed SWP_HIDEWINDOW for AppBar window {Window}.");
+                        }
                     }
                 }
 
@@ -295,10 +327,13 @@ namespace NetBannerNG.Common.AppBar
                 var appBarNotification = wParam.ToInt32();
                 if (appBarNotification == (int)AbNotify.AbnWindowarrange)
                 {
-                    // lParam == TRUE when minimizing all windows, FALSE when restoring them.
-                    // Ensure we recover visibility during repeated Win+D toggle cycles.
-                    Debug.WriteLine($"WndProc: ABN_WINDOWARRANGE for {Window}; enforcing visibility.");
-                    EnsureVisible();
+                    // Win+D toggle. Skip while fullscreen suppression is active so our own Hide
+                    // path doesn't get re-asserted.
+                    if (!IsSuppressionActive)
+                    {
+                        Debug.WriteLine($"WndProc: ABN_WINDOWARRANGE for {Window}; enforcing visibility.");
+                        EnsureVisible();
+                    }
                     handled = true;
                     return IntPtr.Zero;
                 }
@@ -348,25 +383,6 @@ namespace NetBannerNG.Common.AppBar
             }
 
 #pragma warning disable IDE0060 // Remove unused parameter
-            private void ReRegisterAfterExplorerRestart(IntPtr hWnd)
-#pragma warning restore IDE0060 // Remove unused parameter
-            {
-                if (!IsRegistered || Window is null)
-                {
-                    return;
-                }
-
-                var appBarData = new APPBARDATA().WithWindow(Window);
-                appBarData.uCallbackMessage = (uint)CallbackId;
-                var registrationResult = SHAppBarMessage((int)AbMsg.AbmNew, ref appBarData);
-                if (registrationResult == 0)
-                {
-                    throw new InvalidOperationException($"Failed to re-register AppBar after Explorer restart for {Window}.");
-                }
-                AbSetPos(this, Window, ChildElement);
-                Window.Topmost = true;
-                Debug.WriteLine($"Re-registered AppBar after Explorer restart for {Window}.");
-            }
 
             private void EnsureVisible()
             {
@@ -394,20 +410,27 @@ namespace NetBannerNG.Common.AppBar
                     | SetWindowPosFlags.DoNotActivate
                     | SetWindowPosFlags.ShowWindow);
             }
-        }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct WINDOWPOS
-        {
-            public IntPtr hwnd;
-            public IntPtr hwndInsertAfter;
-            public int x;
-            public int y;
-            public int cx;
-            public int cy;
-            public uint flags;
-        }
+            private void ReRegisterAfterExplorerRestart(IntPtr hWnd)
+#pragma warning restore IDE0060 // Remove unused parameter
+            {
+                if (!IsRegistered || Window is null)
+                {
+                    return;
+                }
 
+                var appBarData = new APPBARDATA().WithWindow(Window);
+                appBarData.uCallbackMessage = (uint)CallbackId;
+                var registrationResult = SHAppBarMessage((int)AbMsg.AbmNew, ref appBarData);
+                if (registrationResult == 0)
+                {
+                    throw new InvalidOperationException($"Failed to re-register AppBar after Explorer restart for {Window}.");
+                }
+                AbSetPos(this, Window, ChildElement);
+                Window.Topmost = true;
+                Debug.WriteLine($"Re-registered AppBar after Explorer restart for {Window}.");
+            }
+        }
         #region ExtensionMethods
 
         #region APPBARDATA Extensions
@@ -483,16 +506,6 @@ namespace NetBannerNG.Common.AppBar
             SetDwmBoolAttribute(appBarData.hWnd, DWMWINDOWATTRIBUTE.DwmaDisallowPeek, true);
         }
 
-        private static void SetDwmBoolAttribute(IntPtr hWnd, DWMWINDOWATTRIBUTE attribute, bool enabled)
-        {
-            var value = enabled ? 1 : 0;
-            if (DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)) != 0)
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
-            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)):X8}");
-        }
-
         private static APPBARDATA Register(this APPBARDATA abd, RegisterInfo info)
         {
             if (info.IsRegistered)
@@ -529,6 +542,15 @@ namespace NetBannerNG.Common.AppBar
             return barData;
         }
 
+        private static void SetDwmBoolAttribute(IntPtr hWnd, DWMWINDOWATTRIBUTE attribute, bool enabled)
+        {
+            var value = enabled ? 1 : 0;
+            if (DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)) != 0)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)):X8}");
+        }
         private static APPBARDATA Unregister(this APPBARDATA abd, RegisterInfo info)
         {
             if (!info.IsRegistered)

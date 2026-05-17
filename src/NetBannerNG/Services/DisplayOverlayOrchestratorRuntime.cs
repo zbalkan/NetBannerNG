@@ -10,12 +10,12 @@ namespace NetBannerNG.Services
     internal sealed class DisplayOverlayOrchestratorRuntime : IDisplayOverlayOrchestrator
     {
         private readonly IMonitorLayoutPolicy _layoutPolicy;
+        private readonly List<Monitor> _previousMonitors = new();
 #pragma warning disable CA1859 // Use concrete types when possible for improved performance
         private readonly IMonitorSurfaceCatalog _surfaceCatalog;
 #pragma warning restore CA1859 // Use concrete types when possible for improved performance
-        private readonly List<Monitor> _previousMonitors = new();
-        private bool _isInitiated;
         private bool _cleanStart;
+        private bool _isInitiated;
         private volatile bool _shutdownInProgress;
 
         internal DisplayOverlayOrchestratorRuntime()
@@ -27,6 +27,35 @@ namespace NetBannerNG.Services
         {
             _layoutPolicy = layoutPolicy;
             _surfaceCatalog = new MonitorSurfaceCatalog(monitorIdentity);
+        }
+
+        public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
+        {
+            var suppressedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed);
+            var appTaggedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed && !string.IsNullOrWhiteSpace(kv.Value.AppName));
+            Debug.WriteLine($"[EVT:4204][OverlayOrchestrator][Suppression][Apply] Updates={suppressionByGroup.Count} Suppressed={suppressedCount} Tagged={appTaggedCount}");
+            foreach (var group in _surfaceCatalog.Snapshot())
+            {
+                var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var state) && state.IsSuppressed;
+                group.SetSuppressed(isFullscreen);
+            }
+        }
+
+        public void BeginShutdown()
+        {
+            _shutdownInProgress = true;
+            Debug.WriteLine($"[EVT:4208][OverlayOrchestrator][Shutdown][Begin] CatalogCount={_surfaceCatalog.Count} Initiated={_isInitiated}");
+        }
+
+        public void CloseAllSurfaces()
+        {
+            var groups = _surfaceCatalog.Snapshot(clear: true);
+            Debug.WriteLine($"[EVT:4203][OverlayOrchestrator][Shutdown][CloseAll] Groups={groups.Count}");
+            _isInitiated = false;
+            foreach (var g in groups)
+            {
+                g.Close();
+            }
         }
 
         public void Init(bool clean)
@@ -66,35 +95,10 @@ namespace NetBannerNG.Services
             ShowGroups(groupsToShow);
             _isInitiated = _surfaceCatalog.Count > 0;
         }
-
-        public void BeginShutdown()
+        private void ResetPreviousMonitors()
         {
-            _shutdownInProgress = true;
-            Debug.WriteLine($"[EVT:4208][OverlayOrchestrator][Shutdown][Begin] CatalogCount={_surfaceCatalog.Count} Initiated={_isInitiated}");
-        }
-
-        public void CloseAllSurfaces()
-        {
-            var groups = _surfaceCatalog.Snapshot(clear: true);
-            Debug.WriteLine($"[EVT:4203][OverlayOrchestrator][Shutdown][CloseAll] Groups={groups.Count}");
-            _isInitiated = false;
-            foreach (var g in groups)
-            {
-                g.Close();
-            }
-        }
-
-        public void ApplyFullscreenSuppressionStates(IReadOnlyDictionary<string, FullscreenSuppressionState> suppressionByGroup)
-        {
-            var suppressedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed);
-            var appTaggedCount = suppressionByGroup.Count(kv => kv.Value.IsSuppressed && !string.IsNullOrWhiteSpace(kv.Value.AppName));
-            Debug.WriteLine($"[EVT:4204][OverlayOrchestrator][Suppression][Apply] Updates={suppressionByGroup.Count} Suppressed={suppressedCount} Tagged={appTaggedCount}");
-            foreach (var group in _surfaceCatalog.Snapshot())
-            {
-                var isFullscreen = suppressionByGroup.TryGetValue(group.GroupId, out var state) && state.IsSuppressed;
-                group.SetTopMost(!isFullscreen);
-                group.SetBarsVisibility(!isFullscreen);
-            }
+            _previousMonitors.Clear();
+            _previousMonitors.AddRange(Monitor.AllMonitors);
         }
 
         private void ShowGroups(IEnumerable<IMonitorSurfaceSet> groups)
@@ -143,12 +147,6 @@ namespace NetBannerNG.Services
             }
 
             _cleanStart = true;
-        }
-
-        private void ResetPreviousMonitors()
-        {
-            _previousMonitors.Clear();
-            _previousMonitors.AddRange(Monitor.AllMonitors);
         }
     }
 }

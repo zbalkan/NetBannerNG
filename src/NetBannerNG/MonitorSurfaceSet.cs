@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using NetBannerNG.Borders;
+using NetBannerNG.Common.AppBar;
 using NetBannerNG.Services;
 using NetBannerNG.Utils;
 using Monitor = NetBannerNG.Common.Monitor;
@@ -19,6 +20,7 @@ namespace NetBannerNG
         private readonly string _monitorIdentity;
         private readonly List<BorderBase> _windows;
         private readonly GroupHealthPolicy _healthPolicy = new(disableThreshold: 3, disableDuration: TimeSpan.FromSeconds(30));
+        private bool _isSuppressed;
 
         internal MonitorSurfaceSet(Monitor monitor, bool cleanStart, IMonitorIdentity monitorIdentity)
         {
@@ -71,30 +73,49 @@ namespace NetBannerNG
         }
 
         public void ApplyPostDockVisualState()
-        { foreach (var w in _windows)
+        {
+            foreach (var w in _windows)
             {
                 w.ApplyPostDockVisualState();
             }
         }
 
-        public void SetTopMost(bool topMost)
-        { foreach (var w in _windows)
-            {
-                w.Topmost = topMost;
-            }
-        }
-
-        public void SetBarsVisibility(bool isVisible)
+        public void SetSuppressed(bool isSuppressed)
         {
-            foreach (var window in _windows)
+            // Idempotent: foreground events repeat while a fullscreen app stays foreground;
+            // we must not double up AppBarFunctions' suppression depth counter.
+            if (isSuppressed == _isSuppressed)
             {
-                if (window is not LeftBar and not RightBar and not BottomBar)
-                {
-                    continue;
-                }
+                return;
+            }
 
-                if (isVisible) { ShowWindowIfNeeded(window); window.Render(true); }
-                else if (window.IsVisible) { window.Hide(); }
+            _isSuppressed = isSuppressed;
+            Debug.WriteLine($"[EVT:4210][MonitorSurfaceSet][SetSuppressed] Group={GroupId} IsSuppressed={isSuppressed}");
+
+            if (isSuppressed)
+            {
+                AppBarFunctions.BeginSuppression();
+                foreach (var window in _windows)
+                {
+                    window.Topmost = false;
+                    if (window.IsVisible)
+                    {
+                        window.Hide();
+                    }
+                }
+            }
+            else
+            {
+                foreach (var window in _windows)
+                {
+                    if (!window.IsVisible)
+                    {
+                        window.Show();
+                        window.Render(true);
+                    }
+                    window.Topmost = true;
+                }
+                AppBarFunctions.EndSuppression();
             }
         }
 

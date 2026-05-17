@@ -10,11 +10,23 @@ namespace NetBannerNG.Tests
     public class FullscreenSuppressionEvaluatorTests
     {
         [TestMethod]
-        public void IsFullscreen_ReturnsTrue_WhenBoundsMatchMonitor()
+        public void EvaluateByGroup_ReturnsTrue_WhenFullscreenWindowIsBehindNonFullscreenWindow()
         {
-            var window = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
-            var monitor = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
-            Assert.IsTrue(FullscreenSuppressionEvaluator.IsFullscreen(window, monitor));
+            var groupIds = new[] { "DISPLAY1" };
+            var boundsMap = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["0,0,1920,1080"] = "DISPLAY1"
+            };
+            var own = new HashSet<IntPtr>();
+            var windows = new[]
+            {
+                new FullscreenSuppressionEvaluator.WindowSnapshot(new IntPtr(301), new MonitorRect{ Left=100,Top=100,Right=1000,Bottom=700}, new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, true),
+                new FullscreenSuppressionEvaluator.WindowSnapshot(new IntPtr(302), new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, true)
+            };
+
+            var result = FullscreenSuppressionEvaluator.EvaluateByGroup(groupIds, boundsMap, own, windows);
+
+            Assert.IsTrue(result["DISPLAY1"]);
         }
 
         [TestMethod]
@@ -41,23 +53,29 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
-        public void EvaluateByGroup_ReturnsTrue_WhenFullscreenWindowIsBehindNonFullscreenWindow()
+        public void IsFullscreen_ReturnsFalse_WhenWindowIsSmallerThanMonitor()
         {
-            var groupIds = new[] { "DISPLAY1" };
-            var boundsMap = new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["0,0,1920,1080"] = "DISPLAY1"
-            };
-            var own = new HashSet<IntPtr>();
-            var windows = new[]
-            {
-                new FullscreenSuppressionEvaluator.WindowSnapshot(new IntPtr(301), new MonitorRect{ Left=100,Top=100,Right=1000,Bottom=700}, new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, true),
-                new FullscreenSuppressionEvaluator.WindowSnapshot(new IntPtr(302), new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, new MonitorRect{ Left=0,Top=0,Right=1920,Bottom=1080}, true)
-            };
+            var window = new MonitorRect { Left = 100, Top = 100, Right = 1000, Bottom = 700 };
+            var monitor = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+            Assert.IsFalse(FullscreenSuppressionEvaluator.IsFullscreen(window, monitor));
+        }
 
-            var result = FullscreenSuppressionEvaluator.EvaluateByGroup(groupIds, boundsMap, own, windows);
+        [TestMethod]
+        public void IsFullscreen_ReturnsTrue_WhenBoundsMatchMonitor()
+        {
+            var window = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+            var monitor = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+            Assert.IsTrue(FullscreenSuppressionEvaluator.IsFullscreen(window, monitor));
+        }
 
-            Assert.IsTrue(result["DISPLAY1"]);
+        [TestMethod]
+        public void IsFullscreen_ReturnsTrue_WhenWindowExtendsBeyondMonitor()
+        {
+            // GetWindowRect on maximized borderless apps reports the invisible 7-8 px resize border,
+            // so the window rectangle exceeds the monitor on every edge.
+            var window = new MonitorRect { Left = -8, Top = -8, Right = 1928, Bottom = 1088 };
+            var monitor = new MonitorRect { Left = 0, Top = 0, Right = 1920, Bottom = 1080 };
+            Assert.IsTrue(FullscreenSuppressionEvaluator.IsFullscreen(window, monitor));
         }
     }
 }

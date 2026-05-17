@@ -104,10 +104,13 @@ namespace NetBannerNG.Utils
             return results;
         }
 
-        public static bool IsFullscreen(MonitorRect windowBounds, MonitorRect monitorBounds, double tolerance = 2.0) =>
-            Math.Abs(windowBounds.Left - monitorBounds.Left) <= tolerance
-            && Math.Abs(windowBounds.Top - monitorBounds.Top) <= tolerance
-            && Math.Abs(windowBounds.Right - monitorBounds.Right) <= tolerance
-            && Math.Abs(windowBounds.Bottom - monitorBounds.Bottom) <= tolerance;
+        // A window is fullscreen when its rectangle is equal to, or fully covers, the monitor rectangle
+        // it runs on. The small tolerance absorbs sub-pixel rounding from DPI scaling and the invisible
+        // resize border that GetWindowRect can include for maximized borderless apps.
+        public static bool IsFullscreen(MonitorRect windowBounds, MonitorRect monitorBounds, double tolerance = 1.0) =>
+            windowBounds.Left <= monitorBounds.Left + tolerance
+            && windowBounds.Top <= monitorBounds.Top + tolerance
+            && windowBounds.Right >= monitorBounds.Right - tolerance
+            && windowBounds.Bottom >= monitorBounds.Bottom - tolerance;
     }
 }
