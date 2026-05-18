@@ -118,6 +118,7 @@ namespace NetBannerNG.Tests
             Assert.IsTrue(authorized);
         }
 
+#if DEBUG
         [TestMethod]
         public void ResolveIdentityFallbackMode_DefaultsToFalse_UnlessExplicitlyEnabled()
         {
@@ -134,6 +135,7 @@ namespace NetBannerNG.Tests
             Environment.SetEnvironmentVariable(variableName, "false");
             Assert.IsFalse((bool)method.Invoke(null, null)!);
         }
+#endif
 
 #if !DEBUG
         [TestMethod]
