@@ -1,13 +1,33 @@
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
 
 namespace NetBannerNG.Common.Native
 {
     public static class Kernel32
     {
+        // Sufficient to call QueryFullProcessImageNameW against a higher-integrity
+        // process (e.g. a LocalSystem service) from a normal user token.
+        [CLSCompliant(false)]
+#pragma warning disable CA1707 // Identifiers should not contain underscores
+        public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+#pragma warning restore CA1707 // Identifiers should not contain underscores
+
         [DllImport("kernel32.dll", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [CLSCompliant(false)]
+        public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, EntryPoint = "QueryFullProcessImageNameW")]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [CLSCompliant(false)]
+#pragma warning disable CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
+        public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags, StringBuilder lpExeName, ref uint lpdwSize);
+#pragma warning restore CA1838 // Avoid 'StringBuilder' parameters for P/Invokes
 
         [method: CLSCompliant(false)]
         [DllImport("kernel32.dll")]

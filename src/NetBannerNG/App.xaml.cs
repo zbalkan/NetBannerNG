@@ -63,6 +63,7 @@ namespace NetBannerNG
             {
                 if (!_lifecycleService.EnsureSingleInstance())
                 {
+                    DumpStartupAbort("EnsureSingleInstance");
                     ShutDownGracefully();
                     return;
                 }
@@ -71,6 +72,7 @@ namespace NetBannerNG
 
                 if (!AppLifecycleService.EnsureParentIsService())
                 {
+                    DumpStartupAbort("EnsureParentIsService");
                     ShutDownGracefully();
                     return;
                 }
@@ -81,6 +83,7 @@ namespace NetBannerNG
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
                 if (!await TryInitializePipeClientAsync(args))
                 {
+                    DumpStartupAbort("InitializePipeClientAsync");
                     return;
                 }
 #pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
@@ -138,6 +141,22 @@ namespace NetBannerNG
             Debug.WriteLine(messageStack);
             return Task.CompletedTask;
         }
+
+#pragma warning disable CA1031 // Do not catch general exception types
+        private static void DumpStartupAbort(string gate)
+        {
+            try
+            {
+                var path = Path.Combine(UserHelper.UserTempPath, $"netbannerng-abort-{Guid.NewGuid()}");
+                File.WriteAllText(path, $"Startup aborted at gate: {gate}{Environment.NewLine}PID={Process.GetCurrentProcess().Id}{Environment.NewLine}Session={Process.GetCurrentProcess().SessionId}{Environment.NewLine}When={DateTime.UtcNow:O}");
+                Debug.WriteLine($"Startup aborted at gate: {gate}. Marker: {path}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to write startup-abort marker for {gate}: {ex.Message}");
+            }
+        }
+#pragma warning restore CA1031 // Do not catch general exception types
 
         private static bool TryBeginShutdown()
         {
