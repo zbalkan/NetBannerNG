@@ -40,6 +40,7 @@ namespace NetBannerNG.Service
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");
         public static readonly EventDefinition ProcessStartFailed = new(4002, "Failed to start process: {0}. Error: {1}");
+        public static readonly EventDefinition ProcessRunAsActiveUserFailed = new(4007, "Failed to start process: {0}. Step={1}, Win32Error={2} ({3}).");
         public static readonly EventDefinition ProcessFailedToKill = new(4003, "Failed to kill process PID={0}. Error: {1}");
         public static readonly EventDefinition SessionChangedReinitializingPipe = new(4004, "Interactive session changed from {0} to {1}; reinitializing per-session pipe server.");
         public static readonly EventDefinition ProcessIdentityValidationFailed = new(4005, "Process identity validation failed for PID={0}. ErrorType={1}");
