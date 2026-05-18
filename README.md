@@ -66,7 +66,7 @@ NetBannerNG is a display and awareness utility. It is not an access-control, aut
 - The service endpoint uses a session-bound pipe name (`NetBannerNG.<SessionId>`) so only clients targeting the current interactive session name are considered.
 - Pipe ACLs are built with the active interactive user SID and explicit deny rules for network principals.
 - Client identity is verified against the active interactive user SID when connection metadata exposes SID details.
-- Interactive username fallback is **disabled by default** and can only be enabled explicitly with `NETBANNERNG_PIPE_IDENTITY_FALLBACK=1` (or `true`) in the service environment.
+- Interactive username fallback is **permanently disabled** in Release builds. Available only in Debug builds via `NETBANNERNG_PIPE_IDENTITY_FALLBACK=1` for local troubleshooting.
 - If fallback is used because SID/username metadata are unavailable on a transport, the service emits a dedicated high-signal event (`EventId 3018`) with connection type, pipe name, and reason.
 
 ## Source acknowledgements

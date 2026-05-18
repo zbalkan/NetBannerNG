@@ -352,6 +352,7 @@ namespace NetBannerNG.Service
 
         private static bool ResolveIdentityFallbackMode()
         {
+#if DEBUG
             var value = Environment.GetEnvironmentVariable(IdentityFallbackEnvironmentVariable);
             if (string.IsNullOrWhiteSpace(value))
             {
@@ -364,6 +365,9 @@ namespace NetBannerNG.Service
             }
 
             return bool.TryParse(value, out var parsed) && parsed;
+#else
+    return false;
+#endif
         }
     }
 }
