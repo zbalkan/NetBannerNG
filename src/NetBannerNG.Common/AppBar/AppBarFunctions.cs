@@ -150,11 +150,16 @@ namespace NetBannerNG.Common.AppBar
 
             barData = barData.CalculateDockedSize(sizeInPixels, workAreaInPixels);
 
-            // SendNewPositionToShell discards the shell's ABM_QUERYPOS adjustments (which
-            // collapse appbars to 0x0 on non-primary monitors with negative coordinates) and
-            // commits our calculated rectangle via ABM_SETPOS, so barData.rc remains the
-            // rectangle we want to dock to.
+            // The Windows shell rewrites barData.rc through ABM_QUERYPOS AND ABM_SETPOS on
+            // multi-monitor setups with non-primary monitors at negative coordinates or
+            // different per-monitor DPI -- it relocates the appbar near the primary monitor
+            // and collapses its width/height to 0. Snapshot the rectangle we calculated from
+            // the per-monitor work area and force it back onto barData after the shell calls,
+            // so AsWpfUnits and the subsequent WPF resize see our rectangle, not the shell's.
+            var desiredRc = barData.rc;
+
             barData = barData.SendNewPositionToShell();
+            barData.rc = desiredRc;
 
             var dockedSize = barData.AsWpfUnits(appbarWindow);
 
@@ -168,11 +173,24 @@ namespace NetBannerNG.Common.AppBar
             Debug.WriteLine($"{appbarWindow} new size: {dockedSize}");
         }
 
-        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement) => childElement != null ?
-                WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
-                    new Vector(childElement.ActualWidth, childElement.ActualHeight))
-                : WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
-                    new Vector(appbarWindow.ActualWidth, appbarWindow.ActualHeight));
+        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement)
+        {
+            // Render() sets Window.Height/Width and then calls Dock synchronously, so when we
+            // reach here on first dock the visual tree may not have been measured yet and
+            // ActualWidth/ActualHeight are 0. Force a synchronous layout pass so the values
+            // reflect Window.Height/Width and child arrangement before we hand them off to
+            // the shell.
+            var measureTarget = childElement ?? (FrameworkElement)appbarWindow;
+            if (measureTarget.ActualWidth == 0 || measureTarget.ActualHeight == 0)
+            {
+                appbarWindow.UpdateLayout();
+            }
+
+            return WPFUnitHelper.Transform(
+                appbarWindow,
+                WPFUnitHelper.TransformTarget.ToPixel,
+                new Vector(measureTarget.ActualWidth, measureTarget.ActualHeight));
+        }
 
         private static void DoResize(Window appbarWindow, Rect rect)
         {
