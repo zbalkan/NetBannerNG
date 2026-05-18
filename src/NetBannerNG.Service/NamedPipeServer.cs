@@ -21,7 +21,10 @@ namespace NetBannerNG.Service
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
+
+#pragma warning disable CA1823 // Avoid unused private fields
         private const string IdentityFallbackEnvironmentVariable = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
+#pragma warning restore CA1823 // Avoid unused private fields
         private static readonly bool EnableIdentityFallback = ResolveIdentityFallbackMode();
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
