@@ -23,6 +23,13 @@ namespace NetBannerNG.Tests
         {
         }
 
+        private sealed class ImpersonationMethodConnection
+        {
+            public string ImpersonatedName { get; set; } = string.Empty;
+
+            public string GetImpersonationUserName() => ImpersonatedName;
+        }
+
         [TestMethod]
         public void TryAuthorizeClientIdentity_ReturnsTrue_ForMatchingSecurityIdentifier()
         {
@@ -77,6 +84,30 @@ namespace NetBannerNG.Tests
             var connection = new SidConnection { UserSid = adminSid };
 
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid);
+
+            Assert.IsFalse(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_ReturnsTrue_ViaGetImpersonationUserNameMethod_NoFallback()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            Assert.IsNotNull(identity?.User);
+            var activeUserSid = identity!.User!;
+            var connection = new ImpersonationMethodConnection { ImpersonatedName = identity.Name };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: false);
+
+            Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_ReturnsFalse_WhenImpersonationUserNameDoesNotMatchActiveSid()
+        {
+            var activeUserSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var connection = new ImpersonationMethodConnection { ImpersonatedName = @"NT AUTHORITY\SYSTEM" };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: false);
 
             Assert.IsFalse(authorized);
         }

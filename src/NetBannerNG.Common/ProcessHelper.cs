@@ -48,16 +48,19 @@ namespace NetBannerNG.Common
             {
                 return false;
             }
-            if (!string.Equals(parent.ProcessName, "NetBannerNG.Watchdog", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
 
-#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                var parentPath = parent.MainModule?.FileName;
-                if (string.IsNullOrEmpty(parentPath))
+                if (!string.Equals(parent.ProcessName, "NetBannerNG.Watchdog", StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+
+                // Process.MainModule needs PROCESS_VM_READ, which a normal-user process
+                // cannot obtain on a LocalSystem service. Use QueryFullProcessImageName
+                // (PROCESS_QUERY_LIMITED_INFORMATION) so the path check works regardless
+                // of the watchdog's integrity level.
+                if (!TryGetProcessImagePath((uint)parent.Id, out var parentPath))
                 {
                     return false;
                 }
@@ -67,11 +70,37 @@ namespace NetBannerNG.Common
                 return string.Equals(
                     Path.GetFullPath(parentPath), expectedPath, StringComparison.OrdinalIgnoreCase);
             }
-            catch
+            finally
+            {
+                parent.Dispose();
+            }
+        }
+
+        private static bool TryGetProcessImagePath(uint processId, out string imagePath)
+        {
+            imagePath = string.Empty;
+            var handle = Kernel32.OpenProcess(Kernel32.PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+            if (handle == IntPtr.Zero)
             {
                 return false;
             }
-#pragma warning restore CA1031 // Do not catch general exception types
+
+            try
+            {
+                var buffer = new System.Text.StringBuilder(1024);
+                var size = (uint)buffer.Capacity;
+                if (!Kernel32.QueryFullProcessImageName(handle, 0, buffer, ref size))
+                {
+                    return false;
+                }
+
+                imagePath = buffer.ToString(0, (int)size);
+                return !string.IsNullOrEmpty(imagePath);
+            }
+            finally
+            {
+                Kernel32.CloseHandle(handle);
+            }
         }
 
         /// <summary>

@@ -303,6 +303,45 @@ namespace NetBannerNG.Watchdog
             return activeSessionId == expectedSessionId;
         }
 
+        private static bool TryResolveImpersonatedSid(object connection, Type connectionType, out SecurityIdentifier? sid)
+        {
+            sid = null;
+            var method = connectionType.GetMethod(
+                "GetImpersonationUserName",
+                BindingFlags.Instance | BindingFlags.Public,
+                binder: null,
+                types: Type.EmptyTypes,
+                modifiers: null);
+            if (method == null)
+            {
+                return false;
+            }
+
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                if (method.Invoke(connection, parameters: null) is not string accountName || string.IsNullOrWhiteSpace(accountName))
+                {
+                    return false;
+                }
+
+                var translated = new NTAccount(accountName).Translate(typeof(SecurityIdentifier)) as SecurityIdentifier;
+                if (translated == null)
+                {
+                    return false;
+                }
+
+                sid = translated;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[PipeServer] ImpersonationLookupFailed type={connectionType.FullName} error={ex.GetType().Name}: {ex.Message}");
+                return false;
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
         internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, string? pipeName, bool allowIdentityFallback = false)
         {
             var connectionType = connection.GetType();
@@ -325,6 +364,17 @@ namespace NetBannerNG.Watchdog
                 }
 
                 return false;
+            }
+
+            // H.Pipes 15 exposes the client identity through a method, not a property.
+            // PipeConnection<T>.GetImpersonationUserName() forwards to NamedPipeServerStream
+            // and returns the account name of the connected client; translate to a SID and
+            // compare against the interactive user. The pipe ACL (CreateDefaultServerSecurity)
+            // already restricts who can open the pipe, so this is the in-process gate that
+            // proves which authorized principal we are talking to.
+            if (TryResolveImpersonatedSid(connection, connectionType, out var impersonatedSid))
+            {
+                return impersonatedSid == activeUserSid;
             }
 
             if (!allowIdentityFallback)
