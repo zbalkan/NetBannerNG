@@ -47,6 +47,19 @@ Source: "{#MyServiceOutputDir}*"; \
 [Registry]
 ; Do not delete GPO-owned policy keys here.
 
+; Event log source for {#MyEventLogSource}. The EventMessageFile must point
+; to a message-resource DLL that contains an entry for every event ID we
+; raise; otherwise Event Viewer renders "the description for Event ID ...
+; cannot be found" (and, for IDs that collide with Win32 error codes, the
+; matching kernel32 error text). EventLogMessages.dll that ships with the
+; in-box .NET Framework 4 holds 65,536 "%1" templates, which lets WriteEntry
+; render its message text verbatim for any event ID we use. Values are
+; rewritten on every install so an upgrade repairs a key that an older
+; build left pointing at the wrong file. Uninstall is handled by
+; DeleteEventLogSourceRegistryKey below.
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Services\EventLog\{#MyEventLogName}\{#MyEventLogSource}"; ValueType: expandsz; ValueName: "EventMessageFile"; ValueData: "%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll"
+Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Services\EventLog\{#MyEventLogName}\{#MyEventLogSource}"; ValueType: dword; ValueName: "TypesSupported"; ValueData: "7"
+
 ; Default policy-backed settings, written on first install only.
 Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "ClassificationSelection"; ValueData: "NOT CONFIGURED - Classification not configured"; Flags: createvalueifdoesntexist
 Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "CustomSettings"; ValueData: "{#DefaultCustomSettings}"; Flags: createvalueifdoesntexist
