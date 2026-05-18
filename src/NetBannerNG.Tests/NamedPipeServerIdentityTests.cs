@@ -134,5 +134,31 @@ namespace NetBannerNG.Tests
             Environment.SetEnvironmentVariable(variableName, "false");
             Assert.IsFalse((bool)method.Invoke(null, null)!);
         }
+
+#if !DEBUG
+        [TestMethod]
+        public void ResolveIdentityFallbackMode_AlwaysReturnsFalse_InReleaseBuilds_RegardlessOfEnvironmentVariable()
+        {
+            const string variableName = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
+            var method = typeof(NamedPipeServer).GetMethod("ResolveIdentityFallbackMode", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.IsNotNull(method);
+
+            var originalValue = Environment.GetEnvironmentVariable(variableName);
+            try
+            {
+                Environment.SetEnvironmentVariable(variableName, "1");
+                Assert.IsFalse((bool)method!.Invoke(null, null)!,
+                    "Release builds must not enable the pipe identity fallback even when NETBANNERNG_PIPE_IDENTITY_FALLBACK=1.");
+
+                Environment.SetEnvironmentVariable(variableName, "true");
+                Assert.IsFalse((bool)method.Invoke(null, null)!,
+                    "Release builds must not enable the pipe identity fallback even when NETBANNERNG_PIPE_IDENTITY_FALLBACK=true.");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(variableName, originalValue);
+            }
+        }
+#endif
     }
 }
