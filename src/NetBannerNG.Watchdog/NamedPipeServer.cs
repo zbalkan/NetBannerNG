@@ -21,7 +21,6 @@ namespace NetBannerNG.Watchdog
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
     internal class NamedPipeServer : IAsyncDisposable
     {
-
 #pragma warning disable CA1823 // Avoid unused private fields
         private const string IdentityFallbackEnvironmentVariable = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
 #pragma warning restore CA1823 // Avoid unused private fields
@@ -40,13 +39,13 @@ namespace NetBannerNG.Watchdog
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
-        internal NamedPipeServer(uint sessionId, int timeout = 10000)
+        private NamedPipeServer(uint sessionId, SecurityIdentifier interactiveUserSid, int timeout)
         {
             _sessionId = sessionId;
             Program.Log.LogInformation(EventLogCatalog.PipeIdentityFallbackMode, EnableIdentityFallback);
             var pipeName = PipeNaming.ForSession(sessionId);
             _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
-            ConfigurePipeSecurity(_server);
+            _server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity(interactiveUserSid));
 
             _server.ClientConnected += OnClientConnected!;
             _server.ClientDisconnected += OnClientDisconnected!;
@@ -71,14 +70,16 @@ namespace NetBannerNG.Watchdog
                 });
         }
 
-        private static void ConfigurePipeSecurity(SingleConnectionPipeServer<PipeMessage> server)
+        internal static bool TryCreate(uint sessionId, out NamedPipeServer? server, int timeout = 10000)
         {
             if (!PrivilegeHelper.TryGetActiveUserSid(out var interactiveUserSid) || interactiveUserSid == null)
             {
-                throw new InvalidOperationException("Unable to resolve active session user SID for pipe ACL configuration.");
+                server = null;
+                return false;
             }
 
-            server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity(interactiveUserSid));
+            server = new NamedPipeServer(sessionId, interactiveUserSid, timeout);
+            return true;
         }
 
         public async ValueTask DisposeAsync()
