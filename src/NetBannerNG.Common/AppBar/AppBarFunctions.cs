@@ -44,7 +44,7 @@ namespace NetBannerNG.Common.AppBar
 
         private static long _suppressPosChangedUntilTicksUtc;
 
-        private delegate void ResizeDelegate(Window appbarWindow, Rect rect, MonitorRect pixelRect, bool hasPixelRect);
+        private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
         internal static bool IsSuppressionActive => Volatile.Read(ref _suppressionDepth) > 0;
 
         private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
@@ -146,7 +146,7 @@ namespace NetBannerNG.Common.AppBar
 
             var sizeInPixels = CalculateActualSize(appbarWindow, childElement);
 
-            var workAreaInPixels = WorkAreaAsPixel(appbarWindow, GetActualWorkArea(info));
+            var workAreaInPixels = GetActualWorkArea(info);
 
             barData = barData.CalculateDockedSize(sizeInPixels, workAreaInPixels);
 
@@ -167,10 +167,10 @@ namespace NetBannerNG.Common.AppBar
 
             //This is done async, because WPF will send a resize after a new appbar is added.
             //if we size right away, WPFs resize comes last and overrides us.
-            ScheduleResize(info, appbarWindow, dockedSize, barData.rc, hasPixelRect: true);
+            ScheduleResize(info, appbarWindow, dockedSize);
 
             Debug.WriteLine($"Resized window: {appbarWindow}");
-            Debug.WriteLine($"{appbarWindow} new size: {dockedSize} (pixels: {barData.rc.Left},{barData.rc.Top},{barData.rc.Width},{barData.rc.Height})");
+            Debug.WriteLine($"{appbarWindow} new size: {dockedSize} (target pixels: {barData.rc.Left},{barData.rc.Top},{barData.rc.Width},{barData.rc.Height})");
         }
 
         private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement)
@@ -192,44 +192,12 @@ namespace NetBannerNG.Common.AppBar
                 new Vector(measureTarget.ActualWidth, measureTarget.ActualHeight));
         }
 
-        private static void DoResize(Window appbarWindow, Rect rect, MonitorRect pixelRect, bool hasPixelRect)
+        private static void DoResize(Window appbarWindow, Rect rect)
         {
-            // Set WPF properties first so internal DIP state stays consistent and any binding /
-            // layout observers see the new size. Setting Left first can trigger WM_DPICHANGED
-            // if the window crosses to a monitor with different DPI, which makes WPF rescale
-            // the window's pixel size by the DPI ratio.
             appbarWindow.Width = rect.Width;
             appbarWindow.Height = rect.Height;
             appbarWindow.Top = rect.Top;
             appbarWindow.Left = rect.Left;
-
-            if (!hasPixelRect)
-            {
-                return;
-            }
-
-            // PerMonitorV2 DPI awareness (declared in app.manifest) makes WPF rescale the
-            // window by the DPI ratio when WM_DPICHANGED fires. For an appbar that needs to
-            // occupy an exact pixel rectangle on the target monitor (which may have different
-            // DPI than the window's current monitor), the rescaled size is wrong. Override
-            // with SetWindowPos in physical pixels so the bar lands on the calculated rect
-            // regardless of any per-monitor DPI translation.
-            var hwnd = appbarWindow.GetHandle();
-            if (hwnd == IntPtr.Zero)
-            {
-                return;
-            }
-
-            _ = SetWindowPos(
-                hwnd,
-                IntPtr.Zero,
-                pixelRect.Left,
-                pixelRect.Top,
-                Math.Max(0, pixelRect.Width),
-                Math.Max(0, pixelRect.Height),
-                SetWindowPosFlags.IgnoreZOrder
-                    | SetWindowPosFlags.DoNotActivate
-                    | SetWindowPosFlags.DoNotSendChangingEvent);
         }
 
         // double.IsFinite is unavailable on .NET Framework 4.8.1.
@@ -265,13 +233,13 @@ namespace NetBannerNG.Common.AppBar
             ScheduleResize(info, appbarWindow, rect);
         }
 
-        private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect, MonitorRect pixelRect = default, bool hasPixelRect = false)
+        private static void ScheduleResize(RegisterInfo info, Window appbarWindow, Rect rect)
         {
             if (IsBatchActive)
             {
                 info.PendingResizeOperation?.Abort();
                 info.PendingResizeOperation = null;
-                DoResize(appbarWindow, rect, pixelRect, hasPixelRect);
+                DoResize(appbarWindow, rect);
                 return;
             }
 
@@ -283,9 +251,7 @@ namespace NetBannerNG.Common.AppBar
                 DispatcherPriority.Loaded,
                 new ResizeDelegate(DoResize),
                 appbarWindow,
-                rect,
-                pixelRect,
-                hasPixelRect);
+                rect);
         }
         private static APPBARDATA SendAppBarRemovalToShell(APPBARDATA abd)
         {
@@ -297,13 +263,6 @@ namespace NetBannerNG.Common.AppBar
         {
             _ = SHAppBarMessage((int)AbMsg.AbmNew, ref abd);
             return abd;
-        }
-
-        private static Rect WorkAreaAsPixel(FrameworkElement appBarWindow, Rect actualWorkArea)
-        {
-            var screenSizeInPixels = WPFUnitHelper.Transform(appBarWindow, WPFUnitHelper.TransformTarget.ToPixel, new Vector(actualWorkArea.Width, actualWorkArea.Height));
-            var workTopLeftInPixels = WPFUnitHelper.Transform(appBarWindow, WPFUnitHelper.TransformTarget.ToPixel, new Point(actualWorkArea.Left, actualWorkArea.Top));
-            return new Rect(workTopLeftInPixels, screenSizeInPixels);
         }
 
         [StructLayout(LayoutKind.Sequential)]
