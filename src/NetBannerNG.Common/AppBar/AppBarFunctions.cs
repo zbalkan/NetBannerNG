@@ -150,6 +150,10 @@ namespace NetBannerNG.Common.AppBar
 
             barData = barData.CalculateDockedSize(sizeInPixels, workAreaInPixels);
 
+            // SendNewPositionToShell discards the shell's ABM_QUERYPOS adjustments (which
+            // collapse appbars to 0x0 on non-primary monitors with negative coordinates) and
+            // commits our calculated rectangle via ABM_SETPOS, so barData.rc remains the
+            // rectangle we want to dock to.
             barData = barData.SendNewPositionToShell();
 
             var dockedSize = barData.AsWpfUnits(appbarWindow);
@@ -549,8 +553,14 @@ namespace NetBannerNG.Common.AppBar
 
         private static APPBARDATA SendNewPositionToShell(this APPBARDATA barData)
         {
+            // ABM_QUERYPOS lets the shell propose adjustments to avoid overlapping other appbars,
+            // but its proposal is unreliable on non-primary monitors (especially with negative
+            // virtual-screen coordinates and per-monitor DPI). Discard its rc edit and commit
+            // our originally computed rectangle via ABM_SETPOS so the shell registers the
+            // appbar at the position we actually want.
+            var desiredRc = barData.rc;
             _ = SHAppBarMessage((int)AbMsg.AbmQuerypos, ref barData);
-
+            barData.rc = desiredRc;
             _ = SHAppBarMessage((int)AbMsg.AbmSetpos, ref barData);
             return barData;
         }
