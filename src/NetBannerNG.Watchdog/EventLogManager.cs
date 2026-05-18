@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Security;
+using Microsoft.Win32;
 
 namespace NetBannerNG.Watchdog
 {
@@ -9,6 +12,9 @@ namespace NetBannerNG.Watchdog
         private const string SourceName = "NetBannerNG";
         private const int PendingQueueLimit = 256;
         private const int RetryDelaySeconds = 30;
+
+        private const string SourceRegistryPath =
+            $@"SYSTEM\CurrentControlSet\Services\EventLog\{LogName}\{SourceName}";
 
         private static readonly ConcurrentQueue<PendingEntry> _pending = new();
         private static int _pendingCount;
@@ -130,9 +136,18 @@ namespace NetBannerNG.Watchdog
 
         private static void RegisterSource()
         {
+            var messageFile = ResolveMessageResourceFile();
+
             if (!EventLog.SourceExists(SourceName))
             {
-                EventLog.CreateEventSource(new EventSourceCreationData(SourceName, LogName));
+                EventLog.CreateEventSource(new EventSourceCreationData(SourceName, LogName)
+                {
+                    MessageResourceFile = messageFile,
+                });
+            }
+            else
+            {
+                RepairMessageResourceFile(messageFile);
             }
 
             var registered = EventLog.LogNameFromSourceName(SourceName, ".");
@@ -141,6 +156,70 @@ namespace NetBannerNG.Watchdog
                 throw new InvalidOperationException(
                     $"Event source '{SourceName}' is registered to '{registered}', expected '{LogName}'.");
             }
+        }
+
+        // The .NET Framework EventLogMessages.dll ships with the runtime and contains
+        // 65,536 "%1" message templates, one per event ID 0..65535. Pointing the source's
+        // EventMessageFile at it lets Event Viewer render WriteEntry's text verbatim for
+        // any event ID we use. Without this, Event Viewer reports "the description for
+        // Event ID ... cannot be found", and IDs that collide with Win32 error codes get
+        // the unrelated kernel32 text (e.g. 3010 -> "A system reboot is required").
+        private static string ResolveMessageResourceFile()
+        {
+            var runtimePath = Path.Combine(
+                RuntimeEnvironment.GetRuntimeDirectory(),
+                "EventLogMessages.dll");
+            if (File.Exists(runtimePath))
+            {
+                return runtimePath;
+            }
+
+            return Path.Combine(
+                Environment.ExpandEnvironmentVariables("%SystemRoot%"),
+                @"Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll");
+        }
+
+        // The installer registers the source with the correct EventMessageFile, but a
+        // prior install (or a foreign WriteEntry call that auto-registered the source)
+        // may have left a value that points nowhere. Repair it when we have write access;
+        // LocalService doesn't, and that's fine — the install-time entry is authoritative.
+        private static void RepairMessageResourceFile(string desiredPath)
+        {
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                using var key = Registry.LocalMachine.OpenSubKey(SourceRegistryPath, writable: true);
+                if (key is null)
+                {
+                    return;
+                }
+
+                var current = key.GetValue(
+                    "EventMessageFile",
+                    defaultValue: null,
+                    options: RegistryValueOptions.DoNotExpandEnvironmentNames) as string;
+                var expanded = string.IsNullOrEmpty(current)
+                    ? null
+                    : Environment.ExpandEnvironmentVariables(current);
+                if (!string.IsNullOrEmpty(expanded) && File.Exists(expanded))
+                {
+                    return;
+                }
+
+                key.SetValue("EventMessageFile", desiredPath, RegistryValueKind.ExpandString);
+                key.SetValue("TypesSupported", 7, RegistryValueKind.DWord);
+            }
+            catch (SecurityException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning($"[NetBannerNG] Event source repair failed: {ex.Message}");
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         private static void FlushPending()
