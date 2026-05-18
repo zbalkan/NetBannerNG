@@ -178,6 +178,10 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.Left = rect.Left;
         }
 
+        // double.IsFinite is unavailable on .NET Framework 4.8.1.
+        private static double SanitizeDimension(double value) =>
+            double.IsNaN(value) || double.IsInfinity(value) ? 0 : Math.Max(0, value);
+
         private static Rect GetActualWorkArea(RegisterInfo info)
         {
             var hWnd = info.Window?.GetHandle() ?? IntPtr.Zero;
@@ -201,8 +205,8 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.RestoreStyle(info);
             info.DockedSize = null;
             // OriginalPosition may be negative on secondary monitors; OriginalSize must not be.
-            var restoreWidth = double.IsFinite(info.OriginalSize.Width) ? Math.Max(0, info.OriginalSize.Width) : 0;
-            var restoreHeight = double.IsFinite(info.OriginalSize.Height) ? Math.Max(0, info.OriginalSize.Height) : 0;
+            var restoreWidth = SanitizeDimension(info.OriginalSize.Width);
+            var restoreHeight = SanitizeDimension(info.OriginalSize.Height);
             var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, restoreWidth, restoreHeight);
             ScheduleResize(info, appbarWindow, rect);
         }
@@ -609,8 +613,8 @@ namespace NetBannerNG.Common.AppBar
                         OriginalStyle = appbarWindow.WindowStyle,
                         OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
                         OriginalSize = new Size(
-                            double.IsFinite(appbarWindow.ActualWidth) ? Math.Max(0, appbarWindow.ActualWidth) : 0,
-                            double.IsFinite(appbarWindow.ActualHeight) ? Math.Max(0, appbarWindow.ActualHeight) : 0),
+                            SanitizeDimension(appbarWindow.ActualWidth),
+                            SanitizeDimension(appbarWindow.ActualHeight)),
                         OriginalResizeMode = appbarWindow.ResizeMode,
                         OriginalTopmost = appbarWindow.Topmost,
                         DockedSize = null,
