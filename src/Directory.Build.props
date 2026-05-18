@@ -16,7 +16,7 @@
     <InstallerAppId>{8D938B9B-8B7D-4A87-9E86-4E7E471C4B6A}</InstallerAppId>
     <InstallerUrl>https://zaferbalkan.com</InstallerUrl>
 
-    <NetBannerNGServiceExeName>NetBannerNG.Service.exe</NetBannerNGServiceExeName>
+    <NetBannerNGServiceExeName>NetBannerNG.Watchdog.exe</NetBannerNGServiceExeName>
     <NetBannerNGServiceName>NetBannerNGWatchdog</NetBannerNGServiceName>
     <NetBannerNGServiceDisplayName>NetBannerNG Watchdog Service</NetBannerNGServiceDisplayName>
     <NetBannerNGServiceDescription>Privileged watchdog service for NetBannerNG.</NetBannerNGServiceDescription>
@@ -39,7 +39,7 @@
     <NetBannerNGDefaultEnableBottomBanner>0</NetBannerNGDefaultEnableBottomBanner>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NetBannerNG.Service'">
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'NetBannerNG.Watchdog'">
     <ApplicationIcon>$(NetBannerNGSharedIconPath)</ApplicationIcon>
   </PropertyGroup>
 </Project>

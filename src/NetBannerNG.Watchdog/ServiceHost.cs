@@ -1,7 +1,7 @@
 using System.ServiceProcess;
 using NetBannerNG.Common;
 
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     /// <inheritdoc />
     /// ref: https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/

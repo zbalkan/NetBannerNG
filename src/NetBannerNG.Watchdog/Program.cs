@@ -7,7 +7,7 @@ using NetBannerNG.Common.Extensions;
 
 [assembly: CLSCompliant(true)]
 #pragma warning disable CA1303 // Do not pass literals as localized parameters
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     /// <summary>
     ///     Windows service application to provision the NetBannerNG.

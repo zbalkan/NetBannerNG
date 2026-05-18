@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="../installer/setup.iss" />
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/Solution Items/Assets/">
+    <File Path="Assets/DeltaZulu - dark.ico" />
+  </Folder>
+  <Project Path="NetBannerNG.Common/NetBannerNG.Common.csproj" />
+  <Project Path="NetBannerNG.Tests/NetBannerNG.Tests.csproj" />
+  <Project Path="NetBannerNG.Watchdog/NetBannerNG.Watchdog.csproj" />
+  <Project Path="NetBannerNG/NetBannerNG.csproj" />
+</Solution>

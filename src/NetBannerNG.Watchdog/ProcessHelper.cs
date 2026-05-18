@@ -5,7 +5,7 @@ using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
 
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     internal static class ProcessHelper
     {

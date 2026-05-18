@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Common.NamedPipes;
-using NetBannerNG.Service;
+using NetBannerNG.Watchdog;
 
 namespace NetBannerNG.Tests
 {
