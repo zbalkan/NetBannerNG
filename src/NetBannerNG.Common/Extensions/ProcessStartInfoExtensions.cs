@@ -16,17 +16,41 @@ namespace NetBannerNG.Common.Extensions
         /// <param name="psi"> Process to be started in user context </param>
         /// <returns> Returns true if succeeds. </returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static bool RunAsActiveUser(this ProcessStartInfo psi)
+        public static bool RunAsActiveUser(this ProcessStartInfo psi) =>
+            psi.RunAsActiveUser(out _, out _);
+
+        /// <summary>
+        /// Get the active user's token and run the process in the given user's context.
+        /// On failure, returns which step failed and the Win32 error code captured at that step.
+        /// </summary>
+        /// <param name="psi"> Process to be started in user context </param>
+        /// <param name="failedStep">
+        /// On failure, the step that failed (<c>WTSQueryUserToken</c>, <c>CreateEnvironmentBlock</c>,
+        /// or <c>CreateProcessAsUser</c>). Empty string on success.
+        /// </param>
+        /// <param name="win32Error">On failure, the value of <c>GetLastError</c> at the failing step. Zero on success.</param>
+        /// <returns> Returns true if succeeds. </returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static bool RunAsActiveUser(this ProcessStartInfo psi, out string failedStep, out int win32Error)
         {
             if (psi == null)
             {
                 throw new ArgumentNullException(nameof(psi));
             }
 
+            failedStep = string.Empty;
+            win32Error = 0;
+
             WindowsIdentity? user = null;
             try
             {
-                return PrivilegeHelper.GetActiveUser(out user) && psi.RunImpersonated(user!);
+                if (!PrivilegeHelper.GetActiveUser(out user, out win32Error))
+                {
+                    failedStep = "WTSQueryUserToken";
+                    return false;
+                }
+
+                return psi.RunImpersonated(user!, out failedStep, out win32Error);
             }
             finally
             {
@@ -42,7 +66,7 @@ namespace NetBannerNG.Common.Extensions
         /// <param name="userIdentity"> user to impersonate </param>
         /// <returns> Returns true if succeeds. </returns>
         /// <exception cref="ArgumentNullException"><paramref name="psi"/> is <c>null</c>.</exception>
-        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity)
+        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity, out string failedStep, out int win32Error)
         {
             if (psi == null)
             {
@@ -53,6 +77,9 @@ namespace NetBannerNG.Common.Extensions
             {
                 throw new ArgumentNullException(nameof(userIdentity));
             }
+
+            failedStep = string.Empty;
+            win32Error = 0;
 
             Debug.WriteLine($"Before impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
             var refAdded = false;
@@ -80,8 +107,9 @@ namespace NetBannerNG.Common.Extensions
             {
                 if (!UserEnv.CreateEnvironmentBlock(out environmentBlock, userToken, false))
                 {
-                    var envError = Marshal.GetLastWin32Error();
-                    Debug.WriteLine($"Failed to create environment block for user {userIdentity.Name}. Error code: {envError}");
+                    win32Error = Marshal.GetLastWin32Error();
+                    failedStep = "CreateEnvironmentBlock";
+                    Debug.WriteLine($"Failed to create environment block for user {userIdentity.Name}. Error code: {win32Error}");
                     return false;
                 }
 
@@ -97,8 +125,9 @@ namespace NetBannerNG.Common.Extensions
                     ref si, // startup info
                     out var processInformation)) // receive process information in pi
                 {
-                    var error = Marshal.GetLastWin32Error();
-                    Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {error}");
+                    win32Error = Marshal.GetLastWin32Error();
+                    failedStep = "CreateProcessAsUser";
+                    Debug.WriteLine($"Failed to create process {psi.FileName} as user {userIdentity.Name}. Error code: {win32Error}");
                     return false;
                 }
 

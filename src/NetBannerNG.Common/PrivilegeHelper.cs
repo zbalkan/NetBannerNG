@@ -72,12 +72,16 @@ namespace NetBannerNG.Common
 
         public static bool IsSystem => WindowsIdentity.GetCurrent().IsSystem;
 
-        public static bool GetActiveUser(out WindowsIdentity? user)
+        public static bool GetActiveUser(out WindowsIdentity? user) =>
+            GetActiveUser(out user, out _);
+
+        public static bool GetActiveUser(out WindowsIdentity? user, out int win32Error)
         {
             var session = GetActiveSessionId();
             if (!Wtsapi32.WTSQueryUserToken(session, out var userToken))
             {
-                Debug.WriteLine($"Failed to query user token (Error no: {Marshal.GetLastWin32Error()})");
+                win32Error = Marshal.GetLastWin32Error();
+                Debug.WriteLine($"Failed to query user token (Error no: {win32Error})");
                 user = null;
                 return false;
             }
@@ -85,6 +89,7 @@ namespace NetBannerNG.Common
             try
             {
                 user = new WindowsIdentity(userToken);
+                win32Error = 0;
                 return true;
             }
             finally
@@ -254,4 +259,4 @@ namespace NetBannerNG.Common
             }
         }
     }
-}
+} 

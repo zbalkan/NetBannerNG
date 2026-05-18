@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Management;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
@@ -60,9 +61,10 @@ namespace NetBannerNG.Service
             }
 
             var existingCandidates = CaptureCandidateProcessIds((int)sessionId);
-            if (!psi.RunAsActiveUser())
+            if (!psi.RunAsActiveUser(out var failedStep, out var win32Error))
             {
-                Program.Log.LogError(EventLogCatalog.ProcessStartFailed, $"Failed to start {psi.FileName}", new UnauthorizedAccessException("Failed to run as active user."));
+                var nativeMessage = new Win32Exception(win32Error).Message;
+                Program.Log.LogError(EventLogCatalog.ProcessRunAsActiveUserFailed, psi.FileName, failedStep, win32Error, nativeMessage);
                 return false;
             }
 
