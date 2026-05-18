@@ -244,6 +244,12 @@ var
 begin
   ServiceBinaryPath := ExpandConstant('{app}\{#MyServiceExeName}');
 
+  // The watchdog launches the GUI in the active console session via
+  // WTSQueryUserToken + CreateProcessAsUser. WTSQueryUserToken requires
+  // SE_TCB_NAME ("Act as part of the operating system"), which only the
+  // LocalSystem account holds — LocalService fails with Win32 error 1314
+  // (ERROR_PRIVILEGE_NOT_HELD). Run the service as LocalSystem so the
+  // token query succeeds.
   if not ServiceExists('{#MyServiceName}') then
   begin
     RunScChecked(
@@ -251,7 +257,7 @@ begin
       'binPath= "' + ServiceBinaryPath + '" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
-      'obj= "NT AUTHORITY\LocalService"',
+      'obj= "LocalSystem"',
       'Failed to create the NetBannerNG watchdog service.'
     );
   end
@@ -262,7 +268,7 @@ begin
       'binPath= "' + ServiceBinaryPath + '" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
-      'obj= "NT AUTHORITY\LocalService"',
+      'obj= "LocalSystem"',
       'Failed to configure the NetBannerNG watchdog service.'
     );
   end;
