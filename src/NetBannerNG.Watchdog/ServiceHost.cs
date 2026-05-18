@@ -82,63 +82,135 @@ namespace NetBannerNG.Watchdog
 
         private static async Task InitializeServiceThreadAsync()
         {
-            _currentSessionId = PrivilegeHelper.GetInteractiveSessionId();
-            _pipeServer = new NamedPipeServer(_currentSessionId);
-            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
-            TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "InitialPipeCreated");
-
-            await using (_pipeServer)
+            try
             {
-                await _pipeServer.InitializeAsync().ConfigureAwait(false);
-                Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
-                ProcessHelper.KillAllChildProcess();
                 while (!ServiceStopCts.IsCancellationRequested)
                 {
                     var loopStart = DateTime.UtcNow;
-                    await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
-                    MonitorChildProcess();
-                    var loopDuration = DateTime.UtcNow - loopStart;
-                    if (loopDuration > TimeSpan.FromMilliseconds(500))
+                    if (_pipeServer == null)
                     {
-                        Program.Log.LogWarning(EventLogCatalog.WatchdogLoopOverrun, loopDuration.TotalMilliseconds);
+                        if (!await TryStartPipeServerAsync("InitialPipeCreated").ConfigureAwait(false))
+                        {
+                            if (!await DelayLoopAsync(loopStart).ConfigureAwait(false))
+                            {
+                                break;
+                            }
+                            continue;
+                        }
                     }
-                    var jitterMs = (int)(DateTime.UtcNow.Ticks % 35);
-                    try
+                    else
                     {
-                        await Task.Delay(250 + jitterMs, ServiceStopCts.Token).ConfigureAwait(false);
+                        await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
                     }
-                    catch (OperationCanceledException)
+
+                    if (_pipeServer != null)
+                    {
+                        MonitorChildProcess();
+                    }
+
+                    if (!await DelayLoopAsync(loopStart).ConfigureAwait(false))
                     {
                         break;
                     }
                 }
             }
+            finally
+            {
+                if (_pipeServer != null)
+                {
+                    await _pipeServer.DisposeAsync().ConfigureAwait(false);
+                    _pipeServer = null;
+                }
+            }
+        }
+
+        private static async Task<bool> DelayLoopAsync(DateTime loopStart)
+        {
+            var loopDuration = DateTime.UtcNow - loopStart;
+            if (loopDuration > TimeSpan.FromMilliseconds(500))
+            {
+                Program.Log.LogWarning(EventLogCatalog.WatchdogLoopOverrun, loopDuration.TotalMilliseconds);
+            }
+            var jitterMs = (int)(DateTime.UtcNow.Ticks % 35);
+            try
+            {
+                await Task.Delay(250 + jitterMs, ServiceStopCts.Token).ConfigureAwait(false);
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+        }
+
+        private static async Task<bool> TryStartPipeServerAsync(string transitionReason)
+        {
+            uint sessionId;
+            try
+            {
+                sessionId = PrivilegeHelper.GetInteractiveSessionId();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeSessionPending, ex.Message);
+                return false;
+            }
+
+            if (!NamedPipeServer.TryCreate(sessionId, out var candidate) || candidate == null)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeSessionPending, "Active session user SID is not yet resolvable.");
+                return false;
+            }
+
+            try
+            {
+                await candidate.InitializeAsync().ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                await candidate.DisposeAsync().ConfigureAwait(false);
+                throw;
+            }
+
+            _currentSessionId = sessionId;
+            _pipeServer = candidate;
+            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
+            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
+            TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, transitionReason);
+            ProcessHelper.KillAllChildProcess();
+            return true;
         }
 
         private static async Task ReconcileSessionPipeServerAsync()
         {
-            var latestSessionId = PrivilegeHelper.GetInteractiveSessionId();
+            uint latestSessionId;
+            try
+            {
+                latestSessionId = PrivilegeHelper.GetInteractiveSessionId();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeSessionPending, ex.Message);
+                return;
+            }
+
             if (!HasSessionChanged(_currentSessionId, latestSessionId))
             {
                 return;
             }
 
             Program.Log.LogInformation(EventLogCatalog.SessionChangedReinitializingPipe, _currentSessionId, latestSessionId);
-            _currentSessionId = latestSessionId;
             PrivilegeHelper.ResetSessionOwnerAdminCache();
             TransitionState(_watchdogState, WatchdogState.NoSession, "SessionChanged");
 
             if (_pipeServer != null)
             {
                 await _pipeServer.DisposeAsync().ConfigureAwait(false);
+                _pipeServer = null;
             }
 
-            _pipeServer = new NamedPipeServer(_currentSessionId);
-            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
-            await _pipeServer.InitializeAsync().ConfigureAwait(false);
-            Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
-            TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, "SessionPipeReinitialized");
-            ProcessHelper.KillAllChildProcess();
+            _currentSessionId = latestSessionId;
+            _ = await TryStartPipeServerAsync("SessionPipeReinitialized").ConfigureAwait(false);
         }
 
         internal static bool HasSessionChanged(uint currentSessionId, uint latestSessionId) => currentSessionId != latestSessionId;

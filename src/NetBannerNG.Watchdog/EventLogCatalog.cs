@@ -36,6 +36,7 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition PipeInboundSessionRevalidationFailed = new(3016, "Rejected inbound message after session revalidation failed. ExpectedSession={0}, ActiveSession={1}, Pipe={2}");
         public static readonly EventDefinition PipeIdentityFallbackMode = new(3017, "Pipe identity fallback mode. DebugOnlyEnabled={0}");
         public static readonly EventDefinition PipeIdentityFallbackUsed = new(3018, "Pipe identity fallback used. ConnectionType={0}, Pipe={1}, Reason={2}");
+        public static readonly EventDefinition PipeSessionPending = new(3019, "Pipe server creation deferred; interactive session is not ready. {0}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");
