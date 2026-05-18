@@ -200,7 +200,10 @@ namespace NetBannerNG.Common.AppBar
             var info = appbarWindow.GetRegisterInfo();
             appbarWindow.RestoreStyle(info);
             info.DockedSize = null;
-            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, info.OriginalSize.Width, info.OriginalSize.Height);
+            // OriginalPosition may be negative on secondary monitors; OriginalSize must not be.
+            var restoreWidth = double.IsFinite(info.OriginalSize.Width) ? Math.Max(0, info.OriginalSize.Width) : 0;
+            var restoreHeight = double.IsFinite(info.OriginalSize.Height) ? Math.Max(0, info.OriginalSize.Height) : 0;
+            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, restoreWidth, restoreHeight);
             ScheduleResize(info, appbarWindow, rect);
         }
 
@@ -438,8 +441,14 @@ namespace NetBannerNG.Common.AppBar
         private static Rect AsWpfUnits(this APPBARDATA barData, FrameworkElement appBarWindowForReference)
         {
             var location = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Point(barData.rc.Left, barData.rc.Top));
-            var dimension = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Vector(barData.rc.Right - barData.rc.Left, barData.rc.Bottom - barData.rc.Top));
-            return new Rect(location, new Size(dimension.X, dimension.Y));
+            // Locations may legitimately be negative on monitors placed left/above primary, but
+            // ABM_QUERYPOS/ABM_SETPOS occasionally return a rectangle with Right<Left or Bottom<Top
+            // for appbars docked on those monitors. Clamp dimensions so we never hand a negative
+            // value to System.Windows.Size, which throws "Width and Height must be non-negative."
+            var widthPx = Math.Max(0, barData.rc.Right - barData.rc.Left);
+            var heightPx = Math.Max(0, barData.rc.Bottom - barData.rc.Top);
+            var dimension = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Vector(widthPx, heightPx));
+            return new Rect(location, new Size(Math.Max(0, dimension.X), Math.Max(0, dimension.Y)));
         }
 
         private static APPBARDATA CalculateDockedSize(this APPBARDATA barData, Vector sizeInPixels, Rect workAreaInPixelsF)
@@ -599,7 +608,9 @@ namespace NetBannerNG.Common.AppBar
                         Edge = DockEdge.Top,
                         OriginalStyle = appbarWindow.WindowStyle,
                         OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
-                        OriginalSize = new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
+                        OriginalSize = new Size(
+                            double.IsFinite(appbarWindow.ActualWidth) ? Math.Max(0, appbarWindow.ActualWidth) : 0,
+                            double.IsFinite(appbarWindow.ActualHeight) ? Math.Max(0, appbarWindow.ActualHeight) : 0),
                         OriginalResizeMode = appbarWindow.ResizeMode,
                         OriginalTopmost = appbarWindow.Topmost,
                         DockedSize = null,
