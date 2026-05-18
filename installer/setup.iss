@@ -38,6 +38,12 @@ Name: "{commonappdata}\{#MyProgramDataDir}"; Permissions: users-modify
 Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
 
 [Files]
+; UI (WPF) application output. The watchdog launches {app}\{#MyUiExeName},
+; so the GUI must ship alongside the service in the install directory.
+Source: "{#MyUiOutputDir}*"; \
+    DestDir: "{app}"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs
+
 ; Watchdog service output.
 ; SDK-style net481 project output.
 Source: "{#MyServiceOutputDir}*"; \
