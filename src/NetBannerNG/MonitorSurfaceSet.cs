@@ -50,20 +50,32 @@ namespace NetBannerNG
 
             Monitor = monitor;
             var syncFailed = false;
-            foreach (var window in _windows)
+
+            // Batch the per-window redock so the shell sees one position update per bar
+            // (synchronous DoResize inside BeginBatch, ABN_POSCHANGED muted, and a settle
+            // window after EndBatch). Matches the batching done by ShowGroups on initial dock.
+            AppBarFunctions.BeginBatch();
+            try
             {
+                foreach (var window in _windows)
+                {
 #pragma warning disable CA1031 // Do not catch general exception types
-                try
-                {
-                    LayoutPolicy.ApplyMonitorBounds(window, monitor);
-                    window.Render(true);
-                }
-                catch (Exception ex)
-                {
-                    syncFailed = true;
-                    MarkFailure("Sync", window.GetType().Name, ex);
-                }
+                    try
+                    {
+                        LayoutPolicy.ApplyMonitorBounds(window, monitor);
+                        window.Render(true);
+                    }
+                    catch (Exception ex)
+                    {
+                        syncFailed = true;
+                        MarkFailure("Sync", window.GetType().Name, ex);
+                    }
 #pragma warning restore CA1031 // Do not catch general exception types
+                }
+            }
+            finally
+            {
+                AppBarFunctions.EndBatch();
             }
 
             if (!syncFailed)
