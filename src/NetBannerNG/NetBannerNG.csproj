@@ -67,7 +67,7 @@
 			<InnoBuildInfoLines Include="#define MyUiExeName &quot;$(TargetFileName)&quot;" />
 			<InnoBuildInfoLines Include="#define MyServiceExeName &quot;$(NetBannerNGServiceExeName)&quot;" />
 			<InnoBuildInfoLines Include="#define MyUiOutputDir &quot;$(TargetDir)&quot;" />
-			<InnoBuildInfoLines Include="#define MyServiceOutputDir &quot;$(MSBuildProjectDirectory)\..\NetBannerNG.Service\bin\$(Configuration)\$(TargetFramework)\&quot;" />
+			<InnoBuildInfoLines Include="#define MyServiceOutputDir &quot;$(MSBuildProjectDirectory)\..\NetBannerNG.Watchdog\bin\$(Configuration)\$(TargetFramework)\&quot;" />
 
 			<InnoBuildInfoLines Include="#define MyServiceName &quot;$(NetBannerNGServiceName)&quot;" />
 			<InnoBuildInfoLines Include="#define MyServiceDisplayName &quot;$(NetBannerNGServiceDisplayName)&quot;" />

@@ -13,7 +13,7 @@ using NetBannerNG.Common.NamedPipes;
 using Polly;
 using Polly.Timeout;
 
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     /// <summary>
     ///     Named pipe server based on H.Pipes library. Check the reference article for more.

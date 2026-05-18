@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     internal static class EventLogCatalog
     {

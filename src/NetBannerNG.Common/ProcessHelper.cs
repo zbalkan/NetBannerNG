@@ -48,7 +48,7 @@ namespace NetBannerNG.Common
             {
                 return false;
             }
-            if (!string.Equals(parent.ProcessName, "NetBannerNG.Service", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(parent.ProcessName, "NetBannerNG.Watchdog", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -63,7 +63,7 @@ namespace NetBannerNG.Common
                 }
 
                 var expectedPath = Path.GetFullPath(
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.Service.exe"));
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.Watchdog.exe"));
                 return string.Equals(
                     Path.GetFullPath(parentPath), expectedPath, StringComparison.OrdinalIgnoreCase);
             }

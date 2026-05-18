@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetBannerNG.Service;
+using NetBannerNG.Watchdog;
 
 namespace NetBannerNG.Tests
 {

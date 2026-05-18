@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace NetBannerNG.Service
+namespace NetBannerNG.Watchdog
 {
     internal sealed class EventLogManager
     {

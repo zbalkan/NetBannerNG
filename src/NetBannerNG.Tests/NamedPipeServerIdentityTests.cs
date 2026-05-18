@@ -1,7 +1,7 @@
 using System.Security.Principal;
 using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using NetBannerNG.Service;
+using NetBannerNG.Watchdog;
 using System;
 
 namespace NetBannerNG.Tests

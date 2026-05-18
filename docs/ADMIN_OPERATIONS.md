@@ -78,7 +78,7 @@ reg export "HKLM\SOFTWARE\Policies\NetBannerNG" "C:\Temp\NetBanner-policy-backup
 
 ```powershell
 Get-Service NetBannerNGWatchdog
-Get-Item "C:\Program Files\NetBannerNG\NetBannerNG.Service.exe" | Select-Object FullName,LastWriteTime,Length
+Get-Item "C:\Program Files\NetBannerNG\NetBannerNG.Watchdog.exe" | Select-Object FullName,LastWriteTime,Length
 ```
 
 Operational checks after reinstall/upgrade:

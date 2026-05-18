@@ -7,7 +7,7 @@ This guide is intended to explain the current architecture and help contributors
 ## Solution structure
 
 - `src/NetBannerNG` — WPF desktop UI (`net481`) that renders banner/borders.
-- `src/NetBannerNG.Service` — Windows Service (`net481`) that supervises UI lifecycle.
+- `src/NetBannerNG.Watchdog` — Windows Service (`net481`) that supervises UI lifecycle.
 - `src/NetBannerNG.Common` — shared named-pipe contracts, appbar helpers, interop, and security/process helpers.
 - `src/NetBannerNG.Tests` — unit/integration-focused tests for lifecycle, pipe security, settings, and monitor behavior.
 - `installer/setup.iss` — installer and service lifecycle orchestration.
@@ -50,13 +50,13 @@ dotnet test NetBannerNG.sln -c Release
 
 ## Service debug mode
 
-`NetBannerNG.Service` supports `--debug` in Debug builds for interactive troubleshooting.
+`NetBannerNG.Watchdog` supports `--debug` in Debug builds for interactive troubleshooting.
 
 Example:
 
 ```bash
-cd src/NetBannerNG.Service/bin/Debug/net481
-NetBannerNG.Service.exe --debug
+cd src/NetBannerNG.Watchdog/bin/Debug/net481
+NetBannerNG.Watchdog.exe --debug
 ```
 
 Release builds are service-context only.

@@ -10,7 +10,7 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 
 DefaultDirName={autopf}\{#MyAppName}
-DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
 
 OutputDir=installer-output
 OutputBaseFilename={#MyAppName}-{#MyAppVersion}-Setup
@@ -24,8 +24,8 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-DisableProgramGroupPage=yes
-UninstallDisplayIcon={app}\{#MyUiExeName}
+; Uses the installer's custom icon embedded directly inside the uninstaller binary
+UninstallDisplayIcon={uninstallexe}
 
 CloseApplications=yes
 RestartApplications=no
@@ -33,36 +33,16 @@ RestartApplications=no
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Tasks]
-Name: "desktopicon"; \
-    Description: "Create a desktop shortcut"; \
-    GroupDescription: "Additional icons:"; \
-    Flags: unchecked
-
 [Dirs]
 Name: "{commonappdata}\{#MyProgramDataDir}"; Permissions: users-modify
 Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
 
 [Files]
-; WPF UI output.
-; SDK-style net481 project output.
-Source: "{#MyUiOutputDir}*"; \
-    DestDir: "{app}"; \
-    Flags: ignoreversion recursesubdirs createallsubdirs
-
 ; Watchdog service output.
 ; SDK-style net481 project output.
 Source: "{#MyServiceOutputDir}*"; \
     DestDir: "{app}"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
-
-[Icons]
-Name: "{group}\{#MyAppName}"; \
-    Filename: "{app}\{#MyUiExeName}"
-
-Name: "{autodesktop}\{#MyAppName}"; \
-    Filename: "{app}\{#MyUiExeName}"; \
-    Tasks: desktopicon
 
 [Registry]
 ; Do not delete GPO-owned policy keys here.
@@ -82,26 +62,11 @@ Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "Disa
 Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "ShowHostInformation"; ValueData: "{#DefaultShowHostInformation}"; Flags: createvalueifdoesntexist
 Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "EnableBottomBanner"; ValueData: "{#DefaultEnableBottomBanner}"; Flags: createvalueifdoesntexist
 
-[Run]
-; Service lifecycle is handled in [Code].
-; This keeps upgrade behavior controlled:
-; - stop before replacing binaries
-; - create/configure after install
-; - start after install
-
-Filename: "{app}\{#MyUiExeName}"; \
-    Description: "Launch {#MyAppName}"; \
-    Flags: nowait postinstall skipifsilent
-
 [UninstallDelete]
 ; Remove machine-wide runtime state owned by NetBannerNG.
-; This deletes logs and ProgramData runtime files.
-; Remove this entry if logs should survive uninstall.
-
 Type: filesandordirs; Name: "{commonappdata}\{#MyProgramDataDir}"
 
 ; Remove install directory if empty after uninstall.
-
 Type: dirifempty; Name: "{app}"
 
 [Code]
@@ -293,9 +258,6 @@ begin
     'Failed to configure NetBannerNG watchdog service recovery options.'
   );
 
-
-  // Apply explicit service-object permissions so ACLs do not depend on
-  // OS/service-creation defaults.
   RunScChecked(
     'sdset "{#MyServiceName}" "' + ServiceSecurityDescriptor + '"',
     'Failed to configure NetBannerNG watchdog service permissions.'
