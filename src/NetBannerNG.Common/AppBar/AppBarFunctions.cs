@@ -485,45 +485,23 @@ namespace NetBannerNG.Common.AppBar
 
         private static APPBARDATA CalculateDockedSize(this APPBARDATA barData, Vector sizeInPixels, Rect workAreaInPixelsF)
         {
-            switch (barData.uEdge)
+            var edge = (DockEdge)barData.uEdge;
+
+            // For Top/Bottom edges the bar's "thickness" is its height; for Left/Right it's the
+            // width. Round once at this boundary; downstream code is integer-pixel only.
+            var thickness = edge == DockEdge.Top || edge == DockEdge.Bottom
+                ? (int)Math.Round(sizeInPixels.Y)
+                : (int)Math.Round(sizeInPixels.X);
+
+            var workArea = new MonitorRect
             {
-                case (uint)DockEdge.Left:
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    //Left might not always be zero so we need to accommodate for that.
-                    //For example, if the Start Menu is docked LEFT, if we don't do the math, we'll end up with a negative size error
-                    barData.rc.Right = barData.rc.Left + (int)Math.Round(sizeInPixels.X);
-                    break;
+                Left = (int)workAreaInPixelsF.Left,
+                Top = (int)workAreaInPixelsF.Top,
+                Right = (int)workAreaInPixelsF.Right,
+                Bottom = (int)workAreaInPixelsF.Bottom,
+            };
 
-                case (uint)DockEdge.Right:
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Left = barData.rc.Right - (int)Math.Round(sizeInPixels.X);
-                    break;
-
-                case (uint)DockEdge.Top:
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    //Top might not always be zero so we need to accommodate for that.
-                    //For example, if the Start Menu is docked TOP, if we don't do the math, we'll end up with a negative size error
-                    barData.rc.Bottom = barData.rc.Top + (int)Math.Round(sizeInPixels.Y);
-                    break;
-
-                case (uint)DockEdge.Bottom:
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Top = barData.rc.Bottom - (int)Math.Round(sizeInPixels.Y);
-                    break;
-
-                default:
-                    // No other cases
-                    break;
-            }
-
+            barData.rc = AppBarDockedRect.Calculate(edge, workArea, thickness);
             return barData;
         }
 
