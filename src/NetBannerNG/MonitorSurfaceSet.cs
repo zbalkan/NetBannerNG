@@ -41,44 +41,6 @@ namespace NetBannerNG
         public bool HasMonitorLayoutChanged(Monitor monitor) =>
             Monitor.Bounds != monitor.Bounds || Monitor.WorkingArea != monitor.WorkingArea || Monitor.IsPrimary != monitor.IsPrimary;
 
-        public void SyncMonitor(Monitor monitor)
-        {
-            if (!_healthPolicy.CanAttempt(DateTime.UtcNow))
-            {
-                return;
-            }
-
-            Monitor = monitor;
-            var syncFailed = false;
-
-            // Batch the per-window redock so the shell sees one position update per bar
-            // (synchronous DoResize inside the batch, ABN_POSCHANGED muted, and a settle
-            // window after disposal). Matches the batching done by ShowGroups on initial dock.
-            using (AppBarFunctions.Batch())
-            {
-                foreach (var window in _windows)
-                {
-#pragma warning disable CA1031 // Do not catch general exception types
-                    try
-                    {
-                        LayoutPolicy.ApplyMonitorBounds(window, monitor);
-                        window.Render(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        syncFailed = true;
-                        MarkFailure("Sync", window.GetType().Name, ex);
-                    }
-#pragma warning restore CA1031 // Do not catch general exception types
-                }
-            }
-
-            if (!syncFailed)
-            {
-                _healthPolicy.RecordSuccess();
-            }
-        }
-
         public void ApplyPostDockVisualState()
         {
             foreach (var w in _windows)

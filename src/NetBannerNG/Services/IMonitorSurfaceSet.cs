@@ -16,8 +16,6 @@ namespace NetBannerNG.Services
 
         bool HasMonitorLayoutChanged(Monitor monitor);
 
-        void SyncMonitor(Monitor monitor);
-
         void ApplyPostDockVisualState();
 
         void SetSuppressed(bool isSuppressed);
