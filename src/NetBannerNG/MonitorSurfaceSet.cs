@@ -39,38 +39,14 @@ namespace NetBannerNG
         public bool MatchesMonitor(Monitor monitor) => _monitorIdentityProvider.BuildGroupId(monitor) == GroupId;
 
         public bool HasMonitorLayoutChanged(Monitor monitor) =>
-            Monitor.Bounds != monitor.Bounds || Monitor.WorkingArea != monitor.WorkingArea || Monitor.IsPrimary != monitor.IsPrimary;
-
-        public void SyncMonitor(Monitor monitor)
-        {
-            if (!_healthPolicy.CanAttempt(DateTime.UtcNow))
-            {
-                return;
-            }
-
-            Monitor = monitor;
-            var syncFailed = false;
-            foreach (var window in _windows)
-            {
-#pragma warning disable CA1031 // Do not catch general exception types
-                try
-                {
-                    LayoutPolicy.ApplyMonitorBounds(window, monitor);
-                    window.Render(true);
-                }
-                catch (Exception ex)
-                {
-                    syncFailed = true;
-                    MarkFailure("Sync", window.GetType().Name, ex);
-                }
-#pragma warning restore CA1031 // Do not catch general exception types
-            }
-
-            if (!syncFailed)
-            {
-                _healthPolicy.RecordSuccess();
-            }
-        }
+            // Intentionally ignores WorkingArea: it shrinks every time our own bars register
+            // with the shell, which would turn the orchestrator's Refresh into an unbounded
+            // feedback loop (we register -> work area shrinks -> Reconcile thinks the layout
+            // changed -> recreates the group -> registers again -> ...). The Bounds and
+            // IsPrimary fields capture the actual monitor topology changes (resolution,
+            // primary swap, monitor moved). Per-monitor DPI changes are handled in-place by
+            // BorderBase.OnBorderDpiChanged, not by the catalog.
+            Monitor.Bounds != monitor.Bounds || Monitor.IsPrimary != monitor.IsPrimary;
 
         public void ApplyPostDockVisualState()
         {
@@ -82,8 +58,7 @@ namespace NetBannerNG
 
         public void SetSuppressed(bool isSuppressed)
         {
-            // Idempotent: foreground events repeat while a fullscreen app stays foreground;
-            // we must not double up AppBarFunctions' suppression depth counter.
+            // Idempotent: foreground events repeat while a fullscreen app stays foreground.
             if (isSuppressed == _isSuppressed)
             {
                 return;
@@ -92,11 +67,15 @@ namespace NetBannerNG
             _isSuppressed = isSuppressed;
             Debug.WriteLine($"[EVT:4210][MonitorSurfaceSet][SetSuppressed] Group={GroupId} IsSuppressed={isSuppressed}");
 
+            // Per-window suppression: set the flag BEFORE hiding so the WndProc anti-hide
+            // guards are bypassed for this monitor's bars only. Other monitors' bars keep
+            // their guards active -- a fullscreen app on one monitor no longer bypasses
+            // Win+D / Show-Desktop protection on the others.
             if (isSuppressed)
             {
-                AppBarFunctions.BeginSuppression();
                 foreach (var window in _windows)
                 {
+                    AppBarFunctions.SetWindowSuppression(window, true);
                     window.Topmost = false;
                     if (window.IsVisible)
                     {
@@ -114,8 +93,8 @@ namespace NetBannerNG
                         window.Render(true);
                     }
                     window.Topmost = true;
+                    AppBarFunctions.SetWindowSuppression(window, false);
                 }
-                AppBarFunctions.EndSuppression();
             }
         }
 

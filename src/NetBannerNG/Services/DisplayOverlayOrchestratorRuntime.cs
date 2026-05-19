@@ -89,10 +89,18 @@ namespace NetBannerNG.Services
                 return;
             }
 
-            ResetPreviousMonitors();
-            var groupsToShow = _surfaceCatalog.Reconcile(_previousMonitors, clean: false);
-            Debug.WriteLine($"[EVT:4202][OverlayOrchestrator][Reconcile][Refresh] MonitorCount={_previousMonitors.Count} GroupsToShow={groupsToShow.Count} CatalogCount={_surfaceCatalog.Count}");
-            ShowGroups(groupsToShow);
+            // One batch around the whole reconcile so the unregister-then-register sequence
+            // of any monitor whose layout changed does NOT broadcast ABN_POSCHANGED to bars
+            // on other monitors. Per-monitor MonitorSurfaceSets stay isolated: only the set
+            // whose layout actually changed gets torn down and rebuilt; everything else
+            // remains untouched on screen.
+            using (AppBarFunctions.Batch())
+            {
+                ResetPreviousMonitors();
+                var groupsToShow = _surfaceCatalog.Reconcile(_previousMonitors, clean: false);
+                Debug.WriteLine($"[EVT:4202][OverlayOrchestrator][Reconcile][Refresh] MonitorCount={_previousMonitors.Count} GroupsToShow={groupsToShow.Count} CatalogCount={_surfaceCatalog.Count}");
+                ShowGroups(groupsToShow);
+            }
             _isInitiated = _surfaceCatalog.Count > 0;
         }
         private void ResetPreviousMonitors()
@@ -115,8 +123,7 @@ namespace NetBannerNG.Services
             foreach (var group in orderedGroups)
             {
                 var launchEntries = group.CreateLaunchEntries().ToList();
-                AppBarFunctions.BeginBatch();
-                try
+                using (AppBarFunctions.Batch())
                 {
                     foreach (var window in launchEntries)
                     {
@@ -137,10 +144,6 @@ namespace NetBannerNG.Services
                             Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
                         }
                     }
-                }
-                finally
-                {
-                    AppBarFunctions.EndBatch();
                 }
 
                 group.ApplyPostDockVisualState();

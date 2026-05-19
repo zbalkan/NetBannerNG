@@ -40,42 +40,64 @@ namespace NetBannerNG.Common.AppBar
 
         private static long _posChangedSkippedSettle;
 
-        private static int _suppressionDepth;
-
         private static long _suppressPosChangedUntilTicksUtc;
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
-        internal static bool IsSuppressionActive => Volatile.Read(ref _suppressionDepth) > 0;
 
         private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
 
-        public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
-
-        // Process-wide bypass for the Show-Desktop anti-hide guards in WndProc below.
-        // Reference-counted so multiple groups can suppress concurrently.
-        public static void BeginSuppression() => Interlocked.Increment(ref _suppressionDepth);
-
-        public static void EndBatch()
+        /// <summary>
+        /// Begin a batched dock sequence. While the returned scope is undisposed, ScheduleResize
+        /// runs DoResize synchronously and the WndProc ignores ABN_POSCHANGED so the shell does
+        /// not race the in-progress dock. Disposing the scope decrements the depth and, when the
+        /// last batch ends, arms an 800 ms settle window that filters trailing notifications.
+        /// Reference-counted, so nested or overlapping callers compose safely.
+        /// </summary>
+        public static IDisposable Batch()
         {
-            var depth = Interlocked.Decrement(ref _batchDepth);
-            if (depth < 0)
-            {
-                Interlocked.Exchange(ref _batchDepth, 0);
-                depth = 0;
-            }
-
-            if (depth == 0)
-            {
-                var settleUntil = DateTime.UtcNow.AddMilliseconds(800).Ticks;
-                Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
-            }
+            _ = Interlocked.Increment(ref _batchDepth);
+            return new BatchScope();
         }
 
-        public static void EndSuppression()
+        /// <summary>
+        /// Mark a single appbar window as suppressed (or restore it). While suppressed, that
+        /// window's WndProc skips the anti-hide guards (SC_MINIMIZE, WM_SHOWWINDOW(false),
+        /// ABN_WINDOWARRANGE) so the caller's explicit Hide() stays in effect. Only this
+        /// window is affected -- bars on other monitors keep their guards active.
+        /// </summary>
+        public static void SetWindowSuppression(Window? appbarWindow, bool suppressed)
         {
-            if (Interlocked.Decrement(ref _suppressionDepth) < 0)
+            if (appbarWindow is null)
             {
-                Interlocked.Exchange(ref _suppressionDepth, 0);
+                return;
+            }
+
+            appbarWindow.GetRegisterInfo().IsSuppressed = suppressed;
+        }
+
+        private sealed class BatchScope : IDisposable
+        {
+            private int _disposed;
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                {
+                    return;
+                }
+
+                var depth = Interlocked.Decrement(ref _batchDepth);
+                if (depth < 0)
+                {
+                    Interlocked.Exchange(ref _batchDepth, 0);
+                    depth = 0;
+                }
+
+                if (depth == 0)
+                {
+                    var settleUntil = DateTime.UtcNow.AddMilliseconds(800).Ticks;
+                    Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
+                }
             }
         }
         public static void SetAppBar(Window appbarWindow, DockEdge edge, string messageKey, FrameworkElement? childElement = null, bool topMost = true)
@@ -109,14 +131,6 @@ namespace NetBannerNG.Common.AppBar
                 return;
             }
 
-            // Skip redundant docking when this window is already registered on the same edge
-            // with an existing docked rectangle. This keeps the interval between first appbar
-            // render and the last appbar docking as short as possible during startup.
-            if (info.IsRegistered && info.Edge == edge && info.DockedSize.HasValue)
-            {
-                return;
-            }
-
             // Set desktop window manager attributes to prevent window
             // from being hidden when peeking at the desktop or when
             // the 'show desktop' button is pressed
@@ -146,29 +160,56 @@ namespace NetBannerNG.Common.AppBar
 
             var sizeInPixels = CalculateActualSize(appbarWindow, childElement);
 
-            var workAreaInPixels = WorkAreaAsPixel(appbarWindow, GetActualWorkArea(info));
+            var workAreaInPixels = GetActualWorkArea(info);
 
             barData = barData.CalculateDockedSize(sizeInPixels, workAreaInPixels);
 
+            // The Windows shell rewrites barData.rc through ABM_QUERYPOS AND ABM_SETPOS on
+            // multi-monitor setups with non-primary monitors at negative coordinates or
+            // different per-monitor DPI -- it relocates the appbar near the primary monitor
+            // and collapses its width/height to 0. Snapshot the rectangle we calculated from
+            // the per-monitor work area and force it back onto barData after the shell calls,
+            // so AsWpfUnits and the subsequent WPF resize see our rectangle, not the shell's.
+            var desiredRc = barData.rc;
+
             barData = barData.SendNewPositionToShell();
+            barData.rc = desiredRc;
+
+            // Track DockedSize in physical pixels (same coordinate space as the shell's work
+            // area), so GetActualWorkArea's wa.Union(...) actually expands the work area back
+            // by the bar's own occupied space. Storing it in DIPs silently no-ops the union
+            // on non-100% DPI monitors and turns the ABN_POSCHANGED feedback into a runaway
+            // shrink loop.
+            info.DockedSize = barData.rc;
 
             var dockedSize = barData.AsWpfUnits(appbarWindow);
-
-            info.DockedSize = dockedSize;
 
             //This is done async, because WPF will send a resize after a new appbar is added.
             //if we size right away, WPFs resize comes last and overrides us.
             ScheduleResize(info, appbarWindow, dockedSize);
 
             Debug.WriteLine($"Resized window: {appbarWindow}");
-            Debug.WriteLine($"{appbarWindow} new size: {dockedSize}");
+            Debug.WriteLine($"{appbarWindow} new size: {dockedSize} (target pixels: {barData.rc.Left},{barData.rc.Top},{barData.rc.Width},{barData.rc.Height})");
         }
 
-        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement) => childElement != null ?
-                WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
-                    new Vector(childElement.ActualWidth, childElement.ActualHeight))
-                : WPFUnitHelper.Transform(appbarWindow, WPFUnitHelper.TransformTarget.ToPixel,
-                    new Vector(appbarWindow.ActualWidth, appbarWindow.ActualHeight));
+        private static Vector CalculateActualSize(FrameworkElement appbarWindow, FrameworkElement? childElement)
+        {
+            // Render() sets Window.Height/Width and then calls Dock synchronously, so when we
+            // reach here on first dock the visual tree may not have been measured yet and
+            // ActualWidth/ActualHeight are 0. Force a synchronous layout pass so the values
+            // reflect Window.Height/Width and child arrangement before we hand them off to
+            // the shell.
+            var measureTarget = childElement ?? (FrameworkElement)appbarWindow;
+            if (measureTarget.ActualWidth == 0 || measureTarget.ActualHeight == 0)
+            {
+                appbarWindow.UpdateLayout();
+            }
+
+            return WPFUnitHelper.Transform(
+                appbarWindow,
+                WPFUnitHelper.TransformTarget.ToPixel,
+                new Vector(measureTarget.ActualWidth, measureTarget.ActualHeight));
+        }
 
         private static void DoResize(Window appbarWindow, Rect rect)
         {
@@ -177,6 +218,10 @@ namespace NetBannerNG.Common.AppBar
             appbarWindow.Top = rect.Top;
             appbarWindow.Left = rect.Left;
         }
+
+        // double.IsFinite is unavailable on .NET Framework 4.8.1.
+        private static double SanitizeDimension(double value) =>
+            double.IsNaN(value) || double.IsInfinity(value) ? 0 : Math.Max(0, value);
 
         private static Rect GetActualWorkArea(RegisterInfo info)
         {
@@ -200,7 +245,10 @@ namespace NetBannerNG.Common.AppBar
             var info = appbarWindow.GetRegisterInfo();
             appbarWindow.RestoreStyle(info);
             info.DockedSize = null;
-            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, info.OriginalSize.Width, info.OriginalSize.Height);
+            // OriginalPosition may be negative on secondary monitors; OriginalSize must not be.
+            var restoreWidth = SanitizeDimension(info.OriginalSize.Width);
+            var restoreHeight = SanitizeDimension(info.OriginalSize.Height);
+            var rect = new Rect(info.OriginalPosition.X, info.OriginalPosition.Y, restoreWidth, restoreHeight);
             ScheduleResize(info, appbarWindow, rect);
         }
 
@@ -236,13 +284,6 @@ namespace NetBannerNG.Common.AppBar
             return abd;
         }
 
-        private static Rect WorkAreaAsPixel(FrameworkElement appBarWindow, Rect actualWorkArea)
-        {
-            var screenSizeInPixels = WPFUnitHelper.Transform(appBarWindow, WPFUnitHelper.TransformTarget.ToPixel, new Vector(actualWorkArea.Width, actualWorkArea.Height));
-            var workTopLeftInPixels = WPFUnitHelper.Transform(appBarWindow, WPFUnitHelper.TransformTarget.ToPixel, new Point(actualWorkArea.Left, actualWorkArea.Top));
-            return new Rect(workTopLeftInPixels, screenSizeInPixels);
-        }
-
         [StructLayout(LayoutKind.Sequential)]
         private struct WINDOWPOS
         {
@@ -258,10 +299,14 @@ namespace NetBannerNG.Common.AppBar
         internal class RegisterInfo
         {
             internal long LastPosChangedHandledAtTicks;
+            // Per-window suppression flag. Replaces the previous process-wide _suppressionDepth
+            // so a MonitorSurfaceSet entering fullscreen suppression on one monitor no longer
+            // bypasses anti-hide guards on other monitors' bars.
+            internal bool IsSuppressed { get; set; }
             internal int CallbackId { get; set; }
             internal string CallbackMessageKey { get; set; } = string.Empty;
             internal FrameworkElement? ChildElement { get; set; }
-            internal Rect? DockedSize { get; set; }
+            internal MonitorRect? DockedSize { get; set; }
             internal DockEdge Edge { get; set; }
             internal bool IsHandled { get; set; }
             internal bool IsRegistered { get; set; }
@@ -289,7 +334,7 @@ namespace NetBannerNG.Common.AppBar
                     return IntPtr.Zero;
                 }
 
-                if (!IsSuppressionActive)
+                if (!IsSuppressed)
                 {
                     if (msg == WmSize && wParam.ToInt32() == SizeMinimized)
                     {
@@ -327,9 +372,10 @@ namespace NetBannerNG.Common.AppBar
                 var appBarNotification = wParam.ToInt32();
                 if (appBarNotification == (int)AbNotify.AbnWindowarrange)
                 {
-                    // Win+D toggle. Skip while fullscreen suppression is active so our own Hide
-                    // path doesn't get re-asserted.
-                    if (!IsSuppressionActive)
+                    // Win+D toggle. Skip while THIS window's MonitorSurfaceSet is in
+                    // fullscreen suppression so our own Hide path doesn't get re-asserted.
+                    // Other monitors' bars are unaffected.
+                    if (!IsSuppressed)
                     {
                         Debug.WriteLine($"WndProc: ABN_WINDOWARRANGE for {Window}; enforcing visibility.");
                         EnsureVisible();
@@ -438,51 +484,35 @@ namespace NetBannerNG.Common.AppBar
         private static Rect AsWpfUnits(this APPBARDATA barData, FrameworkElement appBarWindowForReference)
         {
             var location = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Point(barData.rc.Left, barData.rc.Top));
-            var dimension = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Vector(barData.rc.Right - barData.rc.Left, barData.rc.Bottom - barData.rc.Top));
-            return new Rect(location, new Size(dimension.X, dimension.Y));
+            // Locations may legitimately be negative on monitors placed left/above primary, but
+            // ABM_QUERYPOS/ABM_SETPOS occasionally return a rectangle with Right<Left or Bottom<Top
+            // for appbars docked on those monitors. Clamp dimensions so we never hand a negative
+            // value to System.Windows.Size, which throws "Width and Height must be non-negative."
+            var widthPx = Math.Max(0, barData.rc.Right - barData.rc.Left);
+            var heightPx = Math.Max(0, barData.rc.Bottom - barData.rc.Top);
+            var dimension = WPFUnitHelper.Transform(appBarWindowForReference, WPFUnitHelper.TransformTarget.ToWpfUnit, new Vector(widthPx, heightPx));
+            return new Rect(location, new Size(Math.Max(0, dimension.X), Math.Max(0, dimension.Y)));
         }
 
         private static APPBARDATA CalculateDockedSize(this APPBARDATA barData, Vector sizeInPixels, Rect workAreaInPixelsF)
         {
-            switch (barData.uEdge)
+            var edge = (DockEdge)barData.uEdge;
+
+            // For Top/Bottom edges the bar's "thickness" is its height; for Left/Right it's the
+            // width. Round once at this boundary; downstream code is integer-pixel only.
+            var thickness = edge == DockEdge.Top || edge == DockEdge.Bottom
+                ? (int)Math.Round(sizeInPixels.Y)
+                : (int)Math.Round(sizeInPixels.X);
+
+            var workArea = new MonitorRect
             {
-                case (uint)DockEdge.Left:
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    //Left might not always be zero so we need to accommodate for that.
-                    //For example, if the Start Menu is docked LEFT, if we don't do the math, we'll end up with a negative size error
-                    barData.rc.Right = barData.rc.Left + (int)Math.Round(sizeInPixels.X);
-                    break;
+                Left = (int)workAreaInPixelsF.Left,
+                Top = (int)workAreaInPixelsF.Top,
+                Right = (int)workAreaInPixelsF.Right,
+                Bottom = (int)workAreaInPixelsF.Bottom,
+            };
 
-                case (uint)DockEdge.Right:
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Left = barData.rc.Right - (int)Math.Round(sizeInPixels.X);
-                    break;
-
-                case (uint)DockEdge.Top:
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Top = (int)workAreaInPixelsF.Top;
-                    //Top might not always be zero so we need to accommodate for that.
-                    //For example, if the Start Menu is docked TOP, if we don't do the math, we'll end up with a negative size error
-                    barData.rc.Bottom = barData.rc.Top + (int)Math.Round(sizeInPixels.Y);
-                    break;
-
-                case (uint)DockEdge.Bottom:
-                    barData.rc.Left = (int)workAreaInPixelsF.Left;
-                    barData.rc.Right = (int)workAreaInPixelsF.Right;
-                    barData.rc.Bottom = (int)workAreaInPixelsF.Bottom;
-                    barData.rc.Top = barData.rc.Bottom - (int)Math.Round(sizeInPixels.Y);
-                    break;
-
-                default:
-                    // No other cases
-                    break;
-            }
-
+            barData.rc = AppBarDockedRect.Calculate(edge, workArea, thickness);
             return barData;
         }
 
@@ -536,8 +566,14 @@ namespace NetBannerNG.Common.AppBar
 
         private static APPBARDATA SendNewPositionToShell(this APPBARDATA barData)
         {
+            // ABM_QUERYPOS lets the shell propose adjustments to avoid overlapping other appbars,
+            // but its proposal is unreliable on non-primary monitors (especially with negative
+            // virtual-screen coordinates and per-monitor DPI). Discard its rc edit and commit
+            // our originally computed rectangle via ABM_SETPOS so the shell registers the
+            // appbar at the position we actually want.
+            var desiredRc = barData.rc;
             _ = SHAppBarMessage((int)AbMsg.AbmQuerypos, ref barData);
-
+            barData.rc = desiredRc;
             _ = SHAppBarMessage((int)AbMsg.AbmSetpos, ref barData);
             return barData;
         }
@@ -599,7 +635,9 @@ namespace NetBannerNG.Common.AppBar
                         Edge = DockEdge.Top,
                         OriginalStyle = appbarWindow.WindowStyle,
                         OriginalPosition = new Point(appbarWindow.Left, appbarWindow.Top),
-                        OriginalSize = new Size(appbarWindow.ActualWidth, appbarWindow.ActualHeight),
+                        OriginalSize = new Size(
+                            SanitizeDimension(appbarWindow.ActualWidth),
+                            SanitizeDimension(appbarWindow.ActualHeight)),
                         OriginalResizeMode = appbarWindow.ResizeMode,
                         OriginalTopmost = appbarWindow.Topmost,
                         DockedSize = null,

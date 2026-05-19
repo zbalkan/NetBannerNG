@@ -1,6 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Threading;
+using NetBannerNG.Common.AppBar;
 using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
@@ -9,6 +11,31 @@ namespace NetBannerNG.Borders
     {
         internal bool IsDocked { get; set; }
         internal string AppBarMessageKey { get; set; } = string.Empty;
+
+        protected BorderBase() => DpiChanged += OnBorderDpiChanged;
+
+        private void OnBorderDpiChanged(object sender, DpiChangedEventArgs e)
+        {
+            // WPF's WM_DPICHANGED handling rescales the window by the DPI ratio, which leaves
+            // the bar at the wrong pixel rect for its monitor. Trigger a fresh re-dock so
+            // AbSetPos recomputes pixel/DIP coordinates against the current monitor matrix.
+            // Background priority lets WPF finish its own DPI bookkeeping first; Batch() mutes
+            // the shell's ABN_POSCHANGED storm that would otherwise re-enter AbSetPos before
+            // the new appbar registration has settled. The IsDocked check is inside the
+            // dispatched lambda because the catalog's recreate path can close this window
+            // (HWND -> 0) between event firing and dispatcher pump.
+            _ = Dispatcher.BeginInvoke(new Action(() => {
+                if (!IsDocked)
+                {
+                    return;
+                }
+
+                using (AppBarFunctions.Batch())
+                {
+                    Render(true);
+                }
+            }), DispatcherPriority.Background);
+        }
 
         internal abstract void Render(bool needsResize = false);
 
