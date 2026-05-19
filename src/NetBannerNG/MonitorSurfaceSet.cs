@@ -39,7 +39,14 @@ namespace NetBannerNG
         public bool MatchesMonitor(Monitor monitor) => _monitorIdentityProvider.BuildGroupId(monitor) == GroupId;
 
         public bool HasMonitorLayoutChanged(Monitor monitor) =>
-            Monitor.Bounds != monitor.Bounds || Monitor.WorkingArea != monitor.WorkingArea || Monitor.IsPrimary != monitor.IsPrimary;
+            // Intentionally ignores WorkingArea: it shrinks every time our own bars register
+            // with the shell, which would turn the orchestrator's Refresh into an unbounded
+            // feedback loop (we register -> work area shrinks -> Reconcile thinks the layout
+            // changed -> recreates the group -> registers again -> ...). The Bounds and
+            // IsPrimary fields capture the actual monitor topology changes (resolution,
+            // primary swap, monitor moved). Per-monitor DPI changes are handled in-place by
+            // BorderBase.OnBorderDpiChanged, not by the catalog.
+            Monitor.Bounds != monitor.Bounds || Monitor.IsPrimary != monitor.IsPrimary;
 
         public void ApplyPostDockVisualState()
         {

@@ -21,14 +21,16 @@ namespace NetBannerNG.Borders
             // AbSetPos recomputes pixel/DIP coordinates against the current monitor matrix.
             // Background priority lets WPF finish its own DPI bookkeeping first; Batch() mutes
             // the shell's ABN_POSCHANGED storm that would otherwise re-enter AbSetPos before
-            // the new appbar registration has settled.
-            if (!IsDocked)
-            {
-                return;
-            }
-
+            // the new appbar registration has settled. The IsDocked check is inside the
+            // dispatched lambda because the catalog's recreate path can close this window
+            // (HWND -> 0) between event firing and dispatcher pump.
             _ = Dispatcher.BeginInvoke(new Action(() =>
             {
+                if (!IsDocked)
+                {
+                    return;
+                }
+
                 using (AppBarFunctions.Batch())
                 {
                     Render(true);
