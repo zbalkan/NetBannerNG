@@ -21,7 +21,7 @@ It is designed for organizations that need persistent, policy-driven desktop mar
 NetBannerNG is intended to fit existing Windows administration workflows:
 
 - Deploy with installer-based software distribution
-- Configure with ADMX/ADML-backed Group Policy
+- Configure with Group Policy
 - Support standalone, domain-joined, disconnected, and air-gapped systems
 
 Policy/configuration registry paths:
