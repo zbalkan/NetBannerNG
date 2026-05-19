@@ -1,3 +1,4 @@
+using System.Windows;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Common;
 using NetBannerNG.Common.AppBar;
@@ -199,6 +200,40 @@ namespace NetBannerNG.Tests
             var rect = AppBarDockedRect.Calculate(DockEdge.None, workArea, thicknessInPixels: 84);
 
             Assert.AreEqual(workArea, rect);
+        }
+
+        // ============================================================
+        // Convergence under the shell's ABN_POSCHANGED feedback loop.
+        // After ABM_SETPOS the shell shrinks the work area to exclude the
+        // bar, then broadcasts ABN_POSCHANGED. The receiving caller must
+        // expand the shell's shrunken area by the bar's *own* previous
+        // pixel rect before re-running Calculate, otherwise the bar
+        // chases the shrinking work area on every cycle. This was the
+        // 100%->125% redock loop. Documents the contract that DockedSize
+        // must be stored in physical pixels (same units as the work
+        // area), not DIPs.
+        // ============================================================
+
+        [TestMethod]
+        public void Bottom_RedockAfterShellShrink_LandsAtSamePixelRect()
+        {
+            var initialWorkArea = Ltrb(0, 28, 2560, 1392);
+            const int barThicknessInPixels = 35; // 28 DIPs * 1.25
+
+            var firstRect = AppBarDockedRect.Calculate(DockEdge.Bottom, initialWorkArea, barThicknessInPixels);
+
+            var shellShrunken = Ltrb(initialWorkArea.Left, initialWorkArea.Top, initialWorkArea.Right, firstRect.Top);
+            var expanded = ExpandedWorkArea(shellShrunken, firstRect);
+            var secondRect = AppBarDockedRect.Calculate(DockEdge.Bottom, expanded, barThicknessInPixels);
+
+            Assert.AreEqual(firstRect, secondRect, "Redock after shell shrink must converge -- mismatched DIP/pixel units in DockedSize cause infinite shrink.");
+        }
+
+        private static MonitorRect ExpandedWorkArea(MonitorRect shellShrunken, MonitorRect previousBarRect)
+        {
+            var wa = (Rect)shellShrunken;
+            wa.Union((Rect)previousBarRect);
+            return Ltrb((int)wa.Left, (int)wa.Top, (int)(wa.Left + wa.Width), (int)(wa.Top + wa.Height));
         }
 
         // ============================================================

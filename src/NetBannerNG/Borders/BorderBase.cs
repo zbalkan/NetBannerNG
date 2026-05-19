@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Threading;
+using NetBannerNG.Common.AppBar;
 using NetBannerNG.Utils;
 
 namespace NetBannerNG.Borders
@@ -18,13 +19,21 @@ namespace NetBannerNG.Borders
             // WPF's WM_DPICHANGED handling rescales the window by the DPI ratio, which leaves
             // the bar at the wrong pixel rect for its monitor. Trigger a fresh re-dock so
             // AbSetPos recomputes pixel/DIP coordinates against the current monitor matrix.
-            // Background priority lets WPF finish its own DPI bookkeeping first.
+            // Background priority lets WPF finish its own DPI bookkeeping first; Batch() mutes
+            // the shell's ABN_POSCHANGED storm that would otherwise re-enter AbSetPos before
+            // the new appbar registration has settled.
             if (!IsDocked)
             {
                 return;
             }
 
-            _ = Dispatcher.BeginInvoke(new Action(() => Render(true)), DispatcherPriority.Background);
+            _ = Dispatcher.BeginInvoke(new Action(() =>
+            {
+                using (AppBarFunctions.Batch())
+                {
+                    Render(true);
+                }
+            }), DispatcherPriority.Background);
         }
 
         internal abstract void Render(bool needsResize = false);

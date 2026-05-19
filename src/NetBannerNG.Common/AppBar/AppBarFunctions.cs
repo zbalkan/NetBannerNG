@@ -174,9 +174,14 @@ namespace NetBannerNG.Common.AppBar
             barData = barData.SendNewPositionToShell();
             barData.rc = desiredRc;
 
-            var dockedSize = barData.AsWpfUnits(appbarWindow);
+            // Track DockedSize in physical pixels (same coordinate space as the shell's work
+            // area), so GetActualWorkArea's wa.Union(...) actually expands the work area back
+            // by the bar's own occupied space. Storing it in DIPs silently no-ops the union
+            // on non-100% DPI monitors and turns the ABN_POSCHANGED feedback into a runaway
+            // shrink loop.
+            info.DockedSize = barData.rc;
 
-            info.DockedSize = dockedSize;
+            var dockedSize = barData.AsWpfUnits(appbarWindow);
 
             //This is done async, because WPF will send a resize after a new appbar is added.
             //if we size right away, WPFs resize comes last and overrides us.
@@ -296,7 +301,7 @@ namespace NetBannerNG.Common.AppBar
             internal int CallbackId { get; set; }
             internal string CallbackMessageKey { get; set; } = string.Empty;
             internal FrameworkElement? ChildElement { get; set; }
-            internal Rect? DockedSize { get; set; }
+            internal MonitorRect? DockedSize { get; set; }
             internal DockEdge Edge { get; set; }
             internal bool IsHandled { get; set; }
             internal bool IsRegistered { get; set; }
