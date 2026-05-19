@@ -40,12 +40,9 @@ namespace NetBannerNG.Common.AppBar
 
         private static long _posChangedSkippedSettle;
 
-        private static int _suppressionDepth;
-
         private static long _suppressPosChangedUntilTicksUtc;
 
         private delegate void ResizeDelegate(Window appbarWindow, Rect rect);
-        internal static bool IsSuppressionActive => Volatile.Read(ref _suppressionDepth) > 0;
 
         private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
 
@@ -62,17 +59,14 @@ namespace NetBannerNG.Common.AppBar
             return new BatchScope();
         }
 
-        // Process-wide bypass for the Show-Desktop anti-hide guards in WndProc below.
-        // Reference-counted so multiple groups can suppress concurrently.
-        public static void BeginSuppression() => Interlocked.Increment(ref _suppressionDepth);
-
-        public static void EndSuppression()
-        {
-            if (Interlocked.Decrement(ref _suppressionDepth) < 0)
-            {
-                Interlocked.Exchange(ref _suppressionDepth, 0);
-            }
-        }
+        /// <summary>
+        /// Mark a single appbar window as suppressed (or restore it). While suppressed, that
+        /// window's WndProc skips the anti-hide guards (SC_MINIMIZE, WM_SHOWWINDOW(false),
+        /// ABN_WINDOWARRANGE) so the caller's explicit Hide() stays in effect. Only this
+        /// window is affected -- bars on other monitors keep their guards active.
+        /// </summary>
+        public static void SetWindowSuppression(Window appbarWindow, bool suppressed) =>
+            appbarWindow.GetRegisterInfo().IsSuppressed = suppressed;
 
         private sealed class BatchScope : IDisposable
         {
@@ -298,6 +292,10 @@ namespace NetBannerNG.Common.AppBar
         internal class RegisterInfo
         {
             internal long LastPosChangedHandledAtTicks;
+            // Per-window suppression flag. Replaces the previous process-wide _suppressionDepth
+            // so a MonitorSurfaceSet entering fullscreen suppression on one monitor no longer
+            // bypasses anti-hide guards on other monitors' bars.
+            internal bool IsSuppressed { get; set; }
             internal int CallbackId { get; set; }
             internal string CallbackMessageKey { get; set; } = string.Empty;
             internal FrameworkElement? ChildElement { get; set; }
@@ -329,7 +327,7 @@ namespace NetBannerNG.Common.AppBar
                     return IntPtr.Zero;
                 }
 
-                if (!IsSuppressionActive)
+                if (!IsSuppressed)
                 {
                     if (msg == WmSize && wParam.ToInt32() == SizeMinimized)
                     {
@@ -367,9 +365,10 @@ namespace NetBannerNG.Common.AppBar
                 var appBarNotification = wParam.ToInt32();
                 if (appBarNotification == (int)AbNotify.AbnWindowarrange)
                 {
-                    // Win+D toggle. Skip while fullscreen suppression is active so our own Hide
-                    // path doesn't get re-asserted.
-                    if (!IsSuppressionActive)
+                    // Win+D toggle. Skip while THIS window's MonitorSurfaceSet is in
+                    // fullscreen suppression so our own Hide path doesn't get re-asserted.
+                    // Other monitors' bars are unaffected.
+                    if (!IsSuppressed)
                     {
                         Debug.WriteLine($"WndProc: ABN_WINDOWARRANGE for {Window}; enforcing visibility.");
                         EnsureVisible();

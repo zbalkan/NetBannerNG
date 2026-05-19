@@ -58,8 +58,7 @@ namespace NetBannerNG
 
         public void SetSuppressed(bool isSuppressed)
         {
-            // Idempotent: foreground events repeat while a fullscreen app stays foreground;
-            // we must not double up AppBarFunctions' suppression depth counter.
+            // Idempotent: foreground events repeat while a fullscreen app stays foreground.
             if (isSuppressed == _isSuppressed)
             {
                 return;
@@ -68,11 +67,15 @@ namespace NetBannerNG
             _isSuppressed = isSuppressed;
             Debug.WriteLine($"[EVT:4210][MonitorSurfaceSet][SetSuppressed] Group={GroupId} IsSuppressed={isSuppressed}");
 
+            // Per-window suppression: set the flag BEFORE hiding so the WndProc anti-hide
+            // guards are bypassed for this monitor's bars only. Other monitors' bars keep
+            // their guards active -- a fullscreen app on one monitor no longer bypasses
+            // Win+D / Show-Desktop protection on the others.
             if (isSuppressed)
             {
-                AppBarFunctions.BeginSuppression();
                 foreach (var window in _windows)
                 {
+                    AppBarFunctions.SetWindowSuppression(window, true);
                     window.Topmost = false;
                     if (window.IsVisible)
                     {
@@ -90,8 +93,8 @@ namespace NetBannerNG
                         window.Render(true);
                     }
                     window.Topmost = true;
+                    AppBarFunctions.SetWindowSuppression(window, false);
                 }
-                AppBarFunctions.EndSuppression();
             }
         }
 
