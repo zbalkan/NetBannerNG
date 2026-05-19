@@ -96,18 +96,23 @@ namespace NetBannerNG
 #pragma warning disable CA1031 // Do not catch general exception types
                     try
                     {
-                        if (existingGroup.HasMonitorLayoutChanged(monitor))
+                        if (!existingGroup.HasMonitorLayoutChanged(monitor))
                         {
-                            existingGroup.SyncMonitor(monitor);
+                            continue;
                         }
                     }
                     catch (Exception ex)
                     {
                         LogMonitorGroupFailure(EventIds.GroupUpdateFailure, "Update", existingGroup.GroupId, ex);
+                        continue;
                     }
 #pragma warning restore CA1031 // Do not catch general exception types
 
-                    continue;
+                    // Layout changed: fall through to the recreate block below. Patching the
+                    // WPF window state of an existing surface set in place across resolution
+                    // changes is fragile (the OS reports transient working areas mid-change,
+                    // ABN_POSCHANGED keeps re-entering, and DIP/pixel matrices race), so we
+                    // tear the group down and rebuild it from scratch.
                 }
 
 #pragma warning disable CA1031 // Do not catch general exception types

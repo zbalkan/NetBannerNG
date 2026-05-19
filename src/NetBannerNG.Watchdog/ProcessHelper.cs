@@ -41,11 +41,11 @@ namespace NetBannerNG.Watchdog
                 try
                 {
                     process = Process.Start(psi);
-                    //if (process != null)
-                    //{
-                    //    TrackLaunchedProcess(process, pipeName);
-                    //}
-                    //Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
+                    if (process != null)
+                    {
+                        TrackLaunchedProcess(process, pipeName);
+                    }
+                    Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
                     return true;
                 }
                 catch (Exception ex)

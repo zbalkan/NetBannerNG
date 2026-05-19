@@ -54,7 +54,12 @@ namespace NetBannerNG.Common.Native
         }
 
         [Flags]
-        internal enum SetWindowPosFlags : uint
+        [CLSCompliant(false)]
+#pragma warning disable CA1028 // Enum Storage should be Int32
+#pragma warning disable CA1711 // Identifiers should not have incorrect suffix
+        public enum SetWindowPosFlags : uint
+#pragma warning restore CA1711 // Identifiers should not have incorrect suffix
+#pragma warning restore CA1028 // Enum Storage should be Int32
         {
             None = 0,
             IgnoreResize = 0x0001,

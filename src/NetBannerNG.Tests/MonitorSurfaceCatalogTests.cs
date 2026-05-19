@@ -35,14 +35,22 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
-        public void Reconcile_SyncsExistingSet_WhenLayoutChanged()
+        public void Reconcile_RecreatesExistingSet_WhenLayoutChanged()
         {
-            FakeSurfaceSet? set = null;
-            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) => set = new FakeSurfaceSet(monitor.Name, monitor));
+            // Layout changes (resolution, taskbar move, monitor reposition) are recreate-only.
+            // Patching an existing surface set in place is unreliable because the OS reports
+            // transient working areas mid-change and WPF can't recover its DIP/pixel state.
+            var instances = new System.Collections.Generic.List<FakeSurfaceSet>();
+            var catalog = new MonitorSurfaceCatalog(new FakeMonitorIdentity(), (monitor, _) =>
+            {
+                var s = new FakeSurfaceSet(monitor.Name, monitor);
+                instances.Add(s);
+                return s;
+            });
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0) }, clean: false);
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 100) }, clean: false);
-            Assert.IsNotNull(set);
-            Assert.AreEqual(1, set!.SyncCount);
+            Assert.AreEqual(2, instances.Count, "Layout change must produce a fresh surface set, not patch the previous one.");
+            Assert.AreEqual(1, instances[0].CloseCount, "The previous surface set must be closed before its replacement is shown.");
         }
 
         [TestMethod]
@@ -70,14 +78,13 @@ namespace NetBannerNG.Tests
             { GroupId = groupId; Monitor = monitor; }
 
             public string GroupId { get; }
-            public Monitor Monitor { get; private set; }
-            public int SyncCount { get; private set; }
+            public Monitor Monitor { get; }
+            public int CloseCount { get; private set; }
 
             public void ApplyPostDockVisualState()
             { }
 
-            public void Close()
-            { }
+            public void Close() => CloseCount++;
 
             public IEnumerable<BorderBase> CreateLaunchEntries() => Array.Empty<BorderBase>();
 
@@ -87,8 +94,6 @@ namespace NetBannerNG.Tests
             public void SetSuppressed(bool isSuppressed)
             { }
 
-            public void SyncMonitor(Monitor monitor)
-            { Monitor = monitor; SyncCount++; }
             public bool TryShowWindow(BorderBase window, out Exception? error)
             { error = null; return true; }
         }
