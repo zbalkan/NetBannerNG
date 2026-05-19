@@ -115,8 +115,7 @@ namespace NetBannerNG.Services
             foreach (var group in orderedGroups)
             {
                 var launchEntries = group.CreateLaunchEntries().ToList();
-                AppBarFunctions.BeginBatch();
-                try
+                using (AppBarFunctions.Batch())
                 {
                     foreach (var window in launchEntries)
                     {
@@ -137,10 +136,6 @@ namespace NetBannerNG.Services
                             Debug.WriteLine($"[RenderPerf] First Banner shown at +{firstBannerShownAtMs}ms");
                         }
                     }
-                }
-                finally
-                {
-                    AppBarFunctions.EndBatch();
                 }
 
                 group.ApplyPostDockVisualState();

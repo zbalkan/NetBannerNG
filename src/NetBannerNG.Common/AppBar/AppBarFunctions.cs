@@ -49,33 +49,54 @@ namespace NetBannerNG.Common.AppBar
 
         private static bool IsBatchActive => Volatile.Read(ref _batchDepth) > 0;
 
-        public static void BeginBatch() => Interlocked.Increment(ref _batchDepth);
+        /// <summary>
+        /// Begin a batched dock sequence. While the returned scope is undisposed, ScheduleResize
+        /// runs DoResize synchronously and the WndProc ignores ABN_POSCHANGED so the shell does
+        /// not race the in-progress dock. Disposing the scope decrements the depth and, when the
+        /// last batch ends, arms an 800 ms settle window that filters trailing notifications.
+        /// Reference-counted, so nested or overlapping callers compose safely.
+        /// </summary>
+        public static IDisposable Batch()
+        {
+            _ = Interlocked.Increment(ref _batchDepth);
+            return new BatchScope();
+        }
 
         // Process-wide bypass for the Show-Desktop anti-hide guards in WndProc below.
         // Reference-counted so multiple groups can suppress concurrently.
         public static void BeginSuppression() => Interlocked.Increment(ref _suppressionDepth);
-
-        public static void EndBatch()
-        {
-            var depth = Interlocked.Decrement(ref _batchDepth);
-            if (depth < 0)
-            {
-                Interlocked.Exchange(ref _batchDepth, 0);
-                depth = 0;
-            }
-
-            if (depth == 0)
-            {
-                var settleUntil = DateTime.UtcNow.AddMilliseconds(800).Ticks;
-                Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
-            }
-        }
 
         public static void EndSuppression()
         {
             if (Interlocked.Decrement(ref _suppressionDepth) < 0)
             {
                 Interlocked.Exchange(ref _suppressionDepth, 0);
+            }
+        }
+
+        private sealed class BatchScope : IDisposable
+        {
+            private int _disposed;
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                {
+                    return;
+                }
+
+                var depth = Interlocked.Decrement(ref _batchDepth);
+                if (depth < 0)
+                {
+                    Interlocked.Exchange(ref _batchDepth, 0);
+                    depth = 0;
+                }
+
+                if (depth == 0)
+                {
+                    var settleUntil = DateTime.UtcNow.AddMilliseconds(800).Ticks;
+                    Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
+                }
             }
         }
         public static void SetAppBar(Window appbarWindow, DockEdge edge, string messageKey, FrameworkElement? childElement = null, bool topMost = true)
