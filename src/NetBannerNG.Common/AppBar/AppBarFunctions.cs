@@ -60,6 +60,25 @@ namespace NetBannerNG.Common.AppBar
         }
 
         /// <summary>
+        /// Suppress ABN_POSCHANGED handling on all registered appbar windows until the next
+        /// Batch settle window arms. Call this as soon as a display-settings change is detected
+        /// (before the full Refresh/Reconcile runs) so bars are not repositioned with
+        /// transitional work-area values while the resolution change is still in flight.
+        /// Thread-safe; safe to call from the SystemEvents background thread.
+        /// </summary>
+        public static void SuppressAbnPosChanged()
+        {
+            // Re-use the existing settle-window mechanism. The 2-second window is intentionally
+            // longer than the post-Batch 800 ms window: it must cover the gap between
+            // DisplaySettingsChanged firing and Refresh() actually running at Background
+            // priority, which can be delayed by any higher-priority dispatcher work.
+            // When the Batch inside Refresh() ends it will reset the settle window to the
+            // normal 800 ms from that point, so the extended window never outlives the rebuild.
+            var settleUntil = DateTime.UtcNow.AddSeconds(2).Ticks;
+            Interlocked.Exchange(ref _suppressPosChangedUntilTicksUtc, settleUntil);
+        }
+
+        /// <summary>
         /// Mark a single appbar window as suppressed (or restore it). While suppressed, that
         /// window's WndProc skips the anti-hide guards (SC_MINIMIZE, WM_SHOWWINDOW(false),
         /// ABN_WINDOWARRANGE) so the caller's explicit Hide() stays in effect. Only this
