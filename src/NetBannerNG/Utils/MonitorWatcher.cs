@@ -2,7 +2,6 @@ using System;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using NetBannerNG.Common.AppBar;
 
 namespace NetBannerNG.Utils
 {
@@ -47,10 +46,6 @@ namespace NetBannerNG.Utils
 
         private static void ScreenHandler(object sender, EventArgs e)
         {
-            // Suppress ABN_POSCHANGED on all bars immediately so they are not repositioned
-            // with transitional work-area values while the resolution change settles.
-            AppBarFunctions.SuppressAbnPosChanged();
-
             var dispatcher = Application.Current?.Dispatcher;
             if (dispatcher == null)
             {
