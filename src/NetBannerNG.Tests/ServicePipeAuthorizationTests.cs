@@ -67,13 +67,6 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
-        public void HasSessionChanged_ReturnsTrue_OnlyWhenSessionIdDiffers()
-        {
-            Assert.IsFalse(ServiceHost.HasSessionChanged(5, 5));
-            Assert.IsTrue(ServiceHost.HasSessionChanged(5, 6));
-        }
-
-        [TestMethod]
         public void TryAuthorizeClientIdentity_WhenSidMatches_ReturnsTrueAndSidDisplayImmediately()
         {
             var activeSid = new System.Security.Principal.SecurityIdentifier(System.Security.Principal.WellKnownSidType.LocalSystemSid, null);
@@ -128,8 +121,8 @@ namespace NetBannerNG.Tests
             var tasks = Enumerable.Range(0, 2000).Select(i => Task.Run(() => {
                 var isEven = i % 2 == 0;
                 return isEven
-                    ? NamedPipeServer.IsAuthorizedClientConnection(sessionId, pipeName, sessionId)
-                    : !NamedPipeServer.IsAuthorizedClientConnection(sessionId, PipeNaming.ForSession(sessionId + 1), sessionId);
+                    ? NamedPipeServer.IsAuthorizedClientConnection(sessionId, pipeName)
+                    : !NamedPipeServer.IsAuthorizedClientConnection(sessionId, PipeNaming.ForSession(sessionId + 1));
             }));
 
             var results = await Task.WhenAll(tasks).ConfigureAwait(false);

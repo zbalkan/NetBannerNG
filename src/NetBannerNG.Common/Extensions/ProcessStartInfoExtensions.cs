@@ -156,6 +156,40 @@ namespace NetBannerNG.Common.Extensions
             }
         }
 
+        /// <summary>
+        /// Run the process under the token of the user owning the specified session.
+        /// </summary>
+        [CLSCompliant(false)]
+        public static bool RunAsSpecificUser(this ProcessStartInfo psi, uint sessionId, out string failedStep, out int win32Error)
+        {
+            if (psi == null)
+            {
+                throw new ArgumentNullException(nameof(psi));
+            }
+
+            failedStep = string.Empty;
+            win32Error = 0;
+
+            if (!Wtsapi32.WTSQueryUserToken(sessionId, out var userToken))
+            {
+                win32Error = Marshal.GetLastWin32Error();
+                failedStep = "WTSQueryUserToken";
+                return false;
+            }
+
+            WindowsIdentity? user = null;
+            try
+            {
+                user = new WindowsIdentity(userToken);
+                return psi.RunImpersonated(user, out failedStep, out win32Error);
+            }
+            finally
+            {
+                user?.Dispose();
+                Kernel32.CloseHandle(userToken);
+            }
+        }
+
         private static string BuildCommandLine(string executablePath, string? arguments)
         {
             var quotedPath = $"\"{executablePath}\"";

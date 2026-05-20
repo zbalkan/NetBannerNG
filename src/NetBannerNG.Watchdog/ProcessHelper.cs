@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Management;
 using NetBannerNG.Common;
@@ -13,6 +13,7 @@ namespace NetBannerNG.Watchdog
 
         private sealed class LaunchedProcessInfo
         {
+            public int Pid { get; set; }
             public DateTime? StartTimeUtc { get; set; }
             public string PipeName { get; set; } = string.Empty;
             public string? CommandLine { get; set; }
@@ -20,12 +21,12 @@ namespace NetBannerNG.Watchdog
             public int CommandLineAttemptCount { get; set; }
         }
 
-        private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
+        // Keyed by session ID; one entry per active GUI session.
+        private static readonly Dictionary<uint, LaunchedProcessInfo> SessionProcesses = new();
         private static readonly object LaunchSync = new();
 
-        public static bool InitiateChildProcess()
+        public static bool InitiateChildProcess(uint sessionId)
         {
-            var sessionId = PrivilegeHelper.GetInteractiveSessionId();
             var pipeName = PipeNaming.ForSession(sessionId);
             if (!TryResolveValidatedChildProcessPath(out var path))
             {
@@ -34,6 +35,7 @@ namespace NetBannerNG.Watchdog
 
             var psi = BuildChildProcessStartInfo(path, pipeName);
             Program.Log.LogInformation(EventLogCatalog.ProcessStarting, psi.FileName);
+
             if (Environment.UserInteractive)
             {
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -43,7 +45,7 @@ namespace NetBannerNG.Watchdog
                     process = Process.Start(psi);
                     if (process != null)
                     {
-                        TrackLaunchedProcess(process, pipeName);
+                        TrackSessionProcess(sessionId, process, pipeName);
                     }
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
                     return true;
@@ -60,51 +62,123 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
             }
 
+            // N2/N3: Try to reattach to an existing GUI process before spawning a new one.
+            if (TryReattachSessionProcess(sessionId, pipeName))
+            {
+                var existingPid = GetTrackedPidForSession(sessionId);
+                Program.Log.LogInformation(EventLogCatalog.GuiSpawnedInSession, sessionId, existingPid);
+                return true;
+            }
+
             var existingCandidates = CaptureCandidateProcessIds((int)sessionId);
-            if (!psi.RunAsActiveUser(out var failedStep, out var win32Error))
+            if (!psi.RunAsSpecificUser(sessionId, out var failedStep, out var win32Error))
             {
                 var nativeMessage = new Win32Exception(win32Error).Message;
-                Program.Log.LogError(EventLogCatalog.ProcessRunAsActiveUserFailed, psi.FileName, failedStep, win32Error, nativeMessage);
+                Program.Log.LogError(EventLogCatalog.ProcessRunAsActiveUserFailed, psi.FileName, sessionId, failedStep, win32Error, nativeMessage);
                 return false;
             }
 
-            if (!TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName))
+            if (!TrackNewlyLaunchedProcesses(sessionId, existingCandidates, pipeName))
             {
-                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, "Process launch command succeeded but no child process was observed.");
+                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, $"Process launch command succeeded but no child process was observed in session {sessionId}.");
                 return false;
             }
 
+            var pid = GetTrackedPidForSession(sessionId);
+            Program.Log.LogInformation(EventLogCatalog.GuiSpawnedInSession, sessionId, pid);
             Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
             return true;
         }
 
+        public static void KillChildProcessInSession(uint sessionId)
+        {
+            var process = GetChildProcessForSession(sessionId);
+            if (process == null)
+            {
+                return;
+            }
+
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                process.Kill();
+                UntrackSessionProcess(sessionId);
+                Program.Log.LogInformation(EventLogCatalog.GuiTerminatedInSession, sessionId);
+            }
+            catch (Exception ex)
+            {
+                Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
+            }
+            finally
+            {
+                process.Dispose();
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
+        }
+
         public static void KillAllChildProcess()
         {
-            foreach (var process in GetChildProcesses())
+            List<uint> sessionIds;
+            lock (LaunchSync)
             {
-#pragma warning disable CA1031 // Do not catch general exception types
-                try
-                {
-                    process.Kill();
-                    UntrackLaunchedProcess(process.Id);
-                }
-                catch (Exception ex)
-                {
-                    Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
-                }
-#pragma warning restore CA1031 // Do not catch general exception types
+                sessionIds = SessionProcesses.Keys.ToList();
+            }
+
+            foreach (var sessionId in sessionIds)
+            {
+                KillChildProcessInSession(sessionId);
             }
         }
 
-        public static bool IsChildProcessRunning()
+        public static bool IsChildProcessRunning(uint sessionId)
         {
-            var children = GetChildProcesses();
-            foreach (var p in children)
+            var process = GetChildProcessForSession(sessionId);
+            if (process == null)
             {
-                p.Dispose();
+                return false;
             }
 
-            return children.Count > 0;
+            process.Dispose();
+            return true;
+        }
+
+        private static Process? GetChildProcessForSession(uint sessionId)
+        {
+            int pid;
+            LaunchedProcessInfo? launchInfo;
+            lock (LaunchSync)
+            {
+                if (!SessionProcesses.TryGetValue(sessionId, out launchInfo))
+                {
+                    return null;
+                }
+
+                pid = launchInfo.Pid;
+            }
+
+            Process? process;
+            try
+            {
+                process = Process.GetProcessById(pid);
+            }
+            catch (ArgumentException)
+            {
+                UntrackSessionProcess(sessionId);
+                return null;
+            }
+            catch (InvalidOperationException)
+            {
+                UntrackSessionProcess(sessionId);
+                return null;
+            }
+
+            if (IsExpectedChildProcess(process, sessionId, launchInfo!))
+            {
+                return process;
+            }
+
+            process.Dispose();
+            return null;
         }
 
         private static ProcessStartInfo BuildChildProcessStartInfo(string path, string pipeName) =>
@@ -146,65 +220,12 @@ namespace NetBannerNG.Watchdog
 
 #pragma warning restore IDE0022 // Use expression body for method
 
-        private static List<Process> GetChildProcesses()
-        {
-            List<int> trackedProcessIds;
-            lock (LaunchSync)
-            {
-                trackedProcessIds = LaunchedProcesses.Keys.ToList();
-            }
-
-            if (trackedProcessIds.Count == 0)
-            {
-                return new List<Process>();
-            }
-
-            var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
-            var candidates = new List<Process>(trackedProcessIds.Count);
-            var staleProcessIds = new List<int>();
-            foreach (var processId in trackedProcessIds)
-            {
-                try
-                {
-                    candidates.Add(Process.GetProcessById(processId));
-                }
-                catch (ArgumentException)
-                {
-                    staleProcessIds.Add(processId);
-                }
-                catch (InvalidOperationException)
-                {
-                    staleProcessIds.Add(processId);
-                }
-            }
-
-            foreach (var processId in staleProcessIds)
-            {
-                UntrackLaunchedProcess(processId);
-            }
-
-            var result = new List<Process>(candidates.Count);
-            foreach (var process in candidates)
-            {
-                if (IsExpectedChildProcess(process, interactiveSessionId))
-                {
-                    result.Add(process);
-                }
-                else
-                {
-                    process.Dispose();
-                }
-            }
-
-            return result;
-        }
-
-        private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
+        private static bool IsExpectedChildProcess(Process process, uint expectedSessionId, LaunchedProcessInfo launchInfo)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                if (process.SessionId != interactiveSessionId)
+                if ((uint)process.SessionId != expectedSessionId)
                 {
                     return false;
                 }
@@ -217,48 +238,41 @@ namespace NetBannerNG.Watchdog
                     return false;
                 }
 
-                lock (LaunchSync)
+                var processStartTime = SafeGetStartTimeUtc(process);
+                if (processStartTime is null || launchInfo.StartTimeUtc is null || processStartTime.Value != launchInfo.StartTimeUtc.Value)
                 {
-                    if (!LaunchedProcesses.TryGetValue(process.Id, out var launchInfo))
-                    {
-                        return false;
-                    }
-
-                    var processStartTime = SafeGetStartTimeUtc(process);
-                    if (processStartTime is null || launchInfo.StartTimeUtc is null || processStartTime.Value != launchInfo.StartTimeUtc.Value)
-                    {
-                        return false;
-                    }
-
-                    var commandLine = launchInfo.CommandLine;
-                    if (commandLine == null)
-                    {
-                        var now = DateTime.UtcNow;
-                        if (now - launchInfo.CommandLineLastAttemptUtc > TimeSpan.FromSeconds(1))
-                        {
-                            launchInfo.CommandLineLastAttemptUtc = now;
-                            commandLine = TryGetCommandLine(process.Id);
-                            launchInfo.CommandLine = commandLine;
-                        }
-                    }
-                    if (string.IsNullOrWhiteSpace(commandLine))
-                    {
-                        // Retry command-line interrogation for a bounded number of attempts.
-                        // This balances correctness with watchdog stability when WMI access is transiently unavailable.
-                        if (launchInfo.CommandLineAttemptCount < 3)
-                        {
-                            launchInfo.CommandLineAttemptCount++;
-                            Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
-                            return false;
-                        }
-
-                        // After bounded retries, accept tracked process identity based on PID/start-time/session/name.
-                        Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
-                        return true;
-                    }
-
-                    return HasExpectedPipeArgument(commandLine, launchInfo.PipeName);
+                    return false;
                 }
+
+                var commandLine = launchInfo.CommandLine;
+                if (commandLine == null)
+                {
+                    var now = DateTime.UtcNow;
+                    if (now - launchInfo.CommandLineLastAttemptUtc > TimeSpan.FromSeconds(1))
+                    {
+                        launchInfo.CommandLineLastAttemptUtc = now;
+                        commandLine = TryGetCommandLine(process.Id);
+                        launchInfo.CommandLine = commandLine;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(commandLine))
+                {
+                    // Retry command-line interrogation for a bounded number of attempts.
+                    // This balances correctness with watchdog stability when WMI access is transiently unavailable.
+                    if (launchInfo.CommandLineAttemptCount < 3)
+                    {
+                        launchInfo.CommandLineAttemptCount++;
+                        Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                        return false;
+                    }
+
+                    // After bounded retries, accept tracked process identity based on PID/start-time/session/name.
+                    Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
+                    return true;
+                }
+
+                return HasExpectedPipeArgument(commandLine, launchInfo.PipeName);
             }
             catch (Exception ex)
             {
@@ -268,12 +282,13 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        private static void TrackLaunchedProcess(Process process, string pipeName)
+        private static void TrackSessionProcess(uint sessionId, Process process, string pipeName)
         {
             lock (LaunchSync)
             {
-                LaunchedProcesses[process.Id] = new LaunchedProcessInfo
+                SessionProcesses[sessionId] = new LaunchedProcessInfo
                 {
+                    Pid = process.Id,
                     StartTimeUtc = SafeGetStartTimeUtc(process),
                     PipeName = pipeName,
                     CommandLine = $"--pipe={pipeName}"
@@ -281,45 +296,77 @@ namespace NetBannerNG.Watchdog
             }
         }
 
-        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId)
+        private static void UntrackSessionProcess(uint sessionId)
+        {
+            lock (LaunchSync)
+            {
+                SessionProcesses.Remove(sessionId);
+            }
+        }
+
+        private static int GetTrackedPidForSession(uint sessionId)
+        {
+            lock (LaunchSync)
+            {
+                return SessionProcesses.TryGetValue(sessionId, out var info) ? info.Pid : -1;
+            }
+        }
+
+        private static bool TryReattachSessionProcess(uint sessionId, string pipeName)
+        {
+            foreach (var process in Process.GetProcessesByName(ChildProcessName))
+            {
+                try
+                {
+                    if ((uint)process.SessionId == sessionId)
+                    {
+                        TrackSessionProcess(sessionId, process, pipeName);
+                        return true;
+                    }
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+
+            return false;
+        }
+
+        private static HashSet<int> CaptureCandidateProcessIds(int sessionId)
         {
             var result = new HashSet<int>();
             foreach (var p in Process.GetProcessesByName(ChildProcessName))
             {
-                if (p.SessionId == interactiveSessionId)
+                if (p.SessionId == sessionId)
                 {
                     result.Add(p.Id);
                 }
                 p.Dispose();
             }
+
             return result;
         }
 
-        private static bool TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
+        private static bool TrackNewlyLaunchedProcesses(uint sessionId, HashSet<int> existingCandidates, string pipeName)
         {
             var deadlineUtc = DateTime.UtcNow.AddSeconds(3);
             while (DateTime.UtcNow <= deadlineUtc)
             {
-                var observedAny = false;
                 foreach (var process in Process.GetProcessesByName(ChildProcessName))
                 {
                     try
                     {
-                        if (process.SessionId == interactiveSessionId && !existingCandidates.Contains(process.Id))
+                        if ((uint)process.SessionId == sessionId && !existingCandidates.Contains(process.Id))
                         {
-                            observedAny = true;
-                            TrackLaunchedProcess(process, pipeName);
+                            TrackSessionProcess(sessionId, process, pipeName);
+                            return true;
                         }
                     }
                     finally
                     {
                         process.Dispose();
                     }
-                }
-
-                if (observedAny)
-                {
-                    return true;
                 }
 
                 if (ServiceHost.IsStopRequested)
@@ -331,14 +378,6 @@ namespace NetBannerNG.Watchdog
             }
 
             return false;
-        }
-
-        private static void UntrackLaunchedProcess(int processId)
-        {
-            lock (LaunchSync)
-            {
-                LaunchedProcesses.Remove(processId);
-            }
         }
 
         private static DateTime? SafeGetStartTimeUtc(Process process)

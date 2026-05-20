@@ -200,6 +200,136 @@ namespace NetBannerNG.Common
 
         private static uint GetActiveSessionId() => GetInteractiveSessionId();
 
+        [CLSCompliant(false)]
+        public static IEnumerable<uint> EnumerateInteractiveSessions()
+        {
+            if (!Wtsapi32.WTSEnumerateSessions(IntPtr.Zero, 0, 1, out var sessionInfoPtr, out var sessionCount)
+                || sessionInfoPtr == IntPtr.Zero
+                || sessionCount <= 0)
+            {
+                yield break;
+            }
+
+            List<uint> result;
+            try
+            {
+                result = new List<uint>(sessionCount);
+                var dataSize = Marshal.SizeOf<Wtsapi32.WTSSESSIONINFO>();
+                for (var i = 0; i < sessionCount; i++)
+                {
+                    var itemPtr = IntPtr.Add(sessionInfoPtr, i * dataSize);
+                    var info = Marshal.PtrToStructure<Wtsapi32.WTSSESSIONINFO>(itemPtr);
+                    if (info.SessionId == 0 || info.SessionId == 0xFFFF)
+                    {
+                        continue;
+                    }
+
+                    if (info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSActive
+                        || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSConnected
+                        || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSConnectQuery
+                        || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSShadow)
+                    {
+                        result.Add(info.SessionId);
+                    }
+                }
+            }
+            finally
+            {
+                Wtsapi32.WTSFreeMemory(sessionInfoPtr);
+            }
+
+            foreach (var id in result)
+            {
+                yield return id;
+            }
+        }
+
+        [CLSCompliant(false)]
+        public static bool TryGetUserSidForSession(uint sessionId, out SecurityIdentifier? sid)
+        {
+            sid = null;
+
+            if (Environment.UserInteractive)
+            {
+                sid = WindowsIdentity.GetCurrent().User;
+                return sid != null;
+            }
+
+            if (Wtsapi32.WTSQueryUserToken(sessionId, out var userToken))
+            {
+                try
+                {
+                    using var identity = new WindowsIdentity(userToken);
+                    sid = identity.User;
+                    return sid != null;
+                }
+                finally
+                {
+                    Kernel32.CloseHandle(userToken);
+                }
+            }
+
+            return TryGetSessionUserSid(sessionId, out sid) && sid != null;
+        }
+
+        [CLSCompliant(false)]
+        public static bool IsSessionActive(uint sessionId)
+        {
+            if (!Wtsapi32.WTSEnumerateSessions(IntPtr.Zero, 0, 1, out var sessionInfoPtr, out var sessionCount)
+                || sessionInfoPtr == IntPtr.Zero
+                || sessionCount <= 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                var dataSize = Marshal.SizeOf<Wtsapi32.WTSSESSIONINFO>();
+                for (var i = 0; i < sessionCount; i++)
+                {
+                    var itemPtr = IntPtr.Add(sessionInfoPtr, i * dataSize);
+                    var info = Marshal.PtrToStructure<Wtsapi32.WTSSESSIONINFO>(itemPtr);
+                    if (info.SessionId == sessionId)
+                    {
+                        return info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSActive
+                            || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSConnected
+                            || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSConnectQuery
+                            || info.State == Wtsapi32.WTSCONNECTSTATECLASS.WTSShadow;
+                    }
+                }
+
+                return false;
+            }
+            finally
+            {
+                Wtsapi32.WTSFreeMemory(sessionInfoPtr);
+            }
+        }
+
+        [CLSCompliant(false)]
+        public static bool IsSessionOwnerAdminForSession(uint sessionId)
+        {
+            if (Environment.UserInteractive)
+            {
+                return IsCurrentUserAdmin;
+            }
+
+            if (!Wtsapi32.WTSQueryUserToken(sessionId, out var userToken))
+            {
+                return false;
+            }
+
+            try
+            {
+                using var identity = new WindowsIdentity(userToken);
+                return IsUserAdministrator(identity);
+            }
+            finally
+            {
+                Kernel32.CloseHandle(userToken);
+            }
+        }
+
         public static void ResetSessionOwnerAdminCache()
         {
             lock (CacheSync)

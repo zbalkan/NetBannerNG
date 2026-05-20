@@ -72,13 +72,13 @@ namespace NetBannerNG.Watchdog
 
         internal static bool TryCreate(uint sessionId, out NamedPipeServer? server, int timeout = 10000)
         {
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var interactiveUserSid) || interactiveUserSid == null)
+            if (!PrivilegeHelper.TryGetUserSidForSession(sessionId, out var sessionUserSid) || sessionUserSid == null)
             {
                 server = null;
                 return false;
             }
 
-            server = new NamedPipeServer(sessionId, interactiveUserSid, timeout);
+            server = new NamedPipeServer(sessionId, sessionUserSid, timeout);
             return true;
         }
 
@@ -126,7 +126,7 @@ namespace NetBannerNG.Watchdog
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                isAdmin = PrivilegeHelper.IsSessionOwnerAdmin;
+                isAdmin = PrivilegeHelper.IsSessionOwnerAdminForSession(_sessionId);
             }
             catch (Exception ex)
             {
@@ -206,15 +206,14 @@ namespace NetBannerNG.Watchdog
                 return;
             }
 
-            var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
-            if (activeSessionId != _sessionId)
+            if (!PrivilegeHelper.IsSessionActive(_sessionId))
             {
-                Program.Log.LogWarning(EventLogCatalog.PipeInboundSessionRevalidationFailed, _sessionId, activeSessionId, args.Connection.PipeName);
+                Program.Log.LogWarning(EventLogCatalog.PipeInboundSessionRevalidationFailed, _sessionId, 0, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
                 return;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableIdentityFallback))
+            if (!PrivilegeHelper.TryGetUserSidForSession(_sessionId, out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableIdentityFallback))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundIdentityRevalidationFailed, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
@@ -265,19 +264,19 @@ namespace NetBannerNG.Watchdog
             {
                 return false;
             }
-            var activeSessionId = PrivilegeHelper.GetInteractiveSessionId();
-            if (!IsAuthorizedClientConnection(_sessionId, connectedPipeName, activeSessionId))
+
+            if (!IsAuthorizedClientConnection(_sessionId, connectedPipeName))
             {
                 return false;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null)
+            if (!PrivilegeHelper.TryGetUserSidForSession(_sessionId, out var sessionUserSid) || sessionUserSid == null)
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, connectedPipeName!);
                 return false;
             }
 
-            if (!TryAuthorizeClientIdentity(connection, activeUserSid, connectedPipeName, EnableIdentityFallback))
+            if (!TryAuthorizeClientIdentity(connection, sessionUserSid, connectedPipeName, EnableIdentityFallback))
             {
                 return false;
             }
@@ -292,10 +291,20 @@ namespace NetBannerNG.Watchdog
             return true;
         }
 
-        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
+        // Checks that the connecting pipe name matches the session this server was created for.
+        // Each NamedPipeServer instance handles exactly one session; the pipe ACL restricts
+        // who can open the pipe, so the name check alone is sufficient to bind the connection.
+        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName)
         {
             var expectedPipeName = PipeNaming.ForSession(expectedSessionId);
-            if (!string.Equals(expectedPipeName, connectedPipeName, StringComparison.OrdinalIgnoreCase))
+            return string.Equals(expectedPipeName, connectedPipeName, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Kept for backward compatibility with tests that pass activeSessionId explicitly.
+        // In multi-session mode callers should use the two-argument overload.
+        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
+        {
+            if (!IsAuthorizedClientConnection(expectedSessionId, connectedPipeName))
             {
                 return false;
             }
