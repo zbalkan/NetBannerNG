@@ -14,7 +14,7 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="H.Formatters.MessagePack" Version="15.0.0" />
-		<PackageReference Include="MessagePack" Version="3.1.4">
+		<PackageReference Include="MessagePack" Version="3.1.7">
 			<TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
 		<PackageReference Include="Microsoft.Bcl.HashCode" Version="6.0.0" />
