@@ -96,8 +96,9 @@ Get-ItemProperty "HKLM:\SOFTWARE\Policies\NetBannerNG" | Select-Object Classific
 
 Notes:
 
-- Installer/runtime seed missing policy values to **Not Configured** defaults only when values do not exist.
-- Existing GPO-provided values are never overwritten by default seeding.
+- The release installer and runtime do **not** create, seed, modify, or remove values under `HKLM\SOFTWARE\Policies\NetBannerNG`; that key is owned by administrators and Group Policy.
+- When neither a managed-policy nor local-machine value is configured, NetBannerNG uses its compiled defaults, including the **Not Configured** classification baseline.
+- Existing GPO-provided values take precedence over local-machine values and compiled defaults.
 - `CustomSettings=1` uses explicit custom colors and bypasses automatic catalog-based background/foreground selection.
 
 ---

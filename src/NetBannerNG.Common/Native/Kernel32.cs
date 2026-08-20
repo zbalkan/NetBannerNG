@@ -6,6 +6,9 @@ namespace NetBannerNG.Common.Native
 {
     public static class Kernel32
     {
+        [CLSCompliant(false)]
+        public const uint WaitObject0 = 0;
+
         // Sufficient to call QueryFullProcessImageNameW against a higher-integrity
         // process (e.g. a LocalSystem service) from a normal user token.
         [CLSCompliant(false)]
@@ -16,6 +19,16 @@ namespace NetBannerNG.Common.Native
         [DllImport("kernel32.dll", SetLastError = true), SuppressUnmanagedCodeSecurity]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         public static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [CLSCompliant(false)]
+        public static extern bool TerminateProcess(IntPtr hProcess, uint uExitCode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+        [CLSCompliant(false)]
+        public static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

@@ -40,12 +40,34 @@ namespace NetBannerNG.Common.Extensions
         /// </summary>
         public static bool RunAsActiveUser(this ProcessStartInfo psi, out int processId, out string failedStep, out int win32Error)
         {
+            var processHandle = IntPtr.Zero;
+            try
+            {
+                return psi.RunAsActiveUser(out processId, out processHandle, out failedStep, out win32Error);
+            }
+            finally
+            {
+                if (processHandle != IntPtr.Zero)
+                {
+                    _ = Kernel32.CloseHandle(processHandle);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get the active user's token and run the process in the given user context,
+        /// returning the PID and original process handle created by <c>CreateProcessAsUser</c>.
+        /// The caller owns and must close <paramref name="processHandle"/> on success.
+        /// </summary>
+        public static bool RunAsActiveUser(this ProcessStartInfo psi, out int processId, out IntPtr processHandle, out string failedStep, out int win32Error)
+        {
             if (psi == null)
             {
                 throw new ArgumentNullException(nameof(psi));
             }
 
             processId = 0;
+            processHandle = IntPtr.Zero;
             failedStep = string.Empty;
             win32Error = 0;
 
@@ -58,7 +80,7 @@ namespace NetBannerNG.Common.Extensions
                     return false;
                 }
 
-                return psi.RunImpersonated(user!, out processId, out failedStep, out win32Error);
+                return psi.RunImpersonated(user!, out processId, out processHandle, out failedStep, out win32Error);
             }
             finally
             {
@@ -74,7 +96,7 @@ namespace NetBannerNG.Common.Extensions
         /// <param name="userIdentity"> user to impersonate </param>
         /// <returns> Returns true if succeeds. </returns>
         /// <exception cref="ArgumentNullException"><paramref name="psi"/> is <c>null</c>.</exception>
-        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity, out int processId, out string failedStep, out int win32Error)
+        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity, out int processId, out IntPtr processHandle, out string failedStep, out int win32Error)
         {
             if (psi == null)
             {
@@ -87,6 +109,7 @@ namespace NetBannerNG.Common.Extensions
             }
 
             processId = 0;
+            processHandle = IntPtr.Zero;
             failedStep = string.Empty;
             win32Error = 0;
 
@@ -122,6 +145,7 @@ namespace NetBannerNG.Common.Extensions
                     return false;
                 }
 
+                var processInformation = default(ProcessInformation);
                 if (!Advapi32.CreateProcessAsUser(userToken, // user token
                     path, // executable path
                     BuildCommandLine(path, psi.Arguments), // command line
@@ -132,7 +156,7 @@ namespace NetBannerNG.Common.Extensions
                     environmentBlock, // environment variables
                     dir, // current directory of the new process
                     ref si, // startup info
-                    out var processInformation)) // receive process information in pi
+                    out processInformation)) // receive process information in pi
                 {
                     win32Error = Marshal.GetLastWin32Error();
                     failedStep = "CreateProcessAsUser";
@@ -143,13 +167,22 @@ namespace NetBannerNG.Common.Extensions
                 try
                 {
                     processId = processInformation.dwProcessId;
+                    processHandle = processInformation.hProcess;
+                    processInformation.hProcess = IntPtr.Zero;
                     Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
                     return true;
                 }
                 finally
                 {
-                    _ = Kernel32.CloseHandle(processInformation.hThread);
-                    _ = Kernel32.CloseHandle(processInformation.hProcess);
+                    if (processInformation.hThread != IntPtr.Zero)
+                    {
+                        _ = Kernel32.CloseHandle(processInformation.hThread);
+                    }
+
+                    if (processInformation.hProcess != IntPtr.Zero)
+                    {
+                        _ = Kernel32.CloseHandle(processInformation.hProcess);
+                    }
                 }
             }
             finally
