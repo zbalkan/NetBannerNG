@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Management;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
@@ -15,9 +14,6 @@ namespace NetBannerNG.Watchdog
         {
             public DateTime? StartTimeUtc { get; set; }
             public string PipeName { get; set; } = string.Empty;
-            public string? CommandLine { get; set; }
-            public DateTime CommandLineLastAttemptUtc { get; set; } = DateTime.MinValue;
-            public int CommandLineAttemptCount { get; set; }
         }
 
         private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
@@ -41,10 +37,27 @@ namespace NetBannerNG.Watchdog
                 try
                 {
                     process = Process.Start(psi);
-                    if (process != null)
+                    if (process == null)
                     {
-                        TrackLaunchedProcess(process, pipeName);
+                        Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, "Process.Start returned no process handle.");
+                        return false;
                     }
+
+                    if (!TrackLaunchedProcess(process, pipeName))
+                    {
+                        try
+                        {
+                            process.Kill();
+                        }
+                        catch (Exception ex)
+                        {
+                            Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
+                        }
+
+                        Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, "Process started but could not be tracked.");
+                        return false;
+                    }
+
                     Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
                     return true;
                 }
@@ -60,17 +73,16 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
             }
 
-            var existingCandidates = CaptureCandidateProcessIds((int)sessionId);
-            if (!psi.RunAsActiveUser(out var failedStep, out var win32Error))
+            if (!psi.RunAsActiveUser(out var processId, out var failedStep, out var win32Error))
             {
                 var nativeMessage = new Win32Exception(win32Error).Message;
                 Program.Log.LogError(EventLogCatalog.ProcessRunAsActiveUserFailed, psi.FileName, failedStep, win32Error, nativeMessage);
                 return false;
             }
 
-            if (!TrackNewlyLaunchedProcesses((int)sessionId, existingCandidates, pipeName))
+            if (!TrackLaunchedProcess(processId, pipeName))
             {
-                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, "Process launch command succeeded but no child process was observed.");
+                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, $"Created process PID={processId} could not be tracked.");
                 return false;
             }
 
@@ -230,34 +242,10 @@ namespace NetBannerNG.Watchdog
                         return false;
                     }
 
-                    var commandLine = launchInfo.CommandLine;
-                    if (commandLine == null)
-                    {
-                        var now = DateTime.UtcNow;
-                        if (now - launchInfo.CommandLineLastAttemptUtc > TimeSpan.FromSeconds(1))
-                        {
-                            launchInfo.CommandLineLastAttemptUtc = now;
-                            commandLine = TryGetCommandLine(process.Id);
-                            launchInfo.CommandLine = commandLine;
-                        }
-                    }
-                    if (string.IsNullOrWhiteSpace(commandLine))
-                    {
-                        // Retry command-line interrogation for a bounded number of attempts.
-                        // This balances correctness with watchdog stability when WMI access is transiently unavailable.
-                        if (launchInfo.CommandLineAttemptCount < 3)
-                        {
-                            launchInfo.CommandLineAttemptCount++;
-                            Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
-                            return false;
-                        }
-
-                        // After bounded retries, accept tracked process identity based on PID/start-time/session/name.
-                        Program.Log.LogWarning(EventLogCatalog.ProcessCommandLineUnavailable, process.Id);
-                        return true;
-                    }
-
-                    return HasExpectedPipeArgument(commandLine, launchInfo.PipeName);
+                    // The PID is returned directly by CreateProcessAsUser (or Process.Start
+                    // in interactive mode). Session, process name, and start time protect
+                    // against PID reuse without relying on a WMI command-line query.
+                    return true;
                 }
             }
             catch (Exception ex)
@@ -268,69 +256,41 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        private static void TrackLaunchedProcess(Process process, string pipeName)
+        private static bool TrackLaunchedProcess(Process process, string pipeName)
         {
+            var startTimeUtc = SafeGetStartTimeUtc(process);
+            if (startTimeUtc is null)
+            {
+                return false;
+            }
+
             lock (LaunchSync)
             {
                 LaunchedProcesses[process.Id] = new LaunchedProcessInfo
                 {
-                    StartTimeUtc = SafeGetStartTimeUtc(process),
-                    PipeName = pipeName,
-                    CommandLine = $"--pipe={pipeName}"
+                    StartTimeUtc = startTimeUtc,
+                    PipeName = pipeName
                 };
             }
+
+            return true;
         }
 
-        private static HashSet<int> CaptureCandidateProcessIds(int interactiveSessionId)
+        private static bool TrackLaunchedProcess(int processId, string pipeName)
         {
-            var result = new HashSet<int>();
-            foreach (var p in Process.GetProcessesByName(ChildProcessName))
+            try
             {
-                if (p.SessionId == interactiveSessionId)
-                {
-                    result.Add(p.Id);
-                }
-                p.Dispose();
+                using var process = Process.GetProcessById(processId);
+                return TrackLaunchedProcess(process, pipeName);
             }
-            return result;
-        }
-
-        private static bool TrackNewlyLaunchedProcesses(int interactiveSessionId, HashSet<int> existingCandidates, string pipeName)
-        {
-            var deadlineUtc = DateTime.UtcNow.AddSeconds(3);
-            while (DateTime.UtcNow <= deadlineUtc)
+            catch (ArgumentException)
             {
-                var observedAny = false;
-                foreach (var process in Process.GetProcessesByName(ChildProcessName))
-                {
-                    try
-                    {
-                        if (process.SessionId == interactiveSessionId && !existingCandidates.Contains(process.Id))
-                        {
-                            observedAny = true;
-                            TrackLaunchedProcess(process, pipeName);
-                        }
-                    }
-                    finally
-                    {
-                        process.Dispose();
-                    }
-                }
-
-                if (observedAny)
-                {
-                    return true;
-                }
-
-                if (ServiceHost.IsStopRequested)
-                {
-                    return false;
-                }
-
-                Thread.Sleep(50);
+                return false;
             }
-
-            return false;
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
 
         private static void UntrackLaunchedProcess(int processId)
@@ -355,34 +315,8 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        private static string? TryGetCommandLine(int processId)
-        {
-#pragma warning disable CA1031 // Do not catch general exception types
-            try
-            {
-                using var searcher = new ManagementObjectSearcher($"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {processId}");
-                foreach (var process in searcher.Get().Cast<ManagementObject>())
-                {
-                    return process["CommandLine"] as string;
-                }
-            }
-            catch
-            {
-                return null;
-            }
-#pragma warning restore CA1031 // Do not catch general exception types
 
-            return null;
-        }
-
-        internal static bool HasExpectedPipeArgument(string? commandLine, string expectedPipeName)
-        {
-            if (string.IsNullOrWhiteSpace(commandLine) || string.IsNullOrWhiteSpace(expectedPipeName))
-            {
-                return false;
-            }
-
-            return commandLine!.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
-        }
+        internal static bool HasExpectedPipeArgument(string? commandLine, string expectedPipeName) => !string.IsNullOrWhiteSpace(commandLine) && !string.IsNullOrWhiteSpace(expectedPipeName)
+                && commandLine!.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
     }
 }

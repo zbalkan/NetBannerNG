@@ -34,6 +34,7 @@ namespace NetBannerNG
         private readonly SingleConnectionPipeClient<PipeMessage> _client;
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
+        private readonly TaskCompletionSource<bool> _bootstrapReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(Guid.NewGuid().GetHashCode()));
 
         public NamedPipeClient(string pipeName, int timeout = 10000)
@@ -56,9 +57,7 @@ namespace NetBannerNG
                 .WaitAndRetryAsync(
                     retryCount: 5,
                     sleepDurationProvider: attempt => TimeSpan.FromMilliseconds(Math.Pow(2, attempt) * 100 + (ThreadRandom.Value?.Next(25, 150) ?? 100)),
-                    onRetry: (exception, delay, attempt, _) => {
-                        DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}");
-                    });
+                    onRetry: (exception, delay, attempt, _) => DebugTrace($"Retry attempt={attempt} delay_ms={(int)delay.TotalMilliseconds} reason={exception.GetType().Name}"));
 #pragma warning restore CA5394 // Do not use insecure randomness
 
             var breakerPolicy = Policy
@@ -143,6 +142,50 @@ namespace NetBannerNG
             }
         }
 
+        internal async Task<bool> ReportReadyAsync()
+        {
+            if (_client is not { IsConnected: true })
+            {
+                return false;
+            }
+
+            try
+            {
+                await _timeoutPolicy.ExecuteAsync(_ => _bootstrapReceived.Task, CancellationToken.None).ConfigureAwait(false);
+                await ExecuteWithResilience(async cancellationToken => {
+                    var readyMessage = new PipeMessage
+                    {
+                        Action = ActionType.Ready,
+                        Text = "1",
+                    };
+                    readyMessage.Checksum = PipeMessageChecksum.Compute(readyMessage);
+                    await _client.WriteAsync(readyMessage, cancellationToken).ConfigureAwait(false);
+                    DebugTrace("ReadinessSent protocol=1");
+                }).ConfigureAwait(false);
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (BrokenCircuitException)
+            {
+                return false;
+            }
+            catch (TimeoutRejectedException)
+            {
+                return false;
+            }
+        }
+
         public async ValueTask DisposeAsync()
         {
             _client.MessageReceived -= OnMessageReceived!;
@@ -160,6 +203,7 @@ namespace NetBannerNG
         private void OnDisconnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             DebugTrace("Disconnected");
+            _bootstrapReceived.TrySetCanceled();
             Application.Current?.Dispatcher?.BeginInvoke(new Action(App.ShutDownGracefully));
         }
 
@@ -187,7 +231,8 @@ namespace NetBannerNG
                         }
 
                         AdminHelper.IsAdmin = isAdmin;
-                        DebugTrace($"InboundIsAdmin value={args.Message.Text}");
+                        _bootstrapReceived.TrySetResult(true);
+                        DebugTrace($"InboundIsAdmin value={isAdmin}");
                         break;
                     }
                 case ActionType.Unknown:

@@ -71,6 +71,12 @@ namespace NetBannerNG.Utils
                 }
             }
         }
+
+        // The watcher normally reevaluates only after a WinEvent callback. Startup requires
+        // the same calculation so an application that was already fullscreen before the hooks
+        // were installed is not briefly covered by banner surfaces.
+        internal static void Evaluate() => ApplyPerMonitorFullscreenSuppression();
+
         private static void ApplyPerMonitorFullscreenSuppression()
         {
             var monitors = Monitor.AllMonitors.ToList();
@@ -222,12 +228,7 @@ namespace NetBannerNG.Utils
             }
 
             const int dwmaCloaked = 14;
-            if (DwmApi.DwmGetWindowAttribute(hwnd, dwmaCloaked, out int isCloaked, sizeof(int)) == 0 && isCloaked != 0)
-            {
-                return false;
-            }
-
-            return true;
+            return DwmApi.DwmGetWindowAttribute(hwnd, dwmaCloaked, out int isCloaked, sizeof(int)) != 0 || isCloaked == 0;
         }
 
         private static void LogSuppressionStateTransition(string groupId, string monitorBounds, bool isSuppressed, string appName)
@@ -353,12 +354,9 @@ namespace NetBannerNG.Utils
                 return new HashSet<IntPtr>();
             }
 
-            if (dispatcher.CheckAccess())
-            {
-                return Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet();
-            }
-
-            return dispatcher.Invoke(() => Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet());
+            return dispatcher.CheckAccess()
+                ? Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet()
+                : dispatcher.Invoke(() => Application.Current!.Windows.Cast<Window>().Select(window => window.GetHandle()).ToHashSet());
         }
 
         private static List<FullscreenSuppressionEvaluator.WindowSnapshot> SnapshotWindowsInZOrder()

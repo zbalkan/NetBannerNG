@@ -92,6 +92,12 @@ namespace NetBannerNG
 
 #pragma warning disable CA2007 // Consider calling ConfigureAwait on the awaited task
                 await _lifecycleService.InitializeRuntimeAsync();
+                if (!await _lifecycleService.ReportReadyAsync())
+                {
+                    DumpStartupAbort("ReportReadyAsync");
+                    ShutDownGracefully();
+                    return;
+                }
 #pragma warning restore CA2007 // Consider calling ConfigureAwait on the awaited task
             }
             catch (Exception ex)
@@ -124,12 +130,9 @@ namespace NetBannerNG
         private static string ResolvePipeName(string[] args)
         {
             var pipeArg = args.FirstOrDefault(a => a.StartsWith("--pipe=", StringComparison.OrdinalIgnoreCase));
-            if (pipeArg != null && PipeNaming.TryParsePipeName(pipeArg.Substring("--pipe=".Length), out var fromArg))
-            {
-                return fromArg;
-            }
-
-            return PipeNaming.ForSession((uint)Process.GetCurrentProcess().SessionId);
+            return pipeArg != null && PipeNaming.TryParsePipeName(pipeArg.Substring("--pipe=".Length), out var fromArg)
+                ? fromArg
+                : PipeNaming.ForSession((uint)Process.GetCurrentProcess().SessionId);
         }
 
         private static Task Dump(Exception ex)

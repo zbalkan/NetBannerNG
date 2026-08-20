@@ -165,15 +165,7 @@ namespace NetBannerNG
         private static int Clamp(int value, int min, int max)
             => Math.Min(max, Math.Max(min, value));
 
-        private static string Truncate(string value, int maxLength)
-        {
-            if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
-            {
-                return value;
-            }
-
-            return value.Substring(0, maxLength);
-        }
+        private static string Truncate(string value, int maxLength) => string.IsNullOrEmpty(value) || value.Length <= maxLength ? value : value.Substring(0, maxLength);
 
         private static RegistryKey OpenLocalMachineKey()
         {

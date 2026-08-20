@@ -19,12 +19,12 @@ namespace NetBannerNG.Watchdog
     ///     Named pipe server based on H.Pipes library. Check the reference article for more.
     /// </summary>
     /// <see href="https://erikengberg.com/named-pipes-in-net-6-with-tray-icon-and-service/"/>
-    internal class NamedPipeServer : IAsyncDisposable
+    internal sealed class NamedPipeServer : IAsyncDisposable
     {
-#pragma warning disable CA1823 // Avoid unused private fields
-        private const string IdentityFallbackEnvironmentVariable = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
-#pragma warning restore CA1823 // Avoid unused private fields
-        private static readonly bool EnableIdentityFallback = ResolveIdentityFallbackMode();
+        // H.Pipes identity metadata is not available for every valid connection.
+        // This fallback is safe only after the session-bound pipe name and its ACL,
+        // restricted to the active interactive user's SID, have been validated.
+        private const bool EnableAclBoundIdentityFallback = true;
         private readonly SingleConnectionPipeServer<PipeMessage> _server;
         private readonly uint _sessionId;
 
@@ -42,7 +42,7 @@ namespace NetBannerNG.Watchdog
         private NamedPipeServer(uint sessionId, SecurityIdentifier interactiveUserSid, int timeout)
         {
             _sessionId = sessionId;
-            Program.Log.LogInformation(EventLogCatalog.PipeIdentityFallbackMode, EnableIdentityFallback);
+            Program.Log.LogInformation(EventLogCatalog.PipeIdentityFallbackMode, EnableAclBoundIdentityFallback);
             var pipeName = PipeNaming.ForSession(sessionId);
             _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
             _server.SetPipeSecurity(PipeSecurityPolicy.CreateDefaultServerSecurity(interactiveUserSid));
@@ -97,9 +97,7 @@ namespace NetBannerNG.Watchdog
         private void OnClientConnected(object o, ConnectionEventArgs<PipeMessage> args)
         {
             var connectionTask = OnClientConnectedAsync(args);
-            _ = connectionTask.ContinueWith(task => {
-                Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, task.Exception?.GetMessageStack() ?? "Unknown async connection error");
-            },
+            _ = connectionTask.ContinueWith(task => Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, task.Exception?.GetMessageStack() ?? "Unknown async connection error"),
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted,
                 _scheduler);
@@ -112,6 +110,11 @@ namespace NetBannerNG.Watchdog
                 Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedClient();
                 Debug.WriteLine($"[PipeServer] ClientRejected expected_session={_sessionId} pipe={args.Connection.PipeName}");
+
+                // SingleConnectionPipeServer will not accept another client while this
+                // connection remains open. Explicitly stop rejected clients so a process
+                // from another session cannot reserve the endpoint and starve the UI.
+                await args.Connection.StopAsync().ConfigureAwait(false);
                 return;
             }
             // Connection callbacks are raised on thread-pool threads; guard authoritative client binding.
@@ -214,7 +217,7 @@ namespace NetBannerNG.Watchdog
                 return;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableIdentityFallback))
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableAclBoundIdentityFallback))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundIdentityRevalidationFailed, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
@@ -235,6 +238,11 @@ namespace NetBannerNG.Watchdog
 
             switch (args.Message)
             {
+                case { Action: ActionType.Ready }:
+                    ServiceHost.ReportChildReady(_sessionId);
+                    Program.Log.LogInformation(EventLogCatalog.PipeClientReady, _sessionId, args.Connection.PipeName);
+                    break;
+
                 case { Action: ActionType.SendLog }:
                     var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(args.Message.Text);
                     Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, sanitizedText);
@@ -277,7 +285,7 @@ namespace NetBannerNG.Watchdog
                 return false;
             }
 
-            if (!TryAuthorizeClientIdentity(connection, activeUserSid, connectedPipeName, EnableIdentityFallback))
+            if (!TryAuthorizeClientIdentity(connection, activeUserSid, connectedPipeName, EnableAclBoundIdentityFallback))
             {
                 return false;
             }
@@ -292,16 +300,8 @@ namespace NetBannerNG.Watchdog
             return true;
         }
 
-        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId)
-        {
-            var expectedPipeName = PipeNaming.ForSession(expectedSessionId);
-            if (!string.Equals(expectedPipeName, connectedPipeName, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return activeSessionId == expectedSessionId;
-        }
+        internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId) => string.Equals(PipeNaming.ForSession(expectedSessionId), connectedPipeName, StringComparison.OrdinalIgnoreCase)
+                && activeSessionId == expectedSessionId;
 
         private static bool TryResolveImpersonatedSid(object connection, Type connectionType, out SecurityIdentifier? sid)
         {
@@ -325,8 +325,7 @@ namespace NetBannerNG.Watchdog
                     return false;
                 }
 
-                var translated = new NTAccount(accountName).Translate(typeof(SecurityIdentifier)) as SecurityIdentifier;
-                if (translated == null)
+                if (new NTAccount(accountName).Translate(typeof(SecurityIdentifier)) is not SecurityIdentifier translated)
                 {
                     return false;
                 }
@@ -348,22 +347,12 @@ namespace NetBannerNG.Watchdog
             var userSidProperty = connectionType.GetProperty("UserSid", BindingFlags.Instance | BindingFlags.Public);
             if (userSidProperty?.GetValue(connection) is SecurityIdentifier sidValue)
             {
-                if (sidValue == activeUserSid)
-                {
-                    return true;
-                }
-
-                return false;
+                return sidValue == activeUserSid;
             }
 
             if (userSidProperty?.GetValue(connection) is string sidText && !string.IsNullOrWhiteSpace(sidText))
             {
-                if (string.Equals(sidText, activeUserSid.Value, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                return false;
+                return string.Equals(sidText, activeUserSid.Value, StringComparison.OrdinalIgnoreCase);
             }
 
             // H.Pipes 15 exposes the client identity through a method, not a property.
@@ -390,12 +379,10 @@ namespace NetBannerNG.Watchdog
                 return string.Equals(currentUserName, userNameValue, StringComparison.OrdinalIgnoreCase);
             }
 
-            // In interactive/debug mode we can encounter transports that do not expose identity metadata.
-            // When fallback is explicitly enabled, the pipe ACL and session-bound pipe name remain the
-            // authoritative guardrails, so allow the connection to proceed.
-            Program.Log.LogError(EventLogCatalog.PipeIdentityFallbackUsed, connectionType.FullName ?? connectionType.Name, pipeName ?? string.Empty, "Connection did not expose SID or username metadata.");
-            Program.Log.LogWarning(EventLogCatalog.PipeClientAuthorizationRejected, 0,
-                "SID/username not available on connection; allowing due to interactive fallback.");
+            // H.Pipes can omit identity metadata for a valid connection. The caller enables
+            // this fallback only after validating the session-bound pipe name and the pipe ACL,
+            // which permits the active interactive user SID and no generic interactive principal.
+            Program.Log.LogWarning(EventLogCatalog.PipeIdentityFallbackUsed, connectionType.FullName ?? connectionType.Name, pipeName ?? string.Empty, "Connection did not expose SID or username metadata; allowing because the ACL-bound session gate succeeded.");
             return true;
         }
 
@@ -403,25 +390,5 @@ namespace NetBannerNG.Watchdog
             TryAuthorizeClientIdentity(connection, activeUserSid, string.Empty, allowInteractiveUserNameFallback);
 
         internal static bool IsAuthorizedConnectionInstance(object? authorizedConnection, object? inboundConnection) => authorizedConnection != null && ReferenceEquals(authorizedConnection, inboundConnection);
-
-        private static bool ResolveIdentityFallbackMode()
-        {
-#if DEBUG
-            var value = Environment.GetEnvironmentVariable(IdentityFallbackEnvironmentVariable);
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return false;
-            }
-
-            if (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return bool.TryParse(value, out var parsed) && parsed;
-#else
-    return false;
-#endif
-        }
     }
 }

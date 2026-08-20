@@ -31,13 +31,21 @@ namespace NetBannerNG.Common.Extensions
         /// <param name="win32Error">On failure, the value of <c>GetLastError</c> at the failing step. Zero on success.</param>
         /// <returns> Returns true if succeeds. </returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static bool RunAsActiveUser(this ProcessStartInfo psi, out string failedStep, out int win32Error)
+        public static bool RunAsActiveUser(this ProcessStartInfo psi, out string failedStep, out int win32Error) =>
+            psi.RunAsActiveUser(out _, out failedStep, out win32Error);
+
+        /// <summary>
+        /// Get the active user's token and run the process in the given user's context,
+        /// returning the PID created by <c>CreateProcessAsUser</c> on success.
+        /// </summary>
+        public static bool RunAsActiveUser(this ProcessStartInfo psi, out int processId, out string failedStep, out int win32Error)
         {
             if (psi == null)
             {
                 throw new ArgumentNullException(nameof(psi));
             }
 
+            processId = 0;
             failedStep = string.Empty;
             win32Error = 0;
 
@@ -50,7 +58,7 @@ namespace NetBannerNG.Common.Extensions
                     return false;
                 }
 
-                return psi.RunImpersonated(user!, out failedStep, out win32Error);
+                return psi.RunImpersonated(user!, out processId, out failedStep, out win32Error);
             }
             finally
             {
@@ -66,7 +74,7 @@ namespace NetBannerNG.Common.Extensions
         /// <param name="userIdentity"> user to impersonate </param>
         /// <returns> Returns true if succeeds. </returns>
         /// <exception cref="ArgumentNullException"><paramref name="psi"/> is <c>null</c>.</exception>
-        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity, out string failedStep, out int win32Error)
+        private static bool RunImpersonated(this ProcessStartInfo psi, WindowsIdentity userIdentity, out int processId, out string failedStep, out int win32Error)
         {
             if (psi == null)
             {
@@ -78,6 +86,7 @@ namespace NetBannerNG.Common.Extensions
                 throw new ArgumentNullException(nameof(userIdentity));
             }
 
+            processId = 0;
             failedStep = string.Empty;
             win32Error = 0;
 
@@ -133,6 +142,7 @@ namespace NetBannerNG.Common.Extensions
 
                 try
                 {
+                    processId = processInformation.dwProcessId;
                     Debug.WriteLine($"After impersonation: {WindowsIdentity.GetCurrent().Name} ({(PrivilegeHelper.IsCurrentUserAdmin || PrivilegeHelper.IsSystem ? "Has privilege" : "No privilege")})");
                     return true;
                 }

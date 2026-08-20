@@ -169,12 +169,9 @@ namespace NetBannerNG.Watchdog
             var runtimePath = Path.Combine(
                 RuntimeEnvironment.GetRuntimeDirectory(),
                 "EventLogMessages.dll");
-            if (File.Exists(runtimePath))
-            {
-                return runtimePath;
-            }
-
-            return Path.Combine(
+            return File.Exists(runtimePath)
+                ? runtimePath
+                : Path.Combine(
                 Environment.ExpandEnvironmentVariables("%SystemRoot%"),
                 @"Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll");
         }

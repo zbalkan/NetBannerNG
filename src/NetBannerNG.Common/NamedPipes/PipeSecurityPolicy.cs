@@ -9,7 +9,6 @@ namespace NetBannerNG.Common.NamedPipes
         private static readonly SecurityIdentifier LocalServiceSid = new(WellKnownSidType.LocalServiceSid, null);
         private static readonly SecurityIdentifier LocalSystemSid = new(WellKnownSidType.LocalSystemSid, null);
         private static readonly SecurityIdentifier NetworkSid = new(WellKnownSidType.NetworkSid, null);
-        private static readonly SecurityIdentifier InteractiveSid = new(WellKnownSidType.InteractiveSid, null);
 
         public static PipeSecurity CreateDefaultServerSecurity(SecurityIdentifier? interactiveUserSid = null)
         {
@@ -23,8 +22,11 @@ namespace NetBannerNG.Common.NamedPipes
             AddAllowRule(pipeSecurity, LocalSystemSid, PipeAccessRights.FullControl);
             AddAllowRule(pipeSecurity, LocalServiceSid, PipeAccessRights.FullControl);
             AddDenyRule(pipeSecurity, NetworkSid, PipeAccessRights.ReadWrite);
-            AddAllowRule(pipeSecurity, InteractiveSid, PipeAccessRights.ReadWrite);
 
+            // Do not grant the generic INTERACTIVE SID. That SID represents every
+            // interactively logged-on principal, not just the user in the session
+            // this server is supervising. The resolved session-owner SID is the
+            // only interactive principal that may use this pipe.
             if (interactiveUserSid != null)
             {
                 AddInteractiveUserReadWriteRule(pipeSecurity, interactiveUserSid);
@@ -39,26 +41,10 @@ namespace NetBannerNG.Common.NamedPipes
         private static void AddDenyRule(PipeSecurity pipeSecurity, SecurityIdentifier sid, PipeAccessRights rights) =>
             pipeSecurity.AddAccessRule(new PipeAccessRule(sid, rights, AccessControlType.Deny));
 
-        private static void AddInteractiveUserReadWriteRule(PipeSecurity pipeSecurity, SecurityIdentifier sid)
-        {
-            // PipeAccessRule automatically includes Synchronize on allow rules.
-            // Build the ACE directly to keep the interactive user grant at exact ReadWrite.
-            var rawDescriptor = new RawSecurityDescriptor(pipeSecurity.GetSecurityDescriptorSddlForm(AccessControlSections.Access));
-            rawDescriptor.DiscretionaryAcl ??= new RawAcl(GenericAcl.AclRevision, 1);
-
-            var ace = new CommonAce(
-                AceFlags.None,
-                AceQualifier.AccessAllowed,
-                (int)PipeAccessRights.ReadWrite,
-                sid,
-                isCallback: false,
-                opaque: null);
-
-            rawDescriptor.DiscretionaryAcl.InsertAce(rawDescriptor.DiscretionaryAcl.Count, ace);
-
-            var binaryDescriptor = new byte[rawDescriptor.BinaryLength];
-            rawDescriptor.GetBinaryForm(binaryDescriptor, 0);
-            pipeSecurity.SetSecurityDescriptorBinaryForm(binaryDescriptor);
-        }
+        private static void AddInteractiveUserReadWriteRule(PipeSecurity pipeSecurity, SecurityIdentifier sid) =>
+            // Use PipeAccessRule rather than a raw ACE. In addition to ReadWrite, it
+            // grants Synchronize, which is required by the pipe client connection path.
+            // The grant remains restricted to the resolved active-session user SID.
+            AddAllowRule(pipeSecurity, sid, PipeAccessRights.ReadWrite);
     }
 }

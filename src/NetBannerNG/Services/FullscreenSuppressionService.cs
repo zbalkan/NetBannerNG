@@ -12,6 +12,8 @@ namespace NetBannerNG.Services
 
         void Watch();
 
+        void Evaluate();
+
         void Unwatch();
     }
 
@@ -28,6 +30,8 @@ namespace NetBannerNG.Services
         }
 
         public void Watch() => WindowWatcher.Watch();
+
+        public void Evaluate() => WindowWatcher.Evaluate();
 
         public void Unwatch() => WindowWatcher.Unwatch();
     }
@@ -66,6 +70,7 @@ namespace NetBannerNG.Services
         {
             _foregroundWindowWatcher.FullscreenSuppressionUpdated += OnFullscreenSuppressionUpdated;
             _foregroundWindowWatcher.Watch();
+            _foregroundWindowWatcher.Evaluate();
         }
 
         public void Stop()

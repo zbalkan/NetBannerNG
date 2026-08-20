@@ -318,16 +318,18 @@ namespace NetBannerNG.Common.AppBar
             internal DispatcherOperation? PendingResizeOperation { get; set; }
             internal int TaskbarCreatedMessageId { get; set; }
             internal Window? Window { get; set; }
+#pragma warning disable RCS1163 // Unused parameter
             internal IntPtr WndProc(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+#pragma warning restore RCS1163 // Unused parameter
             {
                 if (TaskbarCreatedMessageId != 0 && msg == TaskbarCreatedMessageId)
                 {
                     Debug.WriteLine($"WndProc: received TaskbarCreated for {Window}.");
-                    ReRegisterAfterExplorerRestart(hWnd);
+                    ReRegisterAfterExplorerRestart();
                     return IntPtr.Zero;
                 }
 
-                if (msg == WmSysCommand && (wParam.ToInt32() & 0xFFF0) == ScMinimize)
+                if (!IsSuppressed && msg == WmSysCommand && (wParam.ToInt32() & 0xFFF0) == ScMinimize)
                 {
                     Debug.WriteLine($"WndProc: blocked SC_MINIMIZE for AppBar window {Window}.");
                     handled = true;
@@ -457,7 +459,7 @@ namespace NetBannerNG.Common.AppBar
                     | SetWindowPosFlags.ShowWindow);
             }
 
-            private void ReRegisterAfterExplorerRestart(IntPtr hWnd)
+            private void ReRegisterAfterExplorerRestart()
 #pragma warning restore IDE0060 // Remove unused parameter
             {
                 if (!IsRegistered || Window is null)
@@ -581,11 +583,14 @@ namespace NetBannerNG.Common.AppBar
         private static void SetDwmBoolAttribute(IntPtr hWnd, DWMWINDOWATTRIBUTE attribute, bool enabled)
         {
             var value = enabled ? 1 : 0;
-            if (DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)) != 0)
+            var hresult = DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int));
+            if (hresult != 0)
             {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
+#pragma warning disable CA2201 // Do not raise reserved exception types
+                throw new ExternalException($"DwmSetWindowAttribute failed with HRESULT 0x{hresult:X8}.", hresult);
+#pragma warning restore CA2201 // Do not raise reserved exception types
             }
-            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{DwmSetWindowAttribute(hWnd, (int)attribute, ref value, sizeof(int)):X8}");
+            Debug.WriteLine($"DwmSetWindowAttribute: hwnd={hWnd}, attr={attribute}, value={value}, hr=0x{hresult:X8}");
         }
         private static APPBARDATA Unregister(this APPBARDATA abd, RegisterInfo info)
         {

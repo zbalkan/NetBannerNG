@@ -81,6 +81,9 @@ namespace NetBannerNG.Services
             return await Client.InitializeAsync().ConfigureAwait(false);
         }
 
+        internal Task<bool> ReportReadyAsync() =>
+            Client?.ReportReadyAsync() ?? Task.FromResult(false);
+
         internal async Task InitializeRuntimeAsync()
         {
             await _runtimeGate.WaitAsync().ConfigureAwait(false);
