@@ -14,8 +14,7 @@ namespace NetBannerNG.Borders
 
         protected BorderBase() => DpiChanged += OnBorderDpiChanged;
 
-        private void OnBorderDpiChanged(object sender, DpiChangedEventArgs e)
-        {
+        private void OnBorderDpiChanged(object sender, DpiChangedEventArgs e) =>
             // WPF's WM_DPICHANGED handling rescales the window by the DPI ratio, which leaves
             // the bar at the wrong pixel rect for its monitor. Trigger a fresh re-dock so
             // AbSetPos recomputes pixel/DIP coordinates against the current monitor matrix.
@@ -35,7 +34,6 @@ namespace NetBannerNG.Borders
                     Render(true);
                 }
             }), DispatcherPriority.Background);
-        }
 
         internal abstract void Render(bool needsResize = false);
 

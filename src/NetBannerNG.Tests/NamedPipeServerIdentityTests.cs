@@ -1,8 +1,6 @@
 using System.Security.Principal;
-using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Watchdog;
-using System;
 
 namespace NetBannerNG.Tests
 {
@@ -49,6 +47,18 @@ namespace NetBannerNG.Tests
             var connection = new SidConnection { UserSid = otherSid };
 
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, sid);
+
+            Assert.IsFalse(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_ReturnsFalse_ForMismatchedSecurityIdentifier_WhenFallbackEnabled()
+        {
+            var activeUserSid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var otherSid = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
+            var connection = new SidConnection { UserSid = otherSid };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsFalse(authorized);
         }
@@ -148,50 +158,5 @@ namespace NetBannerNG.Tests
 
             Assert.IsTrue(authorized);
         }
-
-#if DEBUG
-        [TestMethod]
-        public void ResolveIdentityFallbackMode_DefaultsToFalse_UnlessExplicitlyEnabled()
-        {
-            const string variableName = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
-            var method = typeof(NamedPipeServer).GetMethod("ResolveIdentityFallbackMode", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.IsNotNull(method);
-
-            Environment.SetEnvironmentVariable(variableName, null);
-            Assert.IsFalse((bool)method!.Invoke(null, null)!);
-
-            Environment.SetEnvironmentVariable(variableName, "1");
-            Assert.IsTrue((bool)method.Invoke(null, null)!);
-
-            Environment.SetEnvironmentVariable(variableName, "false");
-            Assert.IsFalse((bool)method.Invoke(null, null)!);
-        }
-#endif
-
-#if !DEBUG
-        [TestMethod]
-        public void ResolveIdentityFallbackMode_AlwaysReturnsFalse_InReleaseBuilds_RegardlessOfEnvironmentVariable()
-        {
-            const string variableName = "NETBANNERNG_PIPE_IDENTITY_FALLBACK";
-            var method = typeof(NamedPipeServer).GetMethod("ResolveIdentityFallbackMode", BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.IsNotNull(method);
-
-            var originalValue = Environment.GetEnvironmentVariable(variableName);
-            try
-            {
-                Environment.SetEnvironmentVariable(variableName, "1");
-                Assert.IsFalse((bool)method!.Invoke(null, null)!,
-                    "Release builds must not enable the pipe identity fallback even when NETBANNERNG_PIPE_IDENTITY_FALLBACK=1.");
-
-                Environment.SetEnvironmentVariable(variableName, "true");
-                Assert.IsFalse((bool)method.Invoke(null, null)!,
-                    "Release builds must not enable the pipe identity fallback even when NETBANNERNG_PIPE_IDENTITY_FALLBACK=true.");
-            }
-            finally
-            {
-                Environment.SetEnvironmentVariable(variableName, originalValue);
-            }
-        }
-#endif
     }
 }

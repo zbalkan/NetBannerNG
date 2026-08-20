@@ -219,12 +219,9 @@ namespace NetBannerNG.Common
             }
 
             var consoleSessionId = Kernel32.WTSGetActiveConsoleSessionId();
-            if (consoleSessionId != 0xFFFFFFFF && consoleSessionId != 0)
-            {
-                return consoleSessionId;
-            }
-
-            throw new InvalidOperationException("No interactive session detected.");
+            return consoleSessionId != 0xFFFFFFFF && consoleSessionId != 0
+                ? consoleSessionId
+                : throw new InvalidOperationException("No interactive session detected.");
         }
 
         private static bool TryGetActiveSessionIdFromWts(out uint sessionId)

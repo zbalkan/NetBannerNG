@@ -57,6 +57,20 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
+        public void IsValidInboundClientMessage_ReturnsTrue_ForVersionedReadyMessage()
+        {
+            var message = Build(ActionType.Ready, "1");
+            Assert.IsTrue(PipeMessageValidator.IsValidInboundClientMessage(message));
+        }
+
+        [TestMethod]
+        public void IsValidInboundClientMessage_ReturnsFalse_ForUnexpectedReadyProtocol()
+        {
+            var message = Build(ActionType.Ready, "2");
+            Assert.IsFalse(PipeMessageValidator.IsValidInboundClientMessage(message));
+        }
+
+        [TestMethod]
         public void IsValidInboundClientMessage_ReturnsTrue_ForValidLogMessage()
         {
             var message = Build(ActionType.SendLog, "valid log");

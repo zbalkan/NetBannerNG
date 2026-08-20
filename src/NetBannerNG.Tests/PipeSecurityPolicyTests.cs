@@ -67,6 +67,24 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
+        public void CreateDefaultServerSecurity_AddsSynchronizeForInteractiveUser()
+        {
+            var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity(sid);
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var rule = rules.FirstOrDefault(r =>
+                r.IdentityReference.Value == sid.Value &&
+                r.AccessControlType == AccessControlType.Allow);
+
+            Assert.IsNotNull(rule, "Expected explicit allow rule for the interactive user SID.");
+            Assert.AreEqual(PipeAccessRights.Synchronize, rule.PipeAccessRights & PipeAccessRights.Synchronize,
+                "Expected interactive user pipe access to include Synchronize.");
+        }
+
+        [TestMethod]
         public void CreateDefaultServerSecurity_WithInteractiveUser_HasRoundTripSafeDescriptor()
         {
             var sid = new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null);
@@ -137,6 +155,18 @@ namespace NetBannerNG.Tests
             Assert.IsNotNull(denyRule, "Expected explicit deny rule for Network SID.");
             Assert.AreEqual(PipeAccessRights.ReadWrite, denyRule.PipeAccessRights & PipeAccessRights.ReadWrite,
                 "Expected Network SID deny rule to include ReadWrite access.");
+        }
+
+        [TestMethod]
+        public void CreateDefaultServerSecurity_DoesNotGrantGenericInteractiveAccess()
+        {
+            var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
+            var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var interactiveSid = new SecurityIdentifier(WellKnownSidType.InteractiveSid, null);
+            AssertNoAllowRule(rules, interactiveSid, "generic Interactive SID");
         }
 
         [TestMethod]

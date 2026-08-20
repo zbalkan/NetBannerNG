@@ -11,12 +11,19 @@ namespace NetBannerNG.Common.NamedPipes
                 return false;
             }
 
-            if (message.Action != ActionType.SendLog)
+            if (!PipeMessageChecksum.IsValid(message))
             {
                 return false;
             }
 
-            if (!PipeMessageChecksum.IsValid(message))
+            if (message.Action == ActionType.Ready)
+            {
+                // Keep the readiness protocol explicit and versioned so an accidental
+                // or future message shape cannot satisfy the watchdog health gate.
+                return message.Text == "1";
+            }
+
+            if (message.Action != ActionType.SendLog)
             {
                 return false;
             }

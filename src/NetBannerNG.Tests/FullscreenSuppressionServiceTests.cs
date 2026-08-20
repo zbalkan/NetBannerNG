@@ -22,6 +22,7 @@ namespace NetBannerNG.Tests
             watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(true, "Game") });
 
             Assert.AreEqual(1, watcher.WatchCalls);
+            Assert.AreEqual(1, watcher.EvaluateCalls);
             Assert.IsNotNull(received);
             Assert.IsTrue(received!["GROUP1"].IsSuppressed);
         }
@@ -73,9 +74,12 @@ namespace NetBannerNG.Tests
             public Func<string, System.Threading.Tasks.Task>? EventLogSinkAsync { get; set; }
 
             internal int WatchCalls { get; private set; }
+            internal int EvaluateCalls { get; private set; }
             internal int UnwatchCalls { get; private set; }
 
             public void Watch() => WatchCalls++;
+
+            public void Evaluate() => EvaluateCalls++;
 
             public void Unwatch() => UnwatchCalls++;
 

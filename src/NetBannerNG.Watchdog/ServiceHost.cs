@@ -13,16 +13,24 @@ namespace NetBannerNG.Watchdog
             PipeReady,
             Launching,
             Running,
-            Backoff
+            Backoff,
+            CircuitOpen
         }
 
         private static Thread? _serviceThread;
         private static readonly CancellationTokenSource ServiceStopCts = new();
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan UiReadinessTimeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan MinimumStableRuntime = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan CircuitOpenDuration = TimeSpan.FromMinutes(5);
+        private const int MaxConsecutiveLaunchFailures = 5;
         private static readonly Random BackoffJitter = new();
         private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
         private static DateTime _nextRestartEligibleUtc = DateTime.MinValue;
+        private static DateTime _circuitOpenUntilUtc = DateTime.MinValue;
+        private static DateTime _launchStartedUtc = DateTime.MinValue;
+        private static volatile bool _childReady;
         private static int _consecutiveLaunchFailures;
         private static long _connectionChurnCount;
         private static long _failedLaunchCount;
@@ -178,6 +186,8 @@ namespace NetBannerNG.Watchdog
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerInitialized);
             TransitionState(WatchdogState.NoSession, WatchdogState.PipeReady, transitionReason);
             ProcessHelper.KillAllChildProcess();
+            _childReady = false;
+            _launchStartedUtc = DateTime.MinValue;
             return true;
         }
 
@@ -217,18 +227,54 @@ namespace NetBannerNG.Watchdog
 
         private static void MonitorChildProcess()
         {
+            var now = DateTime.UtcNow;
             if (ProcessHelper.IsChildProcessRunning())
             {
-                _consecutiveLaunchFailures = 0;
-                _nextRestartEligibleUtc = DateTime.MinValue;
-                if (_watchdogState != WatchdogState.Running)
+                if (_childReady)
                 {
-                    TransitionState(_watchdogState, WatchdogState.Running, "ChildProcessDetected");
+                    if (now - _launchStartedUtc < MinimumStableRuntime)
+                    {
+                        if (_watchdogState != WatchdogState.Running)
+                        {
+                            TransitionState(_watchdogState, WatchdogState.Running, "ChildReadyStabilizing");
+                        }
+                        return;
+                    }
+
+                    _consecutiveLaunchFailures = 0;
+                    _nextRestartEligibleUtc = DateTime.MinValue;
+                    _launchStartedUtc = DateTime.MinValue;
+                    if (_watchdogState != WatchdogState.Running)
+                    {
+                        TransitionState(_watchdogState, WatchdogState.Running, "ChildReadyStable");
+                    }
+                    return;
+                }
+
+                if (_launchStartedUtc != DateTime.MinValue && now - _launchStartedUtc >= UiReadinessTimeout)
+                {
+                    ProcessHelper.KillAllChildProcess();
+                    RegisterLaunchFailure(now, "ReadinessTimeout");
                 }
                 return;
             }
 
-            var now = DateTime.UtcNow;
+            if (_launchStartedUtc != DateTime.MinValue)
+            {
+                RegisterLaunchFailure(now, _childReady ? "ExitedDuringStabilityWindow" : "ExitedBeforeReady");
+                return;
+            }
+
+            _childReady = false;
+            if (IsCircuitOpen(now))
+            {
+                if (_watchdogState != WatchdogState.CircuitOpen)
+                {
+                    TransitionState(_watchdogState, WatchdogState.CircuitOpen, "FailureCircuitOpen");
+                }
+                return;
+            }
+
             if (!ShouldAttemptRestart(now))
             {
                 if (_watchdogState != WatchdogState.Backoff)
@@ -237,8 +283,11 @@ namespace NetBannerNG.Watchdog
                 }
                 return;
             }
+
             TransitionState(_watchdogState, WatchdogState.Launching, "WatchdogLaunchAttempt");
             Program.Log.LogWarning(EventLogCatalog.ChildRestartByWatchdog);
+            _launchStartedUtc = now;
+            _childReady = false;
             if (!ProcessHelper.InitiateChildProcess())
             {
                 RegisterLaunchFailure(now, "LaunchFailed");
@@ -248,12 +297,24 @@ namespace NetBannerNG.Watchdog
             if (!ProcessHelper.IsChildProcessRunning())
             {
                 RegisterLaunchFailure(now, "LaunchNoProcessObserved");
-                return;
+            }
+        }
+
+        private static bool IsCircuitOpen(DateTime now)
+        {
+            if (now < _circuitOpenUntilUtc)
+            {
+                return true;
             }
 
-            _consecutiveLaunchFailures = 0;
-            _nextRestartEligibleUtc = DateTime.MinValue;
-            TransitionState(WatchdogState.Launching, WatchdogState.Running, "LaunchSucceeded");
+            if (_circuitOpenUntilUtc != DateTime.MinValue)
+            {
+                _circuitOpenUntilUtc = DateTime.MinValue;
+                _consecutiveLaunchFailures = 0;
+                Program.Log.LogInformation(EventLogCatalog.WatchdogCircuitClosed);
+            }
+
+            return false;
         }
 
         private static bool ShouldAttemptRestart(DateTime now)
@@ -276,12 +337,29 @@ namespace NetBannerNG.Watchdog
         {
             Interlocked.Increment(ref _failedLaunchCount);
             _consecutiveLaunchFailures++;
+            _childReady = false;
+            _launchStartedUtc = DateTime.MinValue;
+            if (ShouldOpenRecoveryCircuit(_consecutiveLaunchFailures))
+            {
+                _circuitOpenUntilUtc = now + CircuitOpenDuration;
+                TransitionState(_watchdogState, WatchdogState.CircuitOpen, reasonCode);
+                Program.Log.LogError(EventLogCatalog.WatchdogCircuitOpened, reasonCode, _consecutiveLaunchFailures, CircuitOpenDuration.TotalSeconds);
+                Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
+                return;
+            }
+
             var delay = CalculateBackoffDelay(_consecutiveLaunchFailures);
             _nextRestartEligibleUtc = now + delay;
             TransitionState(WatchdogState.Launching, WatchdogState.Backoff, reasonCode);
             Program.Log.LogWarning(EventLogCatalog.WatchdogBackoffScheduled, reasonCode, _consecutiveLaunchFailures, delay.TotalSeconds, _failedLaunchCount);
             Program.Log.LogInformation(EventLogCatalog.WatchdogHealthCounters, _connectionChurnCount, _failedLaunchCount, _deniedClientCount, _deniedInboundCount);
         }
+
+        internal static bool IsLaunchAwaitingReadiness(DateTime launchStartedUtc, bool childReady) =>
+            launchStartedUtc != DateTime.MinValue && !childReady;
+
+        internal static bool ShouldOpenRecoveryCircuit(int consecutiveLaunchFailures) =>
+            consecutiveLaunchFailures >= MaxConsecutiveLaunchFailures;
 
         internal static TimeSpan CalculateBackoffDelay(int consecutiveLaunchFailures)
         {
@@ -302,6 +380,16 @@ namespace NetBannerNG.Watchdog
 
             _watchdogState = to;
             Program.Log.LogInformation(EventLogCatalog.WatchdogStateTransition, from, to, reasonCode);
+        }
+
+        internal static void ReportChildReady(uint sessionId)
+        {
+            if (sessionId != _currentSessionId || _watchdogState != WatchdogState.Launching)
+            {
+                return;
+            }
+
+            _childReady = true;
         }
 
         internal static void ReportConnectionChurn()

@@ -4,6 +4,7 @@ namespace NetBannerNG.Common.NamedPipes
     {
         Unknown = 0,
         SendLog = 2,
-        IsAdmin = 3
+        IsAdmin = 3,
+        Ready = 4
     }
 }

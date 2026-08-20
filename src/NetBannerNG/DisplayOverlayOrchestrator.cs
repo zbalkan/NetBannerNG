@@ -33,12 +33,9 @@ namespace NetBannerNG
                 throw new ArgumentNullException(nameof(previous));
             }
 
-            if (next is null)
-            {
-                throw new ArgumentNullException(nameof(next));
-            }
-
-            return HasMonitorLayoutChanged(previous.Bounds, previous.WorkingArea, previous.IsPrimary, next.Bounds, next.WorkingArea, next.IsPrimary);
+            return next is null
+                ? throw new ArgumentNullException(nameof(next))
+                : HasMonitorLayoutChanged(previous.Bounds, previous.WorkingArea, previous.IsPrimary, next.Bounds, next.WorkingArea, next.IsPrimary);
         }
 
         public static bool HasMonitorLayoutChanged(Rect previousBounds, Rect previousWorkingArea, bool previousIsPrimary, Rect nextBounds, Rect nextWorkingArea, bool nextIsPrimary) =>

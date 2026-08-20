@@ -66,15 +66,9 @@ internal sealed class SettingsRegistryReader
         return string.IsNullOrWhiteSpace(localValue) ? compiledDefault : localValue!;
     }
 
-    internal int ResolveInt(string policyPath, string localPath, string valueName, int compiledDefault)
-    {
-        if (TryReadInt(policyPath, valueName, out var policyInt))
-        {
-            return policyInt;
-        }
-
-        return TryReadInt(localPath, valueName, out var localInt) ? localInt : compiledDefault;
-    }
+    internal int ResolveInt(string policyPath, string localPath, string valueName, int compiledDefault) => TryReadInt(policyPath, valueName, out var policyInt)
+            ? policyInt
+            : TryReadInt(localPath, valueName, out var localInt) ? localInt : compiledDefault;
 
     private string? ReadString(string path, string valueName)
     {

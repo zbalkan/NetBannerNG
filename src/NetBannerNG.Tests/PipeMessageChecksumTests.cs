@@ -8,16 +8,10 @@ namespace NetBannerNG.Tests
     public sealed class PipeMessageChecksumTests
     {
         [TestMethod]
-        public void Compute_Throws_ForNullMessage()
-        {
-            Assert.Throws<ArgumentNullException>(() => PipeMessageChecksum.Compute(null!));
-        }
+        public void Compute_Throws_ForNullMessage() => Assert.Throws<ArgumentNullException>(() => PipeMessageChecksum.Compute(null!));
 
         [TestMethod]
-        public void IsValid_ReturnsFalse_ForNullMessage()
-        {
-            Assert.IsFalse(PipeMessageChecksum.IsValid(null!));
-        }
+        public void IsValid_ReturnsFalse_ForNullMessage() => Assert.IsFalse(PipeMessageChecksum.IsValid(null!));
 
         [TestMethod]
         public void Compute_ReturnsExpectedChecksumLength()

@@ -48,12 +48,7 @@ namespace NetBannerNG.Common
                 var proc = new MonitorEnumProc(closure.Callback);
                 _ = User32.EnumDisplayMonitors(HandleRef, IntPtr.Zero, proc, IntPtr.Zero);
                 var monitors = closure.Monitors.Cast<Monitor>().ToList();
-                if (monitors.Count > 0)
-                {
-                    return monitors;
-                }
-
-                return new[] { CreateFallbackPrimaryMonitor() };
+                return monitors.Count > 0 ? monitors : (new[] { CreateFallbackPrimaryMonitor() });
             }
         }
 

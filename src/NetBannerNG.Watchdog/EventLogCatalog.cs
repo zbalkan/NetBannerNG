@@ -16,6 +16,8 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition WatchdogBackoffScheduled = new(2006, "Watchdog backoff scheduled. Reason={0}, Failures={1}, DelaySeconds={2:F2}, TotalFailedLaunches={3}");
         public static readonly EventDefinition WatchdogHealthCounters = new(2007, "Watchdog health counters. ConnectionChurn={0}, FailedLaunches={1}, DeniedClients={2}, DeniedInbound={3}");
         public static readonly EventDefinition WatchdogLoopOverrun = new(2008, "Watchdog loop overrun detected. DurationMs={0:F2}");
+        public static readonly EventDefinition WatchdogCircuitOpened = new(2009, "Watchdog recovery circuit opened. Reason={0}, ConsecutiveFailures={1}, DurationSeconds={2:F0}");
+        public static readonly EventDefinition WatchdogCircuitClosed = new(2010, "Watchdog recovery circuit closed; launch attempts may resume.");
 
         public static readonly EventDefinition PipeTimeoutCallback = new(3000, "{0} at {1}: execution timed out after {2} seconds, with: {3}.");
         public static readonly EventDefinition PipeTimeoutTaskCompleted = new(3001, "Task completed.");
@@ -34,9 +36,10 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition PipeInboundRejectedUnauthorizedSession = new(3014, "Rejected inbound message from unauthorized/unbound client. ExpectedSession={0}, Pipe={1}");
         public static readonly EventDefinition PipeInboundIdentityRevalidationFailed = new(3015, "Rejected inbound message after identity revalidation failed. ExpectedSession={0}, Pipe={1}");
         public static readonly EventDefinition PipeInboundSessionRevalidationFailed = new(3016, "Rejected inbound message after session revalidation failed. ExpectedSession={0}, ActiveSession={1}, Pipe={2}");
-        public static readonly EventDefinition PipeIdentityFallbackMode = new(3017, "Pipe identity fallback mode. DebugOnlyEnabled={0}");
+        public static readonly EventDefinition PipeIdentityFallbackMode = new(3017, "Pipe identity fallback mode. AclBoundEnabled={0}");
         public static readonly EventDefinition PipeIdentityFallbackUsed = new(3018, "Pipe identity fallback used. ConnectionType={0}, Pipe={1}, Reason={2}");
         public static readonly EventDefinition PipeSessionPending = new(3019, "Pipe server creation deferred; interactive session is not ready. {0}");
+        public static readonly EventDefinition PipeClientReady = new(3020, "Client reported readiness for session {0}. Pipe={1}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");

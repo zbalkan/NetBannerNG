@@ -6,24 +6,8 @@ namespace NetBannerNG.Utils
 {
     internal static class MonitorIdentity
     {
-        internal static string BuildGroupId(Monitor monitor)
-        {
-            if (monitor is null)
-            {
-                throw new ArgumentNullException(nameof(monitor));
-            }
+        internal static string BuildGroupId(Monitor monitor) => monitor is null ? throw new ArgumentNullException(nameof(monitor)) : BuildGroupId(monitor.Name, monitor.Bounds);
 
-            return BuildGroupId(monitor.Name, monitor.Bounds);
-        }
-
-        internal static string BuildGroupId(string monitorName, Rect bounds)
-        {
-            if (!string.IsNullOrWhiteSpace(monitorName))
-            {
-                return monitorName;
-            }
-
-            return $"{bounds.X},{bounds.Y},{bounds.Width},{bounds.Height}";
-        }
+        internal static string BuildGroupId(string monitorName, Rect bounds) => !string.IsNullOrWhiteSpace(monitorName) ? monitorName : $"{bounds.X},{bounds.Y},{bounds.Width},{bounds.Height}";
     }
 }
