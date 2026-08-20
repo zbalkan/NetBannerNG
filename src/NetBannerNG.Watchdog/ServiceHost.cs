@@ -19,6 +19,8 @@ namespace NetBannerNG.Watchdog
 
         private static Thread? _serviceThread;
         private static readonly CancellationTokenSource ServiceStopCts = new();
+        private static readonly ManualResetEventSlim ServiceThreadStopped = new(initialState: true);
+        private static readonly TimeSpan ServiceStopTimeout = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan UiReadinessTimeout = TimeSpan.FromSeconds(15);
@@ -54,22 +56,37 @@ namespace NetBannerNG.Watchdog
 
         public static void Run(string[] args)
         {
+            ServiceThreadStopped.Reset();
             _serviceThread = new Thread(InitializeServiceThread)
             {
                 Name = "NetBannerNG Service Thread",
                 IsBackground = true
             };
-            _serviceThread.Start();
-            Program.Log.LogInformation(EventLogCatalog.ServiceThreadStarted);
+
+            try
+            {
+                _serviceThread.Start();
+                Program.Log.LogInformation(EventLogCatalog.ServiceThreadStarted);
+            }
+            catch
+            {
+                ServiceThreadStopped.Set();
+                throw;
+            }
         }
 
         public static void Abort()
         {
             Program.Log.LogInformation(EventLogCatalog.ServiceAbortRequested);
-            ProcessHelper.KillAllChildProcess();
             if (!ServiceStopCts.IsCancellationRequested)
             {
                 ServiceStopCts.Cancel();
+            }
+
+            ProcessHelper.KillAllChildProcess();
+            if (!ServiceThreadStopped.Wait(ServiceStopTimeout))
+            {
+                Program.Log.LogWarning(EventLogCatalog.ServiceThreadStopTimedOut, ServiceStopTimeout.TotalSeconds);
             }
         }
 
@@ -85,6 +102,10 @@ namespace NetBannerNG.Watchdog
             {
                 Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, ex.ToString());
                 throw;
+            }
+            finally
+            {
+                ServiceThreadStopped.Set();
             }
         }
 

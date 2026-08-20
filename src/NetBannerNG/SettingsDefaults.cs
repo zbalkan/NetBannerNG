@@ -18,7 +18,7 @@ internal static class SettingsDefaults
     internal const int DefaultFpCon = 0;
     internal const int DefaultCaveatsEnabled = 0;
     internal const int DefaultDisableBorders = 0;
-    internal const int DefaultShowHostInformation = 0;
+    internal const int DefaultShowHostInformation = 1;
     internal const int DefaultEnableBottomBanner = 0;
     internal const string PolicyRegistryPath = @"SOFTWARE\Policies\NetBannerNG";
     internal const string LocalRegistryPath = @"SOFTWARE\NetBannerNG";

@@ -75,8 +75,8 @@
 
 			<InnoBuildInfoLines Include="#define MyEventLogName &quot;$(NetBannerNGEventLogName)&quot;" />
 			<InnoBuildInfoLines Include="#define MyEventLogSource &quot;$(NetBannerNGEventLogSource)&quot;" />
-			<InnoBuildInfoLines Include="#define MyPolicyRegistryKey &quot;$(NetBannerNGPolicyRegistryKey)&quot;" />
 			<InnoBuildInfoLines Include="#define MyProgramDataDir &quot;$(NetBannerNGProgramDataDir)&quot;" />
+
 			<InnoBuildInfoLines Include="#define DefaultClassificationProfile &quot;$(NetBannerNGDefaultClassificationProfile)&quot;" />
 			<InnoBuildInfoLines Include="#define DefaultBannerSize &quot;$(NetBannerNGDefaultBannerSize)&quot;" />
 			<InnoBuildInfoLines Include="#define DefaultCustomSettings &quot;$(NetBannerNGDefaultCustomSettings)&quot;" />

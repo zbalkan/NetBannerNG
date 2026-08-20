@@ -19,5 +19,29 @@ namespace NetBannerNG.Tests
 
             Assert.AreEqual(expected, actual);
         }
+
+        [TestMethod]
+        [DataRow(1, 1u, true)]
+        [DataRow(2, 1u, false)]
+        [DataRow(-1, 1u, false)]
+        public void IsExpectedChildSession_RequiresRecordedLaunchSession(int processSessionId, uint launchedSessionId, bool expected)
+        {
+            var actual = ProcessHelper.IsExpectedChildSession(processSessionId, launchedSessionId);
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [TestMethod]
+        [DataRow(0, false)]
+        [DataRow(1, true)]
+        [DataRow(4, true)]
+        [DataRow(5, false)]
+        [DataRow(6, false)]
+        public void ShouldRetryLaunchTracking_RetriesOnlyBeforeTheBoundedFinalAttempt(int completedAttempt, bool expected)
+        {
+            var actual = ProcessHelper.ShouldRetryLaunchTracking(completedAttempt);
+
+            Assert.AreEqual(expected, actual);
+        }
     }
 }
