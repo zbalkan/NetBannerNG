@@ -178,6 +178,11 @@ begin
   Result := ServiceQueryContains(ServiceName, 'STOPPED');
 end;
 
+function ServiceIsStopPending(ServiceName: string): Boolean;
+begin
+  Result := ServiceQueryContains(ServiceName, 'STOP_PENDING');
+end;
+
 procedure StopServiceIfNotStopped(ServiceName: string);
 var
   I: Integer;

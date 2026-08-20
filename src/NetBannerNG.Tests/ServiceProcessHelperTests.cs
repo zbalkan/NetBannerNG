@@ -21,25 +21,13 @@ namespace NetBannerNG.Tests
         }
 
         [TestMethod]
-        [DataRow(1, 1u, true)]
-        [DataRow(2, 1u, false)]
-        [DataRow(-1, 1u, false)]
-        public void IsExpectedChildSession_RequiresRecordedLaunchSession(int processSessionId, uint launchedSessionId, bool expected)
+        [DataRow(1, 1u, true, true)]
+        [DataRow(2, 1u, true, false)]
+        [DataRow(1, 1u, false, false)]
+        [DataRow(-1, 1u, true, false)]
+        public void HasValidLaunchIdentity_RequiresRequestedSessionAndStartTime(int processSessionId, uint requestedSessionId, bool hasStartTime, bool expected)
         {
-            var actual = ProcessHelper.IsExpectedChildSession(processSessionId, launchedSessionId);
-
-            Assert.AreEqual(expected, actual);
-        }
-
-        [TestMethod]
-        [DataRow(0, false)]
-        [DataRow(1, true)]
-        [DataRow(4, true)]
-        [DataRow(5, false)]
-        [DataRow(6, false)]
-        public void ShouldRetryLaunchTracking_RetriesOnlyBeforeTheBoundedFinalAttempt(int completedAttempt, bool expected)
-        {
-            var actual = ProcessHelper.ShouldRetryLaunchTracking(completedAttempt);
+            var actual = ProcessHelper.HasValidLaunchIdentity(processSessionId, requestedSessionId, hasStartTime);
 
             Assert.AreEqual(expected, actual);
         }

@@ -1,22 +1,22 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using NetBannerNG.Common;
 using NetBannerNG.Common.Extensions;
 using NetBannerNG.Common.NamedPipes;
+using NetBannerNG.Common.Native;
 
 namespace NetBannerNG.Watchdog
 {
     internal static class ProcessHelper
     {
         private const string ChildProcessName = "NetBannerNG";
-        private const int MaxLaunchTrackingAttempts = 5;
-        private const int LaunchTrackingRetryDelayMilliseconds = 100;
         private static readonly TimeSpan ChildProcessExitTimeout = TimeSpan.FromSeconds(10);
 
         private sealed class LaunchedProcessInfo
         {
             public DateTime? StartTimeUtc { get; set; }
-            public uint SessionId { get; set; }
+            public string PipeName { get; set; } = string.Empty;
         }
 
         private static readonly Dictionary<int, LaunchedProcessInfo> LaunchedProcesses = new();
@@ -46,7 +46,7 @@ namespace NetBannerNG.Watchdog
                         return false;
                     }
 
-                    if (!TrackLaunchedProcess(process, sessionId))
+                    if (!TrackLaunchedProcess(process, sessionId, pipeName))
                     {
                         try
                         {
@@ -76,22 +76,32 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
             }
 
-            if (!psi.RunAsActiveUser(out var processId, out var failedStep, out var win32Error))
+            if (!psi.RunAsActiveUser(out var processId, out var processHandle, out var failedStep, out var win32Error))
             {
                 var nativeMessage = new Win32Exception(win32Error).Message;
                 Program.Log.LogError(EventLogCatalog.ProcessRunAsActiveUserFailed, psi.FileName, failedStep, win32Error, nativeMessage);
                 return false;
             }
 
-            if (!TrackLaunchedProcess(processId, sessionId))
+            try
             {
-                TerminateUntrackedChildProcess(processId, sessionId);
-                Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, $"Created process PID={processId} could not be tracked; cleanup was requested.");
-                return false;
-            }
+                if (!TrackLaunchedProcess(processId, sessionId, pipeName))
+                {
+                    TerminateUntrackedChildProcess(processHandle, processId);
+                    Program.Log.LogWarning(EventLogCatalog.ProcessStartFailed, psi.FileName, $"Created process PID={processId} could not be tracked; cleanup was requested.");
+                    return false;
+                }
 
-            Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
-            return true;
+                Program.Log.LogInformation(EventLogCatalog.ProcessStartedSuccessfully, psi.FileName);
+                return true;
+            }
+            finally
+            {
+                if (processHandle != IntPtr.Zero)
+                {
+                    _ = Kernel32.CloseHandle(processHandle);
+                }
+            }
         }
 
         public static void KillAllChildProcess()
@@ -101,18 +111,12 @@ namespace NetBannerNG.Watchdog
 #pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
-                    if (TerminateProcessAndWait(process))
-                    {
-                        UntrackLaunchedProcess(process.Id);
-                    }
+                    process.Kill();
+                    UntrackLaunchedProcess(process.Id);
                 }
                 catch (Exception ex)
                 {
                     Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
-                }
-                finally
-                {
-                    process.Dispose();
                 }
 #pragma warning restore CA1031 // Do not catch general exception types
             }
@@ -181,6 +185,7 @@ namespace NetBannerNG.Watchdog
                 return new List<Process>();
             }
 
+            var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
             var candidates = new List<Process>(trackedProcessIds.Count);
             var staleProcessIds = new List<int>();
             foreach (var processId in trackedProcessIds)
@@ -207,12 +212,13 @@ namespace NetBannerNG.Watchdog
             var result = new List<Process>(candidates.Count);
             foreach (var process in candidates)
             {
-                if (IsExpectedChildProcess(process))
+                if (IsExpectedChildProcess(process, interactiveSessionId))
                 {
                     result.Add(process);
                 }
                 else
                 {
+                    UntrackLaunchedProcess(process.Id);
                     process.Dispose();
                 }
             }
@@ -220,15 +226,19 @@ namespace NetBannerNG.Watchdog
             return result;
         }
 
-        private static bool IsExpectedChildProcess(Process process)
+        private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
+                if (process.SessionId != interactiveSessionId)
+                {
+                    return false;
+                }
+
                 // Avoid Process.MainModule access here; cross-session and transient process states can
                 // throw Win32Exception (e.g., partial ReadProcessMemory) and cause noisy failures.
-                // Identity is validated using the session recorded at launch, PID, process name, and
-                // start time. The recorded session lets cleanup remove children from a prior session.
+                // Identity is validated using tracked PID + start time + expected --pipe argument.
                 if (!string.Equals(process.ProcessName, ChildProcessName, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
@@ -236,8 +246,7 @@ namespace NetBannerNG.Watchdog
 
                 lock (LaunchSync)
                 {
-                    if (!LaunchedProcesses.TryGetValue(process.Id, out var launchInfo) ||
-                        !IsExpectedChildSession(process.SessionId, launchInfo.SessionId))
+                    if (!LaunchedProcesses.TryGetValue(process.Id, out var launchInfo))
                     {
                         return false;
                     }
@@ -262,10 +271,11 @@ namespace NetBannerNG.Watchdog
 #pragma warning restore CA1031 // Do not catch general exception types
         }
 
-        private static bool TrackLaunchedProcess(Process process, uint sessionId)
+        private static bool TrackLaunchedProcess(Process process, uint requestedSessionId, string pipeName)
         {
             var startTimeUtc = SafeGetStartTimeUtc(process);
-            if (startTimeUtc is null)
+            var actualSessionId = SafeGetSessionId(process);
+            if (!HasValidLaunchIdentity(actualSessionId, requestedSessionId, startTimeUtc.HasValue))
             {
                 return false;
             }
@@ -275,41 +285,28 @@ namespace NetBannerNG.Watchdog
                 LaunchedProcesses[process.Id] = new LaunchedProcessInfo
                 {
                     StartTimeUtc = startTimeUtc,
-                    SessionId = sessionId
+                    PipeName = pipeName
                 };
             }
 
             return true;
         }
 
-        private static bool TrackLaunchedProcess(int processId, uint sessionId)
+        private static bool TrackLaunchedProcess(int processId, uint requestedSessionId, string pipeName)
         {
-            for (var attempt = 1; attempt <= MaxLaunchTrackingAttempts; attempt++)
+            try
             {
-                try
-                {
-                    using var process = Process.GetProcessById(processId);
-                    if (TrackLaunchedProcess(process, sessionId))
-                    {
-                        return true;
-                    }
-                }
-                catch (ArgumentException)
-                {
-                    return false;
-                }
-                catch (InvalidOperationException)
-                {
-                    return false;
-                }
-
-                if (ShouldRetryLaunchTracking(attempt))
-                {
-                    Thread.Sleep(LaunchTrackingRetryDelayMilliseconds);
-                }
+                using var process = Process.GetProcessById(processId);
+                return TrackLaunchedProcess(process, requestedSessionId, pipeName);
             }
-
-            return false;
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
         }
 
         private static void UntrackLaunchedProcess(int processId)
@@ -320,40 +317,44 @@ namespace NetBannerNG.Watchdog
             }
         }
 
-        private static void TerminateUntrackedChildProcess(int processId, uint expectedSessionId)
+        private static void TerminateUntrackedChildProcess(IntPtr processHandle, int processId)
+        {
+            if (processHandle == IntPtr.Zero)
+            {
+                Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, "CreateProcessAsUser did not return a process handle for failed-launch cleanup.");
+                return;
+            }
+
+            if (!Kernel32.TerminateProcess(processHandle, 1))
+            {
+                var waitResult = Kernel32.WaitForSingleObject(processHandle, 0);
+                if (waitResult != Kernel32.WaitObject0)
+                {
+                    var win32Error = Marshal.GetLastWin32Error();
+                    Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, $"TerminateProcess failed with Win32 error {win32Error}.");
+                    return;
+                }
+            }
+
+            var timeoutMilliseconds = (uint)ChildProcessExitTimeout.TotalMilliseconds;
+            if (Kernel32.WaitForSingleObject(processHandle, timeoutMilliseconds) != Kernel32.WaitObject0)
+            {
+                Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, "Timed out waiting for the created process to exit after tracking failed.");
+            }
+        }
+
+        private static int SafeGetSessionId(Process process)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                using var process = Process.GetProcessById(processId);
-                if (!IsExpectedChildSession(process.SessionId, expectedSessionId) ||
-                    !string.Equals(process.ProcessName, ChildProcessName, StringComparison.OrdinalIgnoreCase))
-                {
-                    Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, "Created process identity could not be revalidated after tracking failed.");
-                    return;
-                }
-
-                if (!TerminateProcessAndWait(process))
-                {
-                    Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, "Timed out waiting for the created process to exit after tracking failed.");
-                }
+                return process.SessionId;
             }
-            catch (Exception ex)
+            catch
             {
-                Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, processId, ex.GetMessageStack());
+                return -1;
             }
 #pragma warning restore CA1031 // Do not catch general exception types
-        }
-
-        private static bool TerminateProcessAndWait(Process process)
-        {
-            if (process.HasExited)
-            {
-                return true;
-            }
-
-            process.Kill();
-            return process.WaitForExit((int)ChildProcessExitTimeout.TotalMilliseconds);
         }
 
         private static DateTime? SafeGetStartTimeUtc(Process process)
@@ -377,7 +378,7 @@ namespace NetBannerNG.Watchdog
         internal static bool IsExpectedChildSession(int processSessionId, uint launchedSessionId) =>
             processSessionId >= 0 && processSessionId == (int)launchedSessionId;
 
-        internal static bool ShouldRetryLaunchTracking(int completedAttempt) =>
-            completedAttempt >= 1 && completedAttempt < MaxLaunchTrackingAttempts;
+        internal static bool HasValidLaunchIdentity(int processSessionId, uint requestedSessionId, bool hasStartTime) =>
+            hasStartTime && IsExpectedChildSession(processSessionId, requestedSessionId);
     }
 }
