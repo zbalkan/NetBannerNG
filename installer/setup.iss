@@ -197,6 +197,11 @@ begin
   Result := ServiceQueryContains(ServiceName, 'STOPPED');
 end;
 
+function ServiceIsStopPending(ServiceName: string): Boolean;
+begin
+  Result := ServiceQueryContains(ServiceName, 'STOP_PENDING');
+end;
+
 procedure StopServiceIfNotStopped(ServiceName: string);
 var
   I: Integer;
@@ -204,17 +209,20 @@ begin
   if not ServiceExists(ServiceName) then
     Exit;
 
-  if not ServiceIsStopped(ServiceName) then
+  if ServiceIsStopped(ServiceName) then
+    Exit;
+
+  if not ServiceIsStopPending(ServiceName) then
   begin
     RunSc('stop "' + ServiceName + '"');
+  end;
 
-    for I := 1 to 30 do
-    begin
-      if ServiceIsStopped(ServiceName) then
-        Exit;
+  for I := 1 to 30 do
+  begin
+    if ServiceIsStopped(ServiceName) then
+      Exit;
 
-      Sleep(1000);
-    end;
+    Sleep(1000);
   end;
 end;
 
