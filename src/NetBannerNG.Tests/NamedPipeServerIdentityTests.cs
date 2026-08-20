@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Principal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Watchdog;
@@ -157,6 +158,18 @@ namespace NetBannerNG.Tests
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void CreateClientForwardedLogEntry_UsesInformationSeverityAndSanitizesText()
+        {
+            var entry = NamedPipeServer.CreateClientForwardedLogEntry("netbannerng-pipe-s8", "Fullscreen restored\r\nnext");
+
+            Assert.AreEqual(EventLogEntryType.Information, entry.Type);
+            Assert.AreEqual(EventLogCatalog.PipeClientForwardedLog.EventId, entry.EventId);
+            StringAssert.Contains(entry.Message, "Pipe=netbannerng-pipe-s8");
+            StringAssert.Contains(entry.Message, "Fullscreen restored\\r\\nnext");
+            Assert.IsFalse(entry.Message.Contains("Fullscreen restored\r\nnext", StringComparison.Ordinal));
         }
     }
 }

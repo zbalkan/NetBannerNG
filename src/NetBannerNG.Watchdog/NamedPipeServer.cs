@@ -244,8 +244,8 @@ namespace NetBannerNG.Watchdog
                     break;
 
                 case { Action: ActionType.SendLog }:
-                    var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(args.Message.Text);
-                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, sanitizedText);
+                    var forwardedLogEntry = CreateClientForwardedLogEntry(args.Connection.PipeName, args.Message.Text);
+                    Program.Log.LogInformation(forwardedLogEntry.EventId, forwardedLogEntry.Message);
                     Debug.WriteLine($"[PipeServer]  InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
                     break;
 
@@ -298,6 +298,13 @@ namespace NetBannerNG.Watchdog
             };
 #pragma warning restore CA1508 // Avoid dead conditional code
             return true;
+        }
+
+        internal static EventLogManager.PendingEntry CreateClientForwardedLogEntry(string pipeName, string? text)
+        {
+            var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(text);
+            var message = EventLogCatalog.PipeClientForwardedLog.Format(pipeName, Environment.NewLine, sanitizedText);
+            return new EventLogManager.PendingEntry(EventLogEntryType.Information, message, EventLogCatalog.PipeClientForwardedLog.EventId);
         }
 
         internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId) => string.Equals(PipeNaming.ForSession(expectedSessionId), connectedPipeName, StringComparison.OrdinalIgnoreCase)

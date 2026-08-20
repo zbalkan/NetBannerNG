@@ -94,7 +94,7 @@ namespace NetBannerNG
             return result;
         }
 
-        internal async Task SendException(string message)
+        internal async Task SendLog(string message)
         {
             if (_client is not { IsConnected: true })
             {

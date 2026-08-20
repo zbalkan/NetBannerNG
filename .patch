@@ -1,0 +1,83 @@
+diff --git a/src/NetBannerNG.Tests/NamedPipeServerIdentityTests.cs b/src/NetBannerNG.Tests/NamedPipeServerIdentityTests.cs
+index 5e2326755f303210cbafd7f18c49b66be9a5b553..b129801e69368f4024a1bb1fa8689f9820209ced 100644
+--- a/src/NetBannerNG.Tests/NamedPipeServerIdentityTests.cs
++++ b/src/NetBannerNG.Tests/NamedPipeServerIdentityTests.cs
+@@ -1,3 +1,4 @@
++using System.Diagnostics;
+ using System.Security.Principal;
+ using Microsoft.VisualStudio.TestTools.UnitTesting;
+ using NetBannerNG.Watchdog;
+@@ -158,5 +159,17 @@ namespace NetBannerNG.Tests
+ 
+             Assert.IsTrue(authorized);
+         }
++
++        [TestMethod]
++        public void CreateClientForwardedLogEntry_UsesInformationSeverityAndSanitizesText()
++        {
++            var entry = NamedPipeServer.CreateClientForwardedLogEntry("netbannerng-pipe-s8", "Fullscreen restored\r\nnext");
++
++            Assert.AreEqual(EventLogEntryType.Information, entry.Type);
++            Assert.AreEqual(EventLogCatalog.PipeClientForwardedLog.EventId, entry.EventId);
++            StringAssert.Contains(entry.Message, "Pipe=netbannerng-pipe-s8");
++            StringAssert.Contains(entry.Message, "Fullscreen restored\\r\\nnext");
++            Assert.IsFalse(entry.Message.Contains("Fullscreen restored\r\nnext", StringComparison.Ordinal));
++        }
+     }
+ }
+\ No newline at end of file
+diff --git a/src/NetBannerNG.Watchdog/NamedPipeServer.cs b/src/NetBannerNG.Watchdog/NamedPipeServer.cs
+index 2403a9b31aead35fc3ee3e5d0e8b2166d6a3e781..072f81d0e1b0e8e652c22b3cc6b1c2d3b110789b 100644
+--- a/src/NetBannerNG.Watchdog/NamedPipeServer.cs
++++ b/src/NetBannerNG.Watchdog/NamedPipeServer.cs
+@@ -244,8 +244,8 @@ namespace NetBannerNG.Watchdog
+                     break;
+ 
+                 case { Action: ActionType.SendLog }:
+-                    var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(args.Message.Text);
+-                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, sanitizedText);
++                    var forwardedLogEntry = CreateClientForwardedLogEntry(args.Connection.PipeName, args.Message.Text);
++                    Program.Log.LogInformation(forwardedLogEntry.EventId, forwardedLogEntry.Message);
+                     Debug.WriteLine($"[PipeServer]  InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
+                     break;
+ 
+@@ -300,6 +300,13 @@ namespace NetBannerNG.Watchdog
+             return true;
+         }
+ 
++        internal static EventLogManager.PendingEntry CreateClientForwardedLogEntry(string pipeName, string? text)
++        {
++            var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(text);
++            var message = EventLogCatalog.PipeClientForwardedLog.Format(pipeName, Environment.NewLine, sanitizedText);
++            return new EventLogManager.PendingEntry(EventLogEntryType.Information, message, EventLogCatalog.PipeClientForwardedLog.EventId);
++        }
++
+         internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId) => string.Equals(PipeNaming.ForSession(expectedSessionId), connectedPipeName, StringComparison.OrdinalIgnoreCase)
+                 && activeSessionId == expectedSessionId;
+ 
+diff --git a/src/NetBannerNG/NamedPipeClient.cs b/src/NetBannerNG/NamedPipeClient.cs
+index cc657cee7e0ab563d3db7adc75c91c9e224fa007..eec58c5c6fe81d824f10dfbf2cd415e41eb75c11 100644
+--- a/src/NetBannerNG/NamedPipeClient.cs
++++ b/src/NetBannerNG/NamedPipeClient.cs
+@@ -94,7 +94,7 @@ namespace NetBannerNG
+             return result;
+         }
+ 
+-        internal async Task SendException(string message)
++        internal async Task SendLog(string message)
+         {
+             if (_client is not { IsConnected: true })
+             {
+diff --git a/src/NetBannerNG/Services/AppLifecycleService.cs b/src/NetBannerNG/Services/AppLifecycleService.cs
+index 79f7fa749194390404c394ed8980b2feb5ae1bd4..34cdd2887e5978328beb9ea0518bd66cc22d9e43 100644
+--- a/src/NetBannerNG/Services/AppLifecycleService.cs
++++ b/src/NetBannerNG/Services/AppLifecycleService.cs
+@@ -101,7 +101,7 @@ namespace NetBannerNG.Services
+ 
+                 try
+                 {
+-                    SetSuppressionEventLogSink(message => Client?.SendException(message) ?? Task.CompletedTask);
++                    SetSuppressionEventLogSink(message => Client?.SendLog(message) ?? Task.CompletedTask);
+                     _fullscreenSuppressionService.SuppressionUpdated += _overlayOrchestrator.ApplyFullscreenSuppressionStates;
+                     suppressionHooked = true;
+ 
