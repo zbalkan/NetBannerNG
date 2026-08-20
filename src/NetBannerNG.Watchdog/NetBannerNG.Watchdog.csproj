@@ -17,8 +17,8 @@
 			<TreatAsUsed>true</TreatAsUsed>
 		</PackageReference>
 		<PackageReference Include="H.Pipes.AccessControl" Version="15.0.0" />
-		<PackageReference Include="Polly" Version="8.6.6" />
-		<PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.8" />
+		<PackageReference Include="Polly" Version="8.7.0" />
+		<PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.11" />
 	</ItemGroup>
 
 	<ItemGroup>
