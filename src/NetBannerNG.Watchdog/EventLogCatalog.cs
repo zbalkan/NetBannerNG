@@ -18,6 +18,7 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition WatchdogLoopOverrun = new(2008, "Watchdog loop overrun detected. DurationMs={0:F2}");
         public static readonly EventDefinition WatchdogCircuitOpened = new(2009, "Watchdog recovery circuit opened. Reason={0}, ConsecutiveFailures={1}, DurationSeconds={2:F0}");
         public static readonly EventDefinition WatchdogCircuitClosed = new(2010, "Watchdog recovery circuit closed; launch attempts may resume.");
+        public static readonly EventDefinition ServiceThreadStopTimedOut = new(2011, "Timed out waiting {0:F0} seconds for the watchdog worker to stop.");
 
         public static readonly EventDefinition PipeTimeoutCallback = new(3000, "{0} at {1}: execution timed out after {2} seconds, with: {3}.");
         public static readonly EventDefinition PipeTimeoutTaskCompleted = new(3001, "Task completed.");

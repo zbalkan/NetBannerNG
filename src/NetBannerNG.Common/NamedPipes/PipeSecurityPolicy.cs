@@ -6,7 +6,6 @@ namespace NetBannerNG.Common.NamedPipes
 {
     public static class PipeSecurityPolicy
     {
-        private static readonly SecurityIdentifier LocalServiceSid = new(WellKnownSidType.LocalServiceSid, null);
         private static readonly SecurityIdentifier LocalSystemSid = new(WellKnownSidType.LocalSystemSid, null);
         private static readonly SecurityIdentifier NetworkSid = new(WellKnownSidType.NetworkSid, null);
 
@@ -20,7 +19,6 @@ namespace NetBannerNG.Common.NamedPipes
             // it is fragile across framework/runtime canonicalization and previously caused
             // runtime failures and connect-denied regressions.
             AddAllowRule(pipeSecurity, LocalSystemSid, PipeAccessRights.FullControl);
-            AddAllowRule(pipeSecurity, LocalServiceSid, PipeAccessRights.FullControl);
             AddDenyRule(pipeSecurity, NetworkSid, PipeAccessRights.ReadWrite);
 
             // Do not grant the generic INTERACTIVE SID. That SID represents every

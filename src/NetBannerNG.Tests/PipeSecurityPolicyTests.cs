@@ -11,7 +11,7 @@ namespace NetBannerNG.Tests
     public sealed class PipeSecurityPolicyTests
     {
         [TestMethod]
-        public void CreateDefaultServerSecurity_IncludesLocalServiceAllowRule()
+        public void CreateDefaultServerSecurity_DoesNotGrantLocalServiceByDefault()
         {
             var security = PipeSecurityPolicy.CreateDefaultServerSecurity();
             var rules = security.GetAccessRules(true, true, typeof(SecurityIdentifier))
@@ -19,7 +19,7 @@ namespace NetBannerNG.Tests
                 .ToList();
 
             var localServiceSid = new SecurityIdentifier(WellKnownSidType.LocalServiceSid, null);
-            AssertAllowRule(rules, localServiceSid, PipeAccessRights.FullControl, "Local Service");
+            AssertNoAllowRule(rules, localServiceSid, "Local Service");
         }
 
         [TestMethod]

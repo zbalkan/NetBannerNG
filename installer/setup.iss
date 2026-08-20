@@ -33,10 +33,6 @@ RestartApplications=no
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
-[Dirs]
-Name: "{commonappdata}\{#MyProgramDataDir}"; Permissions: users-modify
-Name: "{commonappdata}\{#MyProgramDataDir}\Logs"; Permissions: users-modify
-
 [Files]
 ; UI (WPF) application output. The watchdog launches {app}\{#MyUiExeName},
 ; so the GUI must ship alongside the service in the install directory.
@@ -66,20 +62,9 @@ Source: "{#MyServiceOutputDir}*"; \
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Services\EventLog\{#MyEventLogName}\{#MyEventLogSource}"; ValueType: expandsz; ValueName: "EventMessageFile"; ValueData: "%SystemRoot%\Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll"
 Root: HKLM; Subkey: "SYSTEM\CurrentControlSet\Services\EventLog\{#MyEventLogName}\{#MyEventLogSource}"; ValueType: dword; ValueName: "TypesSupported"; ValueData: "7"
 
-; Default policy-backed settings, written on first install only.
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "ClassificationSelection"; ValueData: "NOT CONFIGURED - Classification not configured"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "CustomSettings"; ValueData: "{#DefaultCustomSettings}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomBackgroundColor"; ValueData: "{#DefaultCustomBackgroundColor}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomForeColor"; ValueData: "{#DefaultCustomForeColor}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "CustomDisplayText"; ValueData: ""; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "InfoCon"; ValueData: "{#DefaultInfoCon}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "FpCon"; ValueData: "{#DefaultFpCon}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "CaveatsEnabled"; ValueData: "{#DefaultCaveatsEnabled}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: string; ValueName: "Caveats"; ValueData: ""; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "BannerSize"; ValueData: "{#DefaultBannerSize}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "DisableBorders"; ValueData: "{#DefaultDisableBorders}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "ShowHostInformation"; ValueData: "{#DefaultShowHostInformation}"; Flags: createvalueifdoesntexist
-Root: HKLM; Subkey: "{#MyPolicyRegistryKey}"; ValueType: dword; ValueName: "EnableBottomBanner"; ValueData: "{#DefaultEnableBottomBanner}"; Flags: createvalueifdoesntexist
+; Product defaults are compiled into the application. The Policy key is reserved
+; for administrator or GPO-managed settings and is intentionally not created,
+; modified, or removed by this installer.
 
 [UninstallDelete]
 ; Remove machine-wide runtime state owned by NetBannerNG.
@@ -93,18 +78,11 @@ Type: dirifempty; Name: "{app}"
 const
   // Explicit service-object DACL baseline for NetBannerNGWatchdog.
   //
-  // Intention:
-  // - Grant full service control to LocalSystem (SY) and Built-in Administrators (BA).
-  // - Grant read-oriented service access to Authenticated Users (AU) only.
-  //   This avoids broad non-admin service reconfiguration/deletion permissions.
-  //
-  // SDDL rights used:
-  // - SY/BA: CCDCLCSWRPWPDTLOCRSDRCWDWO (full management set).
-  // - AU:    CCLCSWLOCRRC (read/list/query style access).
+  // Only LocalSystem and Built-in Administrators may manage this LocalSystem
+  // service. No standard-user service access is required by the product.
   ServiceSecurityDescriptor =
     'D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)' +
-    '(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)' +
-    '(A;;CCLCSWLOCRRC;;;AU)';
+    '(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)';
 
 function RunSc(Parameters: string): Integer;
 var
@@ -141,19 +119,22 @@ begin
 end;
 
 function ServiceExists(ServiceName: string): Boolean;
-var
-  ResultCode: Integer;
 begin
-  Exec(
-    ExpandConstant('{sys}\sc.exe'),
-    'query "' + ServiceName + '"',
-    '',
-    SW_HIDE,
-    ewWaitUntilTerminated,
-    ResultCode
-  );
+  Result := RunSc('query "' + ServiceName + '"') = 0;
+end;
 
-  Result := ResultCode = 0;
+function ServiceIsAbsent(ServiceName: string): Boolean;
+begin
+  // ERROR_SERVICE_DOES_NOT_EXIST. A service marked for deletion returns a
+  // different error and must not be treated as safely removed.
+  Result := RunSc('query "' + ServiceName + '"') = 1060;
+end;
+
+function ServiceIsPendingDeletion(ServiceName: string): Boolean;
+begin
+  // ERROR_SERVICE_MARKED_FOR_DELETE. This is an expected transient state
+  // after sc.exe delete while another process holds a service handle.
+  Result := RunSc('query "' + ServiceName + '"') = 1072;
 end;
 
 function ServiceQueryContains(ServiceName: string; Text: string): Boolean;
@@ -205,16 +186,21 @@ end;
 procedure StopServiceIfNotStopped(ServiceName: string);
 var
   I: Integer;
+  ResultCode: Integer;
 begin
-  if not ServiceExists(ServiceName) then
+  if ServiceIsAbsent(ServiceName) or ServiceIsStopped(ServiceName) then
     Exit;
 
-  if ServiceIsStopped(ServiceName) then
-    Exit;
-
-  if not ServiceIsStopPending(ServiceName) then
+  ResultCode := RunSc('stop "' + ServiceName + '"');
+  if (ResultCode <> 0) and not ServiceIsStopped(ServiceName) then
   begin
-    RunSc('stop "' + ServiceName + '"');
+    MsgBox(
+      'Failed to stop the NetBannerNG watchdog service.' + #13#10 +
+      'sc.exe exit code: ' + IntToStr(ResultCode),
+      mbError,
+      MB_OK
+    );
+    Abort;
   end;
 
   for I := 1 to 30 do
@@ -224,26 +210,55 @@ begin
 
     Sleep(1000);
   end;
+
+  MsgBox(
+    'Timed out waiting for the NetBannerNG watchdog service to stop.',
+    mbError,
+    MB_OK
+  );
+  Abort;
 end;
 
 procedure DeleteServiceIfExists(ServiceName: string);
 var
   I: Integer;
+  ResultCode: Integer;
 begin
-  if not ServiceExists(ServiceName) then
+  if ServiceIsAbsent(ServiceName) then
     Exit;
 
-  StopServiceIfNotStopped(ServiceName);
+  if ServiceExists(ServiceName) then
+    StopServiceIfNotStopped(ServiceName);
 
-  RunSc('delete "' + ServiceName + '"');
-
-  for I := 1 to 10 do
+  if not ServiceIsPendingDeletion(ServiceName) then
   begin
-    if not ServiceExists(ServiceName) then
+    ResultCode := RunSc('delete "' + ServiceName + '"');
+    if (ResultCode <> 0) and not ServiceIsAbsent(ServiceName) and not ServiceIsPendingDeletion(ServiceName) then
+    begin
+      MsgBox(
+        'Failed to delete the NetBannerNG watchdog service.' + #13#10 +
+        'sc.exe exit code: ' + IntToStr(ResultCode),
+        mbError,
+        MB_OK
+      );
+      Abort;
+    end;
+  end;
+
+  for I := 1 to 30 do
+  begin
+    if ServiceIsAbsent(ServiceName) then
       Exit;
 
     Sleep(1000);
   end;
+
+  MsgBox(
+    'The NetBannerNG watchdog service is still pending deletion. Close any open service-management tools and retry the operation.',
+    mbError,
+    MB_OK
+  );
+  Abort;
 end;
 
 procedure InstallOrUpdateService();
@@ -262,7 +277,7 @@ begin
   begin
     RunScChecked(
       'create "{#MyServiceName}" ' +
-      'binPath= "' + ServiceBinaryPath + '" ' +
+      'binPath= "\"' + ServiceBinaryPath + '\"" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
       'obj= "LocalSystem"',
@@ -273,7 +288,7 @@ begin
   begin
     RunScChecked(
       'config "{#MyServiceName}" ' +
-      'binPath= "' + ServiceBinaryPath + '" ' +
+      'binPath= "\"' + ServiceBinaryPath + '\"" ' +
       'DisplayName= "{#MyServiceDisplayName}" ' +
       'start= auto ' +
       'obj= "LocalSystem"',
