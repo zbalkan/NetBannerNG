@@ -64,48 +64,58 @@ namespace NetBannerNG
                 return;
             }
 
-            _isSuppressed = isSuppressed;
             Debug.WriteLine($"[EVT:4210][MonitorSurfaceSet][SetSuppressed] Group={GroupId} IsSuppressed={isSuppressed}");
 
-            // Per-window suppression: set the flag BEFORE hiding so the WndProc anti-hide
-            // guards are bypassed for this monitor's bars only. Other monitors' bars keep
-            // their guards active -- a fullscreen app on one monitor no longer bypasses
-            // Win+D / Show-Desktop protection on the others.
+            // Do not commit the group state until every window reaches the requested state.
+            // A partial failure therefore remains retryable when the same suppression update
+            // is delivered again, while failures are isolated so the remaining bars still
+            // get a chance to release or restore their AppBar registrations.
+            var completed = true;
             using (AppBarFunctions.Batch())
             {
-                if (isSuppressed)
+                foreach (var window in _windows)
                 {
-                    foreach (var window in _windows)
+#pragma warning disable CA1031 // Keep suppression best-effort per window.
+                    try
                     {
-                        AppBarFunctions.SetWindowSuppression(window, true);
-                        if (window.IsDocked)
+                        if (isSuppressed)
                         {
+                            AppBarFunctions.SetWindowSuppression(window, true);
                             window.Undock();
+                            window.Topmost = false;
+                            if (window.IsVisible)
+                            {
+                                window.Hide();
+                            }
+                        }
+                        else
+                        {
+                            if (!window.IsVisible)
+                            {
+                                window.Show();
+                            }
+
+                            // A suppressed window is deliberately unregistered from the shell so
+                            // it does not leave an invisible work-area reservation behind.
+                            window.Render(true);
+                            window.Topmost = true;
+                            AppBarFunctions.SetWindowSuppression(window, false);
                         }
 
-                        window.Topmost = false;
-                        if (window.IsVisible)
-                        {
-                            window.Hide();
-                        }
+                        _healthPolicy.RecordSuccess();
                     }
-                }
-                else
-                {
-                    foreach (var window in _windows)
+                    catch (Exception ex)
                     {
-                        if (!window.IsVisible)
-                        {
-                            window.Show();
-                        }
-
-                        // A suppressed window is deliberately unregistered from the shell so
-                        // it does not leave an invisible work-area reservation behind.
-                        window.Render(true);
-                        window.Topmost = true;
-                        AppBarFunctions.SetWindowSuppression(window, false);
+                        completed = false;
+                        MarkFailure(isSuppressed ? "Suppress" : "Restore", window.GetType().Name, ex);
                     }
+#pragma warning restore CA1031
                 }
+            }
+
+            if (completed)
+            {
+                _isSuppressed = isSuppressed;
             }
         }
 
