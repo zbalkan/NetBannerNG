@@ -56,23 +56,71 @@ namespace NetBannerNG.Common
                     return false;
                 }
 
-                // Process.MainModule needs PROCESS_VM_READ, which a normal-user process
-                // cannot obtain on a LocalSystem service. Use QueryFullProcessImageName
-                // (PROCESS_QUERY_LIMITED_INFORMATION) so the path check works regardless
-                // of the watchdog's integrity level.
-                if (!TryGetProcessImagePath((uint)parent.Id, out var parentPath))
-                {
-                    return false;
-                }
-
-                var expectedPath = Path.GetFullPath(
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.Watchdog.exe"));
-                return string.Equals(
-                    Path.GetFullPath(parentPath), expectedPath, StringComparison.OrdinalIgnoreCase);
+                return IsInstalledWatchdogImage((uint)parent.Id);
             }
             finally
             {
                 parent.Dispose();
+            }
+        }
+
+        /// <summary>
+        ///     True when the image of <paramref name="processId"/> is NetBannerNG.Watchdog.exe next to
+        ///     this assembly. On its own this does not prove the process is the service: a user can
+        ///     start their own copy of the executable. Callers pair it with a session-0 check.
+        /// </summary>
+        [CLSCompliant(false)]
+        public static bool IsInstalledWatchdogImage(uint processId)
+        {
+            // Process.MainModule needs PROCESS_VM_READ, which a normal-user process
+            // cannot obtain on a LocalSystem service. Use QueryFullProcessImageName
+            // (PROCESS_QUERY_LIMITED_INFORMATION) so the path check works regardless
+            // of the watchdog's integrity level.
+            if (!TryGetProcessImagePath(processId, out var imagePath))
+            {
+                return false;
+            }
+
+            var expectedPath = Path.GetFullPath(
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NetBannerNG.Watchdog.exe"));
+            return string.Equals(
+                Path.GetFullPath(imagePath), expectedPath, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        ///     Resolves the user SID of a process token. Requires the caller to be allowed to open
+        ///     the target token for query (true for LocalSystem against user processes).
+        /// </summary>
+        [CLSCompliant(false)]
+        public static bool TryGetProcessUserSid(uint processId, out SecurityIdentifier? userSid)
+        {
+            userSid = null;
+            var processHandle = Kernel32.OpenProcess(Kernel32.PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+            if (processHandle == IntPtr.Zero)
+            {
+                return false;
+            }
+
+            var tokenHandle = IntPtr.Zero;
+            try
+            {
+                if (Advapi32.OpenProcessToken(processHandle, TokenAccessRights.TokenQuery, ref tokenHandle) == 0)
+                {
+                    return false;
+                }
+
+                using var identity = new WindowsIdentity(tokenHandle);
+                userSid = identity.User;
+                return userSid != null;
+            }
+            finally
+            {
+                if (tokenHandle != IntPtr.Zero)
+                {
+                    Kernel32.CloseHandle(tokenHandle);
+                }
+
+                Kernel32.CloseHandle(processHandle);
             }
         }
 

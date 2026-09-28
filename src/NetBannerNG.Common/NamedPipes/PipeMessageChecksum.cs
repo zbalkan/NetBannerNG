@@ -4,6 +4,12 @@ using System.Text;
 
 namespace NetBannerNG.Common.NamedPipes
 {
+    /// <summary>
+    ///     Unkeyed SHA-256 digest over the message fields. It detects corruption and malformed
+    ///     frames only; any process that can write to the pipe can compute a valid value, so it
+    ///     is not an authentication mechanism. Peer trust comes from the pipe ACL and from the
+    ///     kernel-reported endpoint process (see <see cref="PipeEndpointIdentity"/>).
+    /// </summary>
     public static class PipeMessageChecksum
     {
         public const int ChecksumLengthBytes = 32;
