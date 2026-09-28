@@ -52,9 +52,12 @@ namespace NetBannerNG.Services
             var groups = _surfaceCatalog.Snapshot(clear: true);
             Debug.WriteLine($"[EVT:4203][OverlayOrchestrator][Shutdown][CloseAll] Groups={groups.Count}");
             _isInitiated = false;
-            foreach (var g in groups)
+            using (AppBarFunctions.Batch())
             {
-                g.Close();
+                foreach (var g in groups)
+                {
+                    g.Close();
+                }
             }
         }
 
