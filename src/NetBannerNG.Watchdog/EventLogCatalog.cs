@@ -39,6 +39,8 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition PipeInboundSessionRevalidationFailed = new(3016, "Rejected inbound message after session revalidation failed. ExpectedSession={0}, ActiveSession={1}, Pipe={2}");
         public static readonly EventDefinition PipeIdentityFallbackMode = new(3017, "Pipe identity fallback mode. AclBoundEnabled={0}");
         public static readonly EventDefinition PipeIdentityFallbackUsed = new(3018, "Pipe identity fallback used. ConnectionType={0}, Pipe={1}, Reason={2}");
+        public static readonly EventDefinition PipeClientLogRateLimited = new(3023, "Client log forwarding rate limit reached; further client log entries are dropped for this window. Pipe={0}, MaxPerWindow={1}, WindowSeconds={2:F0}");
+        public static readonly EventDefinition PipeClientProcessIdentityRejected = new(3024, "Rejected pipe client process. ExpectedSession={0}, ClientPid={1}, ClientSession={2}, Reason={3}");
         public static readonly EventDefinition PipeSessionPending = new(3019, "Pipe server creation deferred; interactive session is not ready. {0}");
         public static readonly EventDefinition PipeClientReady = new(3020, "Client reported readiness for session {0}. Pipe={1}");
 
