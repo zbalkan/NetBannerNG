@@ -101,7 +101,7 @@ namespace NetBannerNG.Services
 
                 try
                 {
-                    SetSuppressionEventLogSink(message => Client?.SendException(message) ?? Task.CompletedTask);
+                    SetSuppressionEventLogSink(message => Client?.SendLog(message) ?? Task.CompletedTask);
                     _fullscreenSuppressionService.SuppressionUpdated += _overlayOrchestrator.ApplyFullscreenSuppressionStates;
                     suppressionHooked = true;
 
