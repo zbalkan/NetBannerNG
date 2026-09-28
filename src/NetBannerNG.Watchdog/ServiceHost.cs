@@ -22,6 +22,7 @@ namespace NetBannerNG.Watchdog
         private static readonly CancellationTokenSource ServiceStopCts = new();
         private static readonly ManualResetEventSlim ServiceThreadStopped = new(initialState: true);
         private static readonly TimeSpan ServiceStopTimeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan ChildGracefulExitTimeout = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan WatchdogRestartThrottle = TimeSpan.FromSeconds(1);
         private static readonly TimeSpan MaxRestartBackoff = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan UiReadinessTimeout = TimeSpan.FromSeconds(15);
@@ -88,10 +89,18 @@ namespace NetBannerNG.Watchdog
                 ServiceStopCts.Cancel();
             }
 
-            ProcessHelper.KillAllChildProcess();
-            if (!ServiceThreadStopped.Wait(ServiceStopTimeout))
+            var serviceThreadStopped = ServiceThreadStopped.Wait(ServiceStopTimeout);
+            if (!serviceThreadStopped)
             {
                 Program.Log.LogWarning(EventLogCatalog.ServiceThreadStopTimedOut, ServiceStopTimeout.TotalSeconds);
+            }
+
+            // Disposing the pipe server on the service thread tells the UI to run its normal
+            // shutdown path, including ABM_REMOVE for every AppBar. Only force termination
+            // when that bounded graceful path did not complete.
+            if (!serviceThreadStopped || !ProcessHelper.WaitForAllChildProcessesExit(ChildGracefulExitTimeout))
+            {
+                ProcessHelper.KillAllChildProcess();
             }
         }
 
