@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="../.editorconfig" />
     <File Path="../installer/setup.iss" />
-    <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
   </Folder>
   <Folder Name="/Solution Items/Assets/">

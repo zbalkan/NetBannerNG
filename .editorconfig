@@ -212,3 +212,15 @@ dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 
 # IDE0301: Simplify collection initialization
 dotnet_style_prefer_collection_expression = never
+
+# Heap allocation
+# HAA0101: Array allocation for parars parameter
+dotnet_diagnostic.HAA0101.severity = silent
+# HAA0301: Closure allocation source
+dotnet_diagnostic.HAA0301.severity = none
+# HAA0302: The compiler will emit a class that will hold this as a field to allow capturing of this closure
+dotnet_diagnostic.HAA0302.severity = none
+# HAA0502: Explicit new reference type allocation
+dotnet_diagnostic.HAA0502.severity = none
+# HAA0601: Value type to reference type conversion causes boxing at call site (here), and unboxing at the callee-site.
+dotnet_diagnostic.HAA0601.severity = none
