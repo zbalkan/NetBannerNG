@@ -96,9 +96,10 @@ namespace NetBannerNG.Watchdog
             }
 
             // Disposing the pipe server on the service thread tells the UI to run its normal
-            // shutdown path, including ABM_REMOVE for every AppBar. Only force termination
-            // when that bounded graceful path did not complete.
-            if (!serviceThreadStopped || !ProcessHelper.WaitForAllChildProcessesExit(ChildGracefulExitTimeout))
+            // shutdown path, including ABM_REMOVE for every AppBar. Even if the service thread
+            // itself timed out, still give an already-signalled UI the bounded graceful window
+            // before falling back to forced termination.
+            if (!ProcessHelper.WaitForAllChildProcessesExit(ChildGracefulExitTimeout))
             {
                 ProcessHelper.KillAllChildProcess();
             }
