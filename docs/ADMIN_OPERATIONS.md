@@ -12,6 +12,7 @@ This guide covers day-2 operations for NetBannerNG:
 - Rollback
 
 > NetBannerNG installs a Windows service named `NetBannerNGWatchdog` and reads policy from `HKLM\SOFTWARE\Policies\NetBannerNG`.
+> The watchdog supervises one interactive session at a time: the first active WTS session (falling back to the console session). On multi-session hosts (Remote Desktop Session Host, several concurrent RDP users) only that session receives the banner. Do not rely on NetBannerNG as the marking control on such hosts.
 > NetBannerNG supports profile-based classification catalogs via policy value `ClassificationSelection` using the format `<Catalog> - <Classification>` (for example: `NATO - COSMIC TOP SECRET`, `TR - HİZMETE ÖZEL`, `US - TOP SECRET//SENSITIVE COMPARTMENT INFORMATION`).
 
 ---
