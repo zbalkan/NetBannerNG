@@ -49,7 +49,7 @@ namespace NetBannerNG.Tests
             });
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 0) }, clean: false);
             _ = catalog.Reconcile(new[] { CreateMonitor("DISPLAY1", 100) }, clean: false);
-            Assert.AreEqual(2, instances.Count, "Layout change must produce a fresh surface set, not patch the previous one.");
+            Assert.HasCount(2, instances, "Layout change must produce a fresh surface set, not patch the previous one.");
             Assert.AreEqual(1, instances[0].CloseCount, "The previous surface set must be closed before its replacement is shown.");
         }
 

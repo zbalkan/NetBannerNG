@@ -118,9 +118,9 @@ namespace NetBannerNG.Tests
             var firstAllowIndex = rules.FindIndex(r => r.AccessControlType == AccessControlType.Allow);
             var lastDenyIndex = rules.FindLastIndex(r => r.AccessControlType == AccessControlType.Deny);
 
-            Assert.IsTrue(lastDenyIndex >= 0, "Expected at least one deny rule in ACL.");
-            Assert.IsTrue(firstAllowIndex >= 0, "Expected at least one allow rule in ACL.");
-            Assert.IsTrue(lastDenyIndex < firstAllowIndex,
+            Assert.IsGreaterThanOrEqualTo(0, lastDenyIndex, "Expected at least one deny rule in ACL.");
+            Assert.IsGreaterThanOrEqualTo(0, firstAllowIndex, "Expected at least one allow rule in ACL.");
+            Assert.IsLessThan(firstAllowIndex, lastDenyIndex,
                 "Expected deny rules to be canonicalized before allow rules.");
         }
 

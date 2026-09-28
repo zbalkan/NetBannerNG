@@ -63,8 +63,8 @@ namespace NetBannerNG.Tests
             await Task.WhenAll(raceTasks).ConfigureAwait(false);
             watcher.RaiseSuppression(new Dictionary<string, FullscreenSuppressionState> { ["GROUP1"] = new FullscreenSuppressionState(false, null) });
 
-            Assert.IsTrue(watcher.UnwatchCalls >= 1);
-            Assert.IsTrue(received >= 0);
+            Assert.IsGreaterThanOrEqualTo(1, watcher.UnwatchCalls);
+            Assert.IsGreaterThanOrEqualTo(0, received);
         }
 
         private sealed class FakeForegroundWindowWatcher : IForegroundWindowWatcher
