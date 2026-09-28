@@ -224,50 +224,46 @@ namespace NetBannerNG.Watchdog
 
         private static List<Process> GetChildProcesses()
         {
-            List<int> trackedProcessIds;
+            List<KeyValuePair<int, LaunchedProcessInfo>> trackedProcesses;
             lock (LaunchSync)
             {
-                trackedProcessIds = LaunchedProcesses.Keys.ToList();
+                trackedProcesses = LaunchedProcesses.ToList();
             }
 
-            if (trackedProcessIds.Count == 0)
+            if (trackedProcesses.Count == 0)
             {
                 return new List<Process>();
             }
 
-            var candidates = new List<Process>(trackedProcessIds.Count);
-            var staleProcessIds = new List<int>();
-            foreach (var processId in trackedProcessIds)
+            var result = new List<Process>(trackedProcesses.Count);
+            foreach (var trackedProcess in trackedProcesses)
             {
+                Process? process = null;
                 try
                 {
-                    candidates.Add(Process.GetProcessById(processId));
+                    process = Process.GetProcessById(trackedProcess.Key);
                 }
                 catch (ArgumentException)
                 {
-                    staleProcessIds.Add(processId);
+                    UntrackLaunchedProcessIfCurrent(trackedProcess.Key, trackedProcess.Value);
+                    continue;
                 }
                 catch (InvalidOperationException)
                 {
-                    staleProcessIds.Add(processId);
+                    UntrackLaunchedProcessIfCurrent(trackedProcess.Key, trackedProcess.Value);
+                    continue;
                 }
-            }
 
-            foreach (var processId in staleProcessIds)
-            {
-                UntrackLaunchedProcess(processId);
-            }
-
-            var result = new List<Process>(candidates.Count);
-            foreach (var process in candidates)
-            {
-                if (IsExpectedChildProcess(process))
+                if (IsExpectedChildProcess(process, trackedProcess.Value)
+                    && IsCurrentLaunchRecord(process.Id, trackedProcess.Value))
                 {
                     result.Add(process);
                 }
                 else
                 {
-                    UntrackLaunchedProcess(process.Id);
+                    // Never remove a replacement launch record that reused the same PID after
+                    // this snapshot was taken. Only the exact record we validated may be removed.
+                    UntrackLaunchedProcessIfCurrent(process.Id, trackedProcess.Value);
                     process.Dispose();
                 }
             }
@@ -275,22 +271,11 @@ namespace NetBannerNG.Watchdog
             return result;
         }
 
-        private static bool IsExpectedChildProcess(Process process)
+        private static bool IsExpectedChildProcess(Process process, LaunchedProcessInfo launchInfo)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                LaunchedProcessInfo launchInfo;
-                lock (LaunchSync)
-                {
-                    if (!LaunchedProcesses.TryGetValue(process.Id, out var trackedLaunchInfo))
-                    {
-                        return false;
-                    }
-
-                    launchInfo = trackedLaunchInfo;
-                }
-
                 // Teardown must not depend on there still being an interactive session. The
                 // launch session is part of the identity captured when the child is created.
                 if (process.SessionId != (int)launchInfo.SessionId)
@@ -323,6 +308,27 @@ namespace NetBannerNG.Watchdog
                 return false;
             }
 #pragma warning restore CA1031 // Do not catch general exception types
+        }
+
+        private static bool IsCurrentLaunchRecord(int processId, LaunchedProcessInfo expected)
+        {
+            lock (LaunchSync)
+            {
+                return LaunchedProcesses.TryGetValue(processId, out var current)
+                    && ReferenceEquals(current, expected);
+            }
+        }
+
+        private static void UntrackLaunchedProcessIfCurrent(int processId, LaunchedProcessInfo expected)
+        {
+            lock (LaunchSync)
+            {
+                if (LaunchedProcesses.TryGetValue(processId, out var current)
+                    && ReferenceEquals(current, expected))
+                {
+                    LaunchedProcesses.Remove(processId);
+                }
+            }
         }
 
         private static bool TrackLaunchedProcess(Process process, uint requestedSessionId, string pipeName)
