@@ -1,5 +1,6 @@
 using System.ServiceProcess;
 using NetBannerNG.Common;
+using NetBannerNG.Common.Extensions;
 
 namespace NetBannerNG.Watchdog
 {
@@ -26,6 +27,9 @@ namespace NetBannerNG.Watchdog
         private static readonly TimeSpan UiReadinessTimeout = TimeSpan.FromSeconds(15);
         private static readonly TimeSpan MinimumStableRuntime = TimeSpan.FromSeconds(30);
         private static readonly TimeSpan CircuitOpenDuration = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan MaxPipeStartBackoff = TimeSpan.FromSeconds(30);
+        private static DateTime _nextPipeStartEligibleUtc = DateTime.MinValue;
+        private static int _consecutivePipeStartFailures;
         private const int MaxConsecutiveLaunchFailures = 5;
         private static readonly Random BackoffJitter = new();
         private static DateTime _lastWatchdogRestartAttemptUtc = DateTime.MinValue;
@@ -41,6 +45,7 @@ namespace NetBannerNG.Watchdog
         private static WatchdogState _watchdogState = WatchdogState.NoSession;
         private static NamedPipeServer? _pipeServer;
         private static uint _currentSessionId;
+        private static bool _recyclePipeRequested;
 
         public ServiceHost()
         {
@@ -127,6 +132,10 @@ namespace NetBannerNG.Watchdog
                             continue;
                         }
                     }
+                    else if (_pipeServer.IsFaulted)
+                    {
+                        await RecyclePipeServerAsync("ListenerFaulted").ConfigureAwait(false);
+                    }
                     else
                     {
                         await ReconcileSessionPipeServerAsync().ConfigureAwait(false);
@@ -135,6 +144,12 @@ namespace NetBannerNG.Watchdog
                     if (_pipeServer != null)
                     {
                         MonitorChildProcess();
+                    }
+
+                    if (_recyclePipeRequested)
+                    {
+                        _recyclePipeRequested = false;
+                        await RecyclePipeServerAsync("ChildHandshakeFailed").ConfigureAwait(false);
                     }
 
                     if (!await DelayLoopAsync(loopStart).ConfigureAwait(false))
@@ -174,6 +189,12 @@ namespace NetBannerNG.Watchdog
 
         private static async Task<bool> TryStartPipeServerAsync(string transitionReason)
         {
+            var now = DateTime.UtcNow;
+            if (now < _nextPipeStartEligibleUtc)
+            {
+                return false;
+            }
+
             uint sessionId;
             try
             {
@@ -191,16 +212,27 @@ namespace NetBannerNG.Watchdog
                 return false;
             }
 
+#pragma warning disable CA1031 // Do not catch general exception types
             try
             {
                 await candidate.InitializeAsync().ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // A pipe that cannot be created (name already taken, start timeout) must not
+                // crash the service: SCM recovery gives up after two restarts, which would leave
+                // the session without a banner. Retry with capped exponential backoff instead.
                 await candidate.DisposeAsync().ConfigureAwait(false);
-                throw;
+                _consecutivePipeStartFailures++;
+                var delay = CalculatePipeStartBackoff(_consecutivePipeStartFailures);
+                _nextPipeStartEligibleUtc = now + delay;
+                Program.Log.LogError(EventLogCatalog.PipeServerStartFailed, sessionId, delay.TotalSeconds, ex.GetMessageStack());
+                return false;
             }
+#pragma warning restore CA1031 // Do not catch general exception types
 
+            _consecutivePipeStartFailures = 0;
+            _nextPipeStartEligibleUtc = DateTime.MinValue;
             _currentSessionId = sessionId;
             _pipeServer = candidate;
             Program.Log.LogInformation(EventLogCatalog.NamedPipeServerCreated);
@@ -232,6 +264,8 @@ namespace NetBannerNG.Watchdog
 
             Program.Log.LogInformation(EventLogCatalog.SessionChangedReinitializingPipe, _currentSessionId, latestSessionId);
             PrivilegeHelper.ResetSessionOwnerAdminCache();
+            _consecutivePipeStartFailures = 0;
+            _nextPipeStartEligibleUtc = DateTime.MinValue;
             TransitionState(_watchdogState, WatchdogState.NoSession, "SessionChanged");
 
             if (_pipeServer != null)
@@ -243,6 +277,27 @@ namespace NetBannerNG.Watchdog
             _currentSessionId = latestSessionId;
             _ = await TryStartPipeServerAsync("SessionPipeReinitialized").ConfigureAwait(false);
         }
+
+        private static async Task RecyclePipeServerAsync(string reasonCode)
+        {
+            Program.Log.LogWarning(EventLogCatalog.PipeServerRecycled, _currentSessionId, reasonCode);
+            TransitionState(_watchdogState, WatchdogState.NoSession, reasonCode);
+            if (_pipeServer != null)
+            {
+                await _pipeServer.DisposeAsync().ConfigureAwait(false);
+                _pipeServer = null;
+            }
+        }
+
+        internal static TimeSpan CalculatePipeStartBackoff(int consecutiveFailures)
+        {
+            var exponent = Math.Min(Math.Max(consecutiveFailures, 1) - 1, 5);
+            return TimeSpan.FromSeconds(Math.Min(1 << exponent, MaxPipeStartBackoff.TotalSeconds));
+        }
+
+        internal static bool IsHandshakeFailure(string reasonCode) =>
+            string.Equals(reasonCode, "ReadinessTimeout", StringComparison.Ordinal)
+            || string.Equals(reasonCode, "ExitedBeforeReady", StringComparison.Ordinal);
 
         internal static bool HasSessionChanged(uint currentSessionId, uint latestSessionId) => currentSessionId != latestSessionId;
 
@@ -360,6 +415,15 @@ namespace NetBannerNG.Watchdog
             _consecutiveLaunchFailures++;
             _childReady = false;
             _launchStartedUtc = DateTime.MinValue;
+
+            // A child that never completes the pipe handshake may be talking to a listener
+            // that died silently after its last disconnect (H.Pipes ends its loop on some
+            // pipe-creation errors without notice). Recreate the pipe before the next launch.
+            if (IsHandshakeFailure(reasonCode))
+            {
+                _recyclePipeRequested = true;
+            }
+
             if (ShouldOpenRecoveryCircuit(_consecutiveLaunchFailures))
             {
                 _circuitOpenUntilUtc = now + CircuitOpenDuration;

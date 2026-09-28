@@ -38,6 +38,8 @@ namespace NetBannerNG.Watchdog
         private readonly object _authorizedClientSync = new();
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
+        private readonly TimeSpan _startTimeout;
+        private volatile bool _isFaulted;
 
         // Forwarded client logs land in the Application log under the service's source.
         // Bound them so the session user cannot flood the log through the pipe.
@@ -50,6 +52,7 @@ namespace NetBannerNG.Watchdog
         private NamedPipeServer(uint sessionId, SecurityIdentifier interactiveUserSid, int timeout)
         {
             _sessionId = sessionId;
+            _startTimeout = TimeSpan.FromMilliseconds(timeout);
             Program.Log.LogInformation(EventLogCatalog.PipeIdentityFallbackMode, EnableAclBoundIdentityFallback);
             var pipeName = PipeNaming.ForSession(sessionId);
             _server = new SingleConnectionPipeServer<PipeMessage>(pipeName, new MessagePackFormatter());
@@ -96,9 +99,21 @@ namespace NetBannerNG.Watchdog
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        ///     True once the listener has reported a failure it cannot recover from. H.Pipes stops its
+        ///     listen loop after such an error (for example UnauthorizedAccessException when another
+        ///     process already owns the pipe name) without surfacing it through IsStarted.
+        /// </summary>
+        internal bool IsFaulted => _isFaulted;
+
+
         internal async Task InitializeAsync()
         {
-            await _server.StartAsync().ConfigureAwait(false);
+            // StartAsync waits for the first pipe instance to be created. If creation fails with
+            // anything other than IOException, H.Pipes' listen loop exits without completing that
+            // wait, so an unbounded StartAsync can hang the watchdog forever (e.g. a squatted name).
+            using var startTimeout = new CancellationTokenSource(_startTimeout);
+            await _server.StartAsync(startTimeout.Token).ConfigureAwait(false);
             Debug.WriteLine($"Created pipe: {_server.PipeName}");
         }
 
@@ -191,6 +206,10 @@ namespace NetBannerNG.Watchdog
 
         private void OnExceptionOccurred(object o, ExceptionEventArgs args)
         {
+            if (args.Exception is UnauthorizedAccessException)
+            {
+                _isFaulted = true;
+            }
             Program.Log.LogError(EventLogCatalog.PipeExceptionOccurred, args.Exception.GetMessageStack());
             Debug.WriteLine($"Exception occurred in pipe: {args.Exception.GetMessageStack()}");
         }

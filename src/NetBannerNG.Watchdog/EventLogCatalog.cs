@@ -43,6 +43,8 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition PipeClientProcessIdentityRejected = new(3024, "Rejected pipe client process. ExpectedSession={0}, ClientPid={1}, ClientSession={2}, Reason={3}");
         public static readonly EventDefinition PipeSessionPending = new(3019, "Pipe server creation deferred; interactive session is not ready. {0}");
         public static readonly EventDefinition PipeClientReady = new(3020, "Client reported readiness for session {0}. Pipe={1}");
+        public static readonly EventDefinition PipeServerStartFailed = new(3021, "Named pipe server failed to start for session {0}. Next attempt in {1:F0} seconds. {2}");
+        public static readonly EventDefinition PipeServerRecycled = new(3022, "Recycling named pipe server for session {0}. Reason={1}");
 
         public static readonly EventDefinition ProcessStarting = new(4000, "Starting process: {0}");
         public static readonly EventDefinition ProcessStartedSuccessfully = new(4001, "Started process: {0}");
