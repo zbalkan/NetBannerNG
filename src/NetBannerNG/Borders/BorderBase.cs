@@ -79,10 +79,19 @@ namespace NetBannerNG.Borders
 
         protected override void OnClosing(CancelEventArgs e)
         {
-            this.Undock();
-            Width = 0;
-            Height = 0;
-            base.OnClosing(e);
+            try
+            {
+                if (IsDocked)
+                {
+                    this.Undock();
+                }
+            }
+            finally
+            {
+                Width = 0;
+                Height = 0;
+                base.OnClosing(e);
+            }
         }
 
         /// <summary>
