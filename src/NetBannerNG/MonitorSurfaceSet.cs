@@ -71,29 +71,40 @@ namespace NetBannerNG
             // guards are bypassed for this monitor's bars only. Other monitors' bars keep
             // their guards active -- a fullscreen app on one monitor no longer bypasses
             // Win+D / Show-Desktop protection on the others.
-            if (isSuppressed)
+            using (AppBarFunctions.Batch())
             {
-                foreach (var window in _windows)
+                if (isSuppressed)
                 {
-                    AppBarFunctions.SetWindowSuppression(window, true);
-                    window.Topmost = false;
-                    if (window.IsVisible)
+                    foreach (var window in _windows)
                     {
-                        window.Hide();
+                        AppBarFunctions.SetWindowSuppression(window, true);
+                        if (window.IsDocked)
+                        {
+                            window.Undock();
+                        }
+
+                        window.Topmost = false;
+                        if (window.IsVisible)
+                        {
+                            window.Hide();
+                        }
                     }
                 }
-            }
-            else
-            {
-                foreach (var window in _windows)
+                else
                 {
-                    if (!window.IsVisible)
+                    foreach (var window in _windows)
                     {
-                        window.Show();
+                        if (!window.IsVisible)
+                        {
+                            window.Show();
+                        }
+
+                        // A suppressed window is deliberately unregistered from the shell so
+                        // it does not leave an invisible work-area reservation behind.
                         window.Render(true);
+                        window.Topmost = true;
+                        AppBarFunctions.SetWindowSuppression(window, false);
                     }
-                    window.Topmost = true;
-                    AppBarFunctions.SetWindowSuppression(window, false);
                 }
             }
         }
