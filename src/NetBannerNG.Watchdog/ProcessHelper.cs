@@ -16,6 +16,7 @@ namespace NetBannerNG.Watchdog
         private sealed class LaunchedProcessInfo
         {
             public DateTime? StartTimeUtc { get; set; }
+            public uint SessionId { get; set; }
             public string PipeName { get; set; } = string.Empty;
         }
 
@@ -139,20 +140,31 @@ namespace NetBannerNG.Watchdog
 
         public static bool WaitForAllChildProcessesExit(TimeSpan timeout)
         {
-            var deadlineUtc = DateTime.UtcNow + timeout;
+            var stopwatch = Stopwatch.StartNew();
             var children = GetChildProcesses();
             try
             {
                 foreach (var process in children)
                 {
-                    var remaining = deadlineUtc - DateTime.UtcNow;
+                    var remaining = timeout - stopwatch.Elapsed;
                     if (remaining <= TimeSpan.Zero)
                     {
                         return false;
                     }
 
                     var remainingMilliseconds = (int)Math.Min(int.MaxValue, Math.Ceiling(remaining.TotalMilliseconds));
-                    if (!process.WaitForExit(remainingMilliseconds))
+                    try
+                    {
+                        if (!process.WaitForExit(remainingMilliseconds))
+                        {
+                            return false;
+                        }
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        return false;
+                    }
+                    catch (Win32Exception)
                     {
                         return false;
                     }
@@ -223,7 +235,6 @@ namespace NetBannerNG.Watchdog
                 return new List<Process>();
             }
 
-            var interactiveSessionId = (int)PrivilegeHelper.GetInteractiveSessionId();
             var candidates = new List<Process>(trackedProcessIds.Count);
             var staleProcessIds = new List<int>();
             foreach (var processId in trackedProcessIds)
@@ -250,7 +261,7 @@ namespace NetBannerNG.Watchdog
             var result = new List<Process>(candidates.Count);
             foreach (var process in candidates)
             {
-                if (IsExpectedChildProcess(process, interactiveSessionId))
+                if (IsExpectedChildProcess(process))
                 {
                     result.Add(process);
                 }
@@ -264,42 +275,47 @@ namespace NetBannerNG.Watchdog
             return result;
         }
 
-        private static bool IsExpectedChildProcess(Process process, int interactiveSessionId)
+        private static bool IsExpectedChildProcess(Process process)
         {
 #pragma warning disable CA1031 // Do not catch general exception types
             try
             {
-                if (process.SessionId != interactiveSessionId)
+                LaunchedProcessInfo launchInfo;
+                lock (LaunchSync)
+                {
+                    if (!LaunchedProcesses.TryGetValue(process.Id, out var trackedLaunchInfo))
+                    {
+                        return false;
+                    }
+
+                    launchInfo = trackedLaunchInfo;
+                }
+
+                // Teardown must not depend on there still being an interactive session. The
+                // launch session is part of the identity captured when the child is created.
+                if (process.SessionId != (int)launchInfo.SessionId)
                 {
                     return false;
                 }
 
                 // Avoid Process.MainModule access here; cross-session and transient process states can
                 // throw Win32Exception (e.g., partial ReadProcessMemory) and cause noisy failures.
-                // Identity is validated using tracked PID + session + process name + start time.
+                // Identity is validated using tracked PID + launch session + process name + start time.
                 if (!string.Equals(process.ProcessName, ChildProcessName, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
 
-                lock (LaunchSync)
+                var processStartTime = SafeGetStartTimeUtc(process);
+                if (processStartTime is null || launchInfo.StartTimeUtc is null || processStartTime.Value != launchInfo.StartTimeUtc.Value)
                 {
-                    if (!LaunchedProcesses.TryGetValue(process.Id, out var launchInfo))
-                    {
-                        return false;
-                    }
-
-                    var processStartTime = SafeGetStartTimeUtc(process);
-                    if (processStartTime is null || launchInfo.StartTimeUtc is null || processStartTime.Value != launchInfo.StartTimeUtc.Value)
-                    {
-                        return false;
-                    }
-
-                    // The PID is returned directly by CreateProcessAsUser (or Process.Start
-                    // in interactive mode). Session, process name, and start time protect
-                    // against PID reuse without relying on a WMI command-line query.
-                    return true;
+                    return false;
                 }
+
+                // The PID is returned directly by CreateProcessAsUser (or Process.Start
+                // in interactive mode). Session, process name, and start time protect
+                // against PID reuse without relying on a WMI command-line query.
+                return true;
             }
             catch (Exception ex)
             {
@@ -323,6 +339,7 @@ namespace NetBannerNG.Watchdog
                 LaunchedProcesses[process.Id] = new LaunchedProcessInfo
                 {
                     StartTimeUtc = startTimeUtc,
+                    SessionId = requestedSessionId,
                     PipeName = pipeName
                 };
             }
