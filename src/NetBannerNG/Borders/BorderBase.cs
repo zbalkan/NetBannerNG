@@ -81,10 +81,10 @@ namespace NetBannerNG.Borders
         {
             try
             {
-                if (IsDocked)
-                {
-                    this.Undock();
-                }
+                // Undock is idempotent against an unregistered window. Always call it because
+                // SetAppBar can register the HWND before a later docking step throws, leaving
+                // IsDocked false even though the shell still owns an AppBar registration.
+                this.Undock();
             }
             finally
             {
