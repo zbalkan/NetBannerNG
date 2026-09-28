@@ -118,6 +118,10 @@ namespace NetBannerNG.Watchdog
                 {
                     Program.Log.LogWarning(EventLogCatalog.ProcessFailedToKill, process.Id, ex.GetMessageStack());
                 }
+                finally
+                {
+                    process.Dispose();
+                }
 #pragma warning restore CA1031 // Do not catch general exception types
             }
         }

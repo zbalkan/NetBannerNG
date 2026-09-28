@@ -42,5 +42,23 @@ namespace NetBannerNG.Tests
             var delay = ServiceHost.CalculateBackoffDelay(50);
             Assert.IsTrue(delay.TotalSeconds >= 30 && delay.TotalSeconds < 30.6);
         }
+
+        [TestMethod]
+        public void CalculatePipeStartBackoff_GrowsExponentiallyAndCapsAtThirtySeconds()
+        {
+            Assert.AreEqual(TimeSpan.FromSeconds(1), ServiceHost.CalculatePipeStartBackoff(0));
+            Assert.AreEqual(TimeSpan.FromSeconds(1), ServiceHost.CalculatePipeStartBackoff(1));
+            Assert.AreEqual(TimeSpan.FromSeconds(8), ServiceHost.CalculatePipeStartBackoff(4));
+            Assert.AreEqual(TimeSpan.FromSeconds(30), ServiceHost.CalculatePipeStartBackoff(50));
+        }
+
+        [TestMethod]
+        public void IsHandshakeFailure_OnlyMatchesReadinessFailures()
+        {
+            Assert.IsTrue(ServiceHost.IsHandshakeFailure("ReadinessTimeout"));
+            Assert.IsTrue(ServiceHost.IsHandshakeFailure("ExitedBeforeReady"));
+            Assert.IsFalse(ServiceHost.IsHandshakeFailure("LaunchFailed"));
+            Assert.IsFalse(ServiceHost.IsHandshakeFailure("ExitedDuringStabilityWindow"));
+        }
     }
 }
