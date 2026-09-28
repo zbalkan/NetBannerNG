@@ -210,9 +210,9 @@ namespace NetBannerNG.Tests
 
             Assert.AreEqual(EventLogEntryType.Information, entry.Type);
             Assert.AreEqual(EventLogCatalog.PipeClientForwardedLog.EventId, entry.EventId);
-            StringAssert.Contains(entry.Message, "Pipe=netbannerng-pipe-s8", StringComparison.Ordinal);
-            StringAssert.Contains(entry.Message, "Fullscreen restored\\r\\nnext", StringComparison.Ordinal);
-            Assert.IsTrue(entry.Message.IndexOf("Fullscreen restored\r\nnext", StringComparison.Ordinal) < 0);
+            Assert.Contains("netbannerng-pipe-s8", entry.Message, StringComparison.Ordinal);
+            Assert.Contains("Fullscreen restored\\r\\nnext", entry.Message, StringComparison.Ordinal);
+            Assert.IsLessThan(0, entry.Message.IndexOf("Fullscreen restored\r\nnext", StringComparison.Ordinal));
         }
     }
 }

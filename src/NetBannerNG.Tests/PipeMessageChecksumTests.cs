@@ -20,7 +20,7 @@ namespace NetBannerNG.Tests
 
             var checksum = PipeMessageChecksum.Compute(message);
 
-            Assert.AreEqual(PipeMessageChecksum.ChecksumLengthBytes, checksum.Length);
+            Assert.HasCount(PipeMessageChecksum.ChecksumLengthBytes, checksum);
         }
 
         [TestMethod]
