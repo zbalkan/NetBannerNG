@@ -1,3 +1,5 @@
+using System;
+using System.Diagnostics;
 using System.Security.Principal;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NetBannerNG.Watchdog;
@@ -157,6 +159,60 @@ namespace NetBannerNG.Tests
             var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
 
             Assert.IsTrue(authorized);
+        }
+
+        [TestMethod]
+        public void TryAuthorizeClientIdentity_ReturnsFalse_ForDifferentUserName_WhenInteractiveFallbackEnabled()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            Assert.IsNotNull(identity?.User);
+            var activeUserSid = identity!.User!;
+            var connection = new UserNameConnection { UserName = @"NT AUTHORITY\SYSTEM" };
+
+            var authorized = NamedPipeServer.TryAuthorizeClientIdentity(connection, activeUserSid, allowInteractiveUserNameFallback: true);
+
+            Assert.AreEqual(activeUserSid.IsWellKnown(WellKnownSidType.LocalSystemSid), authorized);
+        }
+
+        [TestMethod]
+        public void EvaluateForwardedLogBudget_AllowsUpToLimitThenDropsOnceUntilWindowResets()
+        {
+            var start = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var windowStart = DateTime.MinValue;
+            var count = 0;
+            bool allowed;
+            bool firstDrop;
+
+            for (var i = 0; i < NamedPipeServer.MaxForwardedLogsPerWindow; i++)
+            {
+                (allowed, firstDrop, windowStart, count) = NamedPipeServer.EvaluateForwardedLogBudget(start, windowStart, count);
+                Assert.IsTrue(allowed);
+                Assert.IsFalse(firstDrop);
+            }
+
+            (allowed, firstDrop, windowStart, count) = NamedPipeServer.EvaluateForwardedLogBudget(start, windowStart, count);
+            Assert.IsFalse(allowed);
+            Assert.IsTrue(firstDrop);
+
+            (allowed, firstDrop, windowStart, count) = NamedPipeServer.EvaluateForwardedLogBudget(start.AddSeconds(1), windowStart, count);
+            Assert.IsFalse(allowed);
+            Assert.IsFalse(firstDrop);
+
+            (allowed, firstDrop, _, _) = NamedPipeServer.EvaluateForwardedLogBudget(start + NamedPipeServer.ForwardedLogWindow, windowStart, count);
+            Assert.IsTrue(allowed);
+            Assert.IsFalse(firstDrop);
+        }
+
+        [TestMethod]
+        public void CreateClientForwardedLogEntry_UsesInformationSeverityAndSanitizesText()
+        {
+            var entry = NamedPipeServer.CreateClientForwardedLogEntry("netbannerng-pipe-s8", "Fullscreen restored\r\nnext");
+
+            Assert.AreEqual(EventLogEntryType.Information, entry.Type);
+            Assert.AreEqual(EventLogCatalog.PipeClientForwardedLog.EventId, entry.EventId);
+            StringAssert.Contains(entry.Message, "Pipe=netbannerng-pipe-s8", StringComparison.Ordinal);
+            StringAssert.Contains(entry.Message, "Fullscreen restored\\r\\nnext", StringComparison.Ordinal);
+            Assert.IsTrue(entry.Message.IndexOf("Fullscreen restored\r\nnext", StringComparison.Ordinal) < 0);
         }
     }
 }

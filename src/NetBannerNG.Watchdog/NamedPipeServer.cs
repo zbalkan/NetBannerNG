@@ -39,6 +39,14 @@ namespace NetBannerNG.Watchdog
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskScheduler _scheduler = TaskScheduler.Default;
 
+        // Forwarded client logs land in the Application log under the service's source.
+        // Bound them so the session user cannot flood the log through the pipe.
+        internal const int MaxForwardedLogsPerWindow = 30;
+        internal static readonly TimeSpan ForwardedLogWindow = TimeSpan.FromMinutes(1);
+        private readonly object _forwardedLogSync = new();
+        private DateTime _forwardedLogWindowStartUtc = DateTime.MinValue;
+        private int _forwardedLogCount;
+
         private NamedPipeServer(uint sessionId, SecurityIdentifier interactiveUserSid, int timeout)
         {
             _sessionId = sessionId;
@@ -217,7 +225,7 @@ namespace NetBannerNG.Watchdog
                 return;
             }
 
-            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !TryAuthorizeClientIdentity(args.Connection, activeUserSid, args.Connection.PipeName, EnableAclBoundIdentityFallback))
+            if (!PrivilegeHelper.TryGetActiveUserSid(out var activeUserSid) || activeUserSid == null || !AuthorizeClient(args.Connection, activeUserSid, args.Connection.PipeName))
             {
                 Program.Log.LogWarning(EventLogCatalog.PipeInboundIdentityRevalidationFailed, _sessionId, args.Connection.PipeName);
                 ServiceHost.ReportDeniedInbound();
@@ -244,8 +252,13 @@ namespace NetBannerNG.Watchdog
                     break;
 
                 case { Action: ActionType.SendLog }:
-                    var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(args.Message.Text);
-                    Program.Log.LogError(EventLogCatalog.PipeClientForwardedLog, args.Connection.PipeName, Environment.NewLine, sanitizedText);
+                    if (!TryConsumeForwardedLogBudget(args.Connection.PipeName))
+                    {
+                        break;
+                    }
+
+                    var forwardedLogEntry = CreateClientForwardedLogEntry(args.Connection.PipeName, args.Message.Text);
+                    Program.Log.LogInformation(forwardedLogEntry.EventId, forwardedLogEntry.Message);
                     Debug.WriteLine($"[PipeServer]  InboundAccepted action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
                     break;
 
@@ -253,6 +266,36 @@ namespace NetBannerNG.Watchdog
                     Program.Log.LogWarning(EventLogCatalog.PipeUnknownActionType, args.Message.Action);
                     break;
             }
+        }
+
+        private bool TryConsumeForwardedLogBudget(string pipeName)
+        {
+            bool allowed;
+            bool firstDrop;
+            lock (_forwardedLogSync)
+            {
+                (allowed, firstDrop, _forwardedLogWindowStartUtc, _forwardedLogCount) =
+                    EvaluateForwardedLogBudget(DateTime.UtcNow, _forwardedLogWindowStartUtc, _forwardedLogCount);
+            }
+
+            if (firstDrop)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientLogRateLimited, pipeName, MaxForwardedLogsPerWindow, ForwardedLogWindow.TotalSeconds);
+            }
+
+            return allowed;
+        }
+
+        internal static (bool Allowed, bool FirstDrop, DateTime WindowStartUtc, int Count) EvaluateForwardedLogBudget(DateTime nowUtc, DateTime windowStartUtc, int count)
+        {
+            if (nowUtc - windowStartUtc >= ForwardedLogWindow || nowUtc < windowStartUtc)
+            {
+                windowStartUtc = nowUtc;
+                count = 0;
+            }
+
+            count++;
+            return (count <= MaxForwardedLogsPerWindow, count == MaxForwardedLogsPerWindow + 1, windowStartUtc, count);
         }
 
         private static string ByteArrayToString(byte[] ba)
@@ -285,7 +328,7 @@ namespace NetBannerNG.Watchdog
                 return false;
             }
 
-            if (!TryAuthorizeClientIdentity(connection, activeUserSid, connectedPipeName, EnableAclBoundIdentityFallback))
+            if (!AuthorizeClient(connection, activeUserSid, connectedPipeName!))
             {
                 return false;
             }
@@ -298,6 +341,56 @@ namespace NetBannerNG.Watchdog
             };
 #pragma warning restore CA1508 // Avoid dead conditional code
             return true;
+        }
+
+        // The kernel-reported client process is authoritative: its token SID and session must match
+        // the supervised session. Library-exposed identity metadata (and the ACL-bound fallback) is
+        // consulted only when the OS cannot report the client process at all.
+        private bool AuthorizeClient(object connection, SecurityIdentifier activeUserSid, string pipeName)
+        {
+            if (TryAuthorizeClientProcess(connection, activeUserSid, out var authorized))
+            {
+                return authorized;
+            }
+
+            return TryAuthorizeClientIdentity(connection, activeUserSid, pipeName, EnableAclBoundIdentityFallback);
+        }
+
+        private bool TryAuthorizeClientProcess(object connection, SecurityIdentifier activeUserSid, out bool authorized)
+        {
+            authorized = false;
+            if (connection is not PipeConnection<PipeMessage> { PipeStream: { } pipeStream }
+                || !PipeEndpointIdentity.TryGetClientProcessId(pipeStream, out var clientProcessId))
+            {
+                return false;
+            }
+
+            if (!PipeEndpointIdentity.TryGetClientSessionId(pipeStream, out var clientSessionId) || clientSessionId != _sessionId)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientProcessIdentityRejected, _sessionId, clientProcessId, clientSessionId, "SessionMismatch");
+                return true;
+            }
+
+            if (!Common.ProcessHelper.TryGetProcessUserSid(clientProcessId, out var clientSid) || clientSid == null)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientProcessIdentityRejected, _sessionId, clientProcessId, clientSessionId, "TokenUnavailable");
+                return true;
+            }
+
+            authorized = clientSid == activeUserSid;
+            if (!authorized)
+            {
+                Program.Log.LogWarning(EventLogCatalog.PipeClientProcessIdentityRejected, _sessionId, clientProcessId, clientSessionId, "UserMismatch");
+            }
+
+            return true;
+        }
+
+        internal static EventLogManager.PendingEntry CreateClientForwardedLogEntry(string pipeName, string? text)
+        {
+            var sanitizedText = PipeLogSanitizer.SanitizeForSingleLineLog(text);
+            var message = EventLogCatalog.PipeClientForwardedLog.Format(pipeName, Environment.NewLine, sanitizedText);
+            return new EventLogManager.PendingEntry(EventLogEntryType.Information, message, EventLogCatalog.PipeClientForwardedLog.EventId);
         }
 
         internal static bool IsAuthorizedClientConnection(uint expectedSessionId, string? connectedPipeName, uint activeSessionId) => string.Equals(PipeNaming.ForSession(expectedSessionId), connectedPipeName, StringComparison.OrdinalIgnoreCase)
@@ -375,8 +468,9 @@ namespace NetBannerNG.Watchdog
                 ?? connectionType.GetProperty("ImpersonationUserName", BindingFlags.Instance | BindingFlags.Public);
             if (userNameProperty?.GetValue(connection) is string userNameValue && !string.IsNullOrWhiteSpace(userNameValue))
             {
-                var currentUserName = WindowsIdentity.GetCurrent().Name;
-                return string.Equals(currentUserName, userNameValue, StringComparison.OrdinalIgnoreCase);
+                // Compare against the supervised session user, not the watchdog's own identity
+                // (LocalSystem in production), which would reject every legitimate client.
+                return TryTranslateToSid(userNameValue, out var userNameSid) && userNameSid == activeUserSid;
             }
 
             // H.Pipes can omit identity metadata for a valid connection. The caller enables
@@ -384,6 +478,27 @@ namespace NetBannerNG.Watchdog
             // which permits the active interactive user SID and no generic interactive principal.
             Program.Log.LogWarning(EventLogCatalog.PipeIdentityFallbackUsed, connectionType.FullName ?? connectionType.Name, pipeName ?? string.Empty, "Connection did not expose SID or username metadata; allowing because the ACL-bound session gate succeeded.");
             return true;
+        }
+
+        private static bool TryTranslateToSid(string accountName, out SecurityIdentifier? sid)
+        {
+            sid = null;
+#pragma warning disable CA1031 // Do not catch general exception types
+            try
+            {
+                sid = new NTAccount(accountName).Translate(typeof(SecurityIdentifier)) as SecurityIdentifier;
+                return sid != null;
+            }
+            catch (IdentityNotMappedException)
+            {
+                return false;
+            }
+            catch (SystemException)
+            {
+                // NTAccount.Translate reports lookup failures (Win32 errors) as SystemException.
+                return false;
+            }
+#pragma warning restore CA1031 // Do not catch general exception types
         }
 
         internal static bool TryAuthorizeClientIdentity(object connection, SecurityIdentifier activeUserSid, bool allowInteractiveUserNameFallback = false) =>

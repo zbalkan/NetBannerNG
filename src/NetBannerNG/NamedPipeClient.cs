@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
+using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -35,11 +37,24 @@ namespace NetBannerNG
         private readonly AsyncPolicyWrap _resiliencePolicy;
         private readonly AsyncTimeoutPolicy _timeoutPolicy;
         private readonly TaskCompletionSource<bool> _bootstrapReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly object _serverTrustSync = new();
+        private PipeStream? _verifiedStream;
+        private PipeStream? _rejectedStream;
         private static readonly ThreadLocal<Random> ThreadRandom = new(() => new Random(Guid.NewGuid().GetHashCode()));
 
         public NamedPipeClient(string pipeName, int timeout = 10000)
         {
-            _client = new SingleConnectionPipeClient<PipeMessage>(pipeName, formatter: new MessagePackFormatter());
+            _client = new SingleConnectionPipeClient<PipeMessage>(pipeName, formatter: new MessagePackFormatter())
+            {
+                // The service never needs to act as this user; identification is enough for it to
+                // learn who connected, and it denies a squatting server a usable impersonation token.
+                CreatePipeStreamFunc = (name, serverName) => new NamedPipeClientStream(
+                    serverName,
+                    name,
+                    PipeDirection.InOut,
+                    PipeOptions.WriteThrough | PipeOptions.Asynchronous,
+                    TokenImpersonationLevel.Identification)
+            };
 
             _client.MessageReceived += OnMessageReceived!;
             _client.Connected += OnConnected!;
@@ -81,7 +96,12 @@ namespace NetBannerNG
             {
                 await ExecuteWithResilience(_client.ConnectAsync).ConfigureAwait(false);
 
-                result = true;
+                result = IsServerTrusted();
+                if (!result)
+                {
+                    DebugTrace("InitializeFailed reason=UntrustedServer");
+                    await _client.DisposeAsync().ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
@@ -94,7 +114,7 @@ namespace NetBannerNG
             return result;
         }
 
-        internal async Task SendException(string message)
+        internal async Task SendLog(string message)
         {
             if (_client is not { IsConnected: true })
             {
@@ -214,6 +234,14 @@ namespace NetBannerNG
                 return;
             }
 
+            // H.Pipes starts reading before it raises Connected, so the first message can arrive
+            // before InitializeAsync has checked the endpoint. Verify here as well.
+            if (!IsServerTrusted())
+            {
+                DebugTrace($"InboundDroppedUntrustedServer action={args.Message.Action}");
+                return;
+            }
+
             if (!PipeMessageChecksum.IsValid(args.Message))
             {
                 DebugTrace($"InboundInvalidChecksum action={args.Message.Action} text_len={args.Message.Text?.Length ?? 0}");
@@ -246,6 +274,53 @@ namespace NetBannerNG
                     }
             }
         }
+
+        // Pipe names are predictable, so another local user can create the expected pipe before
+        // the service does. Trust the endpoint only if the kernel reports the installed watchdog
+        // service (session 0, expected image path) as the server process. Cached per stream.
+        private bool IsServerTrusted()
+        {
+            var stream = _client.Connection?.PipeStream;
+            if (stream == null)
+            {
+                return false;
+            }
+
+            lock (_serverTrustSync)
+            {
+                if (ReferenceEquals(stream, _verifiedStream))
+                {
+                    return true;
+                }
+
+                if (ReferenceEquals(stream, _rejectedStream))
+                {
+                    return false;
+                }
+
+                if (VerifyServer(stream))
+                {
+                    _verifiedStream = stream;
+                    return true;
+                }
+
+                _rejectedStream = stream;
+                DebugTrace("ServerVerificationFailed");
+                return false;
+            }
+        }
+
+#pragma warning disable IDE0022 // Use expression body for method
+        private static bool VerifyServer(PipeStream stream)
+        {
+#if DEBUG
+            // Debug builds host the watchdog interactively (not as a session-0 service).
+            return stream.IsConnected;
+#else
+            return PipeEndpointIdentity.IsServerInstalledWatchdog(stream);
+#endif
+        }
+#pragma warning restore IDE0022 // Use expression body for method
 
         private void OnExceptionOccurred(object o, ExceptionEventArgs args) => DebugTrace($"PipeException {args.Exception.Message}");
 
