@@ -33,8 +33,14 @@ namespace NetBannerNG.Utils
         private const int WindowCachePruneEveryNMisses = 32;
         private const long WindowCachePruneCadenceTicks = TimeSpan.TicksPerMillisecond * 750;
         private const int WindowCacheMaxEntries = 512;
+        private const int GwlExStyle = -20;
+        private const long WsExTransparent = 0x00000020L;
+        private const long WsExToolWindow = 0x00000080L;
+        private const long WsExNoActivate = 0x08000000L;
+        private static readonly TimeSpan LocationChangeDebounce = TimeSpan.FromMilliseconds(150);
         private static IntPtr _foregroundHookId;
         private static long _lastReEvaluatedAtTicks;
+        private static DispatcherTimer? _trailingEvaluationTimer;
         private static IntPtr _locationHookId;
         private static long _previousForegroundWindowValue;
         internal static event Action<IReadOnlyDictionary<string, FullscreenSuppressionState>>? FullscreenSuppressionUpdated;
@@ -49,6 +55,7 @@ namespace NetBannerNG.Utils
             {
                 if (_foregroundHookId != default) { _ = User32.UnhookWinEvent(_foregroundHookId); _foregroundHookId = default; }
                 if (_locationHookId != default) { _ = User32.UnhookWinEvent(_locationHookId); _locationHookId = default; }
+                _trailingEvaluationTimer?.Stop();
             }
             // Hook callbacks can race while the UI loop is draining; keep state-map resets serialized.
             lock (SuppressionStateSync) { LastSuppressionStateByGroup.Clear(); }
@@ -69,6 +76,12 @@ namespace NetBannerNG.Utils
                     // change the foreground window.
                     _locationHookId = SetHook(EventObjectLocationChange, EventObjectLocationChange);
                 }
+
+                if (_trailingEvaluationTimer == null && Application.Current?.Dispatcher is { } dispatcher)
+                {
+                    _trailingEvaluationTimer = new DispatcherTimer(DispatcherPriority.Background, dispatcher) { Interval = LocationChangeDebounce };
+                    _trailingEvaluationTimer.Tick += OnTrailingEvaluationTick;
+                }
             }
         }
 
@@ -82,8 +95,16 @@ namespace NetBannerNG.Utils
             var monitors = Monitor.AllMonitors.ToList();
             var ownWindowHandles = SnapshotOwnWindowHandles();
             var windows = SnapshotWindowsInZOrder();
-            var fullscreenByGroup = FullscreenSuppressionEvaluator.EvaluateByGroup(monitors, ownWindowHandles, windows);
-            var fullscreenAppByGroup = ResolveFullscreenAppsByGroup(monitors, ownWindowHandles, windows);
+            var boundsGroupToActualGroup = monitors.ToDictionary(
+                monitor => MonitorIdentity.BuildGroupId(string.Empty, monitor.Bounds),
+                MonitorIdentity.BuildGroupId,
+                StringComparer.Ordinal);
+            var suppressingWindows = FullscreenSuppressionEvaluator.FindSuppressingWindowsByGroup(boundsGroupToActualGroup, ownWindowHandles, windows);
+            var fullscreenByGroup = monitors
+                .Select(MonitorIdentity.BuildGroupId)
+                .Distinct(StringComparer.Ordinal)
+                .ToDictionary(groupId => groupId, suppressingWindows.ContainsKey, StringComparer.Ordinal);
+            var fullscreenAppByGroup = suppressingWindows.ToDictionary(pair => pair.Key, pair => ResolveWindowProcessName(pair.Value.ProcessId), StringComparer.Ordinal);
 
             Debug.WriteLine($"[Fullscreen][Scan] Monitors={monitors.Count} OwnWindows={ownWindowHandles.Count} WindowsScanned={windows.Count}");
             BeginOnUi(() => {
@@ -182,21 +203,53 @@ namespace NetBannerNG.Utils
                     return;
                 }
 
-                const long debounceTicks = TimeSpan.TicksPerMillisecond * 150;
+                lock (WindowCacheSync) { WindowRectCache.Remove(hWnd); }
+
+                // Leading edge reacts immediately; the trailing timer re-evaluates once the burst
+                // settles so the final rectangle of a resize/fullscreen transition is always seen.
+                RestartTrailingEvaluation();
                 var now = DateTime.UtcNow.Ticks;
-                if (now - Interlocked.Read(ref _lastReEvaluatedAtTicks) < debounceTicks)
+                if (now - Interlocked.Read(ref _lastReEvaluatedAtTicks) < LocationChangeDebounce.Ticks)
                 {
                     return;
                 }
 
                 Interlocked.Exchange(ref _lastReEvaluatedAtTicks, now);
-                lock (WindowCacheSync) { WindowRectCache.Remove(hWnd); }
             }
             else
             {
                 return;
             }
 
+            ApplyPerMonitorFullscreenSuppression();
+        }
+
+        private static void RestartTrailingEvaluation()
+        {
+            var timer = _trailingEvaluationTimer;
+            if (timer == null)
+            {
+                return;
+            }
+
+            timer.Stop();
+            timer.Start();
+        }
+
+        private static void OnTrailingEvaluationTick(object? sender, EventArgs e)
+        {
+            _trailingEvaluationTimer?.Stop();
+            lock (HookSync)
+            {
+                if (_locationHookId == default)
+                {
+                    return;
+                }
+            }
+
+            var foreground = User32.GetForegroundWindow();
+            lock (WindowCacheSync) { WindowRectCache.Remove(foreground); }
+            Interlocked.Exchange(ref _lastReEvaluatedAtTicks, DateTime.UtcNow.Ticks);
             ApplyPerMonitorFullscreenSuppression();
         }
 
@@ -223,6 +276,15 @@ namespace NetBannerNG.Utils
             }
 
             if (!User32.IsWindowVisible(hwnd) || User32.IsIconic(hwnd))
+            {
+                return false;
+            }
+
+            // Click-through, tool and non-activatable windows are overlays (GPU/recorder/chat
+            // overlays, notification surfaces). They neither represent a fullscreen app nor hide
+            // one, so they must not be able to suppress the banner or block suppression.
+            var exStyle = User32.GetWindowLongPtr(hwnd, GwlExStyle).ToInt64();
+            if ((exStyle & (WsExTransparent | WsExToolWindow | WsExNoActivate)) != 0)
             {
                 return false;
             }
@@ -283,42 +345,8 @@ namespace NetBannerNG.Utils
             }
         }
 
-        private static Dictionary<string, string> ResolveFullscreenAppsByGroup(IReadOnlyList<Monitor> monitors, HashSet<IntPtr> ownWindowHandles, IReadOnlyList<FullscreenSuppressionEvaluator.WindowSnapshot> windows)
+        private static string ResolveWindowProcessName(uint processId)
         {
-            var boundsGroupToActualGroup = monitors.ToDictionary(
-                monitor => MonitorIdentity.BuildGroupId(string.Empty, monitor.Bounds),
-                MonitorIdentity.BuildGroupId,
-                StringComparer.Ordinal);
-            var results = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var window in windows)
-            {
-                if (!window.IsVisible || ownWindowHandles.Contains(window.Handle))
-                {
-                    continue;
-                }
-
-                var boundsGroupId = MonitorIdentity.BuildGroupId(string.Empty, (Rect)window.MonitorBounds);
-                if (!boundsGroupToActualGroup.TryGetValue(boundsGroupId, out var groupId) || results.ContainsKey(groupId))
-                {
-                    continue;
-                }
-
-                if (!FullscreenSuppressionEvaluator.IsFullscreen(window.Bounds, window.MonitorBounds))
-                {
-                    continue;
-                }
-
-                var processName = ResolveWindowProcessName(window.Handle);
-                Debug.WriteLine($"[Fullscreen][Candidate] Group={groupId} HWND={window.Handle} Class={GetClassNameSafe(window.Handle)} Process={processName} Bounds={window.Bounds} Monitor={window.MonitorBounds}");
-                results[groupId] = processName;
-            }
-
-            return results;
-        }
-
-        private static string ResolveWindowProcessName(IntPtr handle)
-        {
-            _ = User32.GetWindowThreadProcessId(handle, out var processId);
             if (processId == 0)
             {
                 return "Unknown";
@@ -370,7 +398,8 @@ namespace NetBannerNG.Utils
                 {
                     var monitorBounds = Monitor.GetMonitorBounds(current);
                     var windowBounds = GetWindowBounds(current);
-                    windows.Add(new FullscreenSuppressionEvaluator.WindowSnapshot(current, windowBounds, monitorBounds, User32.IsWindowVisible(current)));
+                    _ = User32.GetWindowThreadProcessId(current, out var processId);
+                    windows.Add(new FullscreenSuppressionEvaluator.WindowSnapshot(current, windowBounds, monitorBounds, User32.IsWindowVisible(current), processId));
                 }
 
                 current = User32.GetWindow(current, gwHwndNext);
