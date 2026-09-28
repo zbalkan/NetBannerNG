@@ -53,8 +53,6 @@ namespace NetBannerNG.Watchdog
         public static readonly EventDefinition ProcessFailedToKill = new(4003, "Failed to kill process PID={0}. Error: {1}");
         public static readonly EventDefinition SessionChangedReinitializingPipe = new(4004, "Interactive session changed from {0} to {1}; reinitializing per-session pipe server.");
         public static readonly EventDefinition ProcessIdentityValidationFailed = new(4005, "Process identity validation failed for PID={0}. ErrorType={1}");
-        public static readonly EventDefinition ProcessCommandLineUnavailable = new(4006, "Command-line unavailable for tracked process PID={0}; relying on tracked launch metadata.");
-
         public static readonly EventDefinition UnhandledException = new(9000, "Unhandled exception captured. {0}");
     }
 

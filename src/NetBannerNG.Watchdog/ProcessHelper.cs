@@ -242,7 +242,7 @@ namespace NetBannerNG.Watchdog
 
                 // Avoid Process.MainModule access here; cross-session and transient process states can
                 // throw Win32Exception (e.g., partial ReadProcessMemory) and cause noisy failures.
-                // Identity is validated using tracked PID + start time + expected --pipe argument.
+                // Identity is validated using tracked PID + session + process name + start time.
                 if (!string.Equals(process.ProcessName, ChildProcessName, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
@@ -374,10 +374,6 @@ namespace NetBannerNG.Watchdog
             }
 #pragma warning restore CA1031 // Do not catch general exception types
         }
-
-
-        internal static bool HasExpectedPipeArgument(string? commandLine, string expectedPipeName) => !string.IsNullOrWhiteSpace(commandLine) && !string.IsNullOrWhiteSpace(expectedPipeName)
-                && commandLine!.IndexOf($"--pipe={expectedPipeName}", StringComparison.OrdinalIgnoreCase) >= 0;
 
         internal static bool IsExpectedChildSession(int processSessionId, uint launchedSessionId) =>
             processSessionId >= 0 && processSessionId == (int)launchedSessionId;

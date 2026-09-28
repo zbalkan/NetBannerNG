@@ -65,7 +65,7 @@ Release builds are service-context only.
 
 Current accepted behavior:
 - Service watchdog + user-session UI model is the production pattern.
-- On service/pipe disconnect, UI currently records a debug trace only (`NamedPipeClient.OnDisconnected`); relaunch/recovery remains service-driven.
+- On service/pipe disconnect, the UI shuts itself down (`NamedPipeClient.OnDisconnected` -> `App.ShutDownGracefully`); relaunch/recovery remains service-driven.
 - Relaunch logic includes retry/backoff and health counters.
 
 Known design considerations:
