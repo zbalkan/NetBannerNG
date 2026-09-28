@@ -137,6 +137,40 @@ namespace NetBannerNG.Watchdog
             return children.Count > 0;
         }
 
+        public static bool WaitForAllChildProcessesExit(TimeSpan timeout)
+        {
+            var deadlineUtc = DateTime.UtcNow + timeout;
+            var children = GetChildProcesses();
+            try
+            {
+                foreach (var process in children)
+                {
+                    var remaining = deadlineUtc - DateTime.UtcNow;
+                    if (remaining <= TimeSpan.Zero)
+                    {
+                        return false;
+                    }
+
+                    var remainingMilliseconds = (int)Math.Min(int.MaxValue, Math.Ceiling(remaining.TotalMilliseconds));
+                    if (!process.WaitForExit(remainingMilliseconds))
+                    {
+                        return false;
+                    }
+
+                    UntrackLaunchedProcess(process.Id);
+                }
+
+                return true;
+            }
+            finally
+            {
+                foreach (var process in children)
+                {
+                    process.Dispose();
+                }
+            }
+        }
+
         private static ProcessStartInfo BuildChildProcessStartInfo(string path, string pipeName) =>
             new()
             {
