@@ -124,6 +124,15 @@ namespace NetBannerNG.Common.AppBar
 
             if (edge == DockEdge.None)
             {
+                // A window that never acquired an HWND cannot have registered an AppBar.
+                // Treat this as an idempotent no-op rather than calling DWM APIs with HWND 0.
+                // If registration did occur, retain the normal ABM_REMOVE path.
+                if (appBarData.hWnd == IntPtr.Zero && !info.IsRegistered)
+                {
+                    info.DockedSize = null;
+                    return;
+                }
+
                 // When docked, hiding on Peek and Show Desktop actions was blocked.
                 // Restore normal desktop window manager attributes.
                 appBarData.Unregister(info).NormalizeHideBehavior();
